@@ -1,6 +1,10 @@
 /**
  * Central configuration for Everde AI Operations portal navigation.
  * Paths are relative to the JS Files root on the internal share.
+ *
+ * Deployment: the app is developed and tested on localhost for speed.
+ * The product target is a hosted web portal for many users on phones,
+ * tablets, and desktop browsers (responsive UI, public or SSO URL, etc.).
  */
 export const DATA_ROOT_UNC =
   "\\\\192.168.190.10\\Claude Sandbox\\JS Files";

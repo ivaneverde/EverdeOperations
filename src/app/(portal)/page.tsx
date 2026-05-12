@@ -18,6 +18,17 @@ export default function PortalHomePage() {
             maps to an existing workbook on the internal share while we stand
             up automated ingestion and interactive analytics.
           </p>
+          <p
+            className="mt-5 max-w-3xl border-t border-white/20 pt-4 text-xs leading-relaxed text-zinc-300"
+            role="note"
+          >
+            <span className="font-semibold text-[var(--everde-gold)]">
+              Phase note:
+            </span>{" "}
+            Local development only for fast design and testing. Later this will
+            move to an online portal for broad access on phones, tablets, and
+            desktop browsers.
+          </p>
         </header>
         <div className="grid gap-5 md:grid-cols-2">
           {PORTAL_SECTIONS.map((section, i) => {
