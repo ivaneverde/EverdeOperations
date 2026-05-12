@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --everde-forest: #1b4332;
+  --everde-forest-deep: #0f241a;
+  --everde-gold: #d4a853;
+  --everde-canvas: #f4f1ea;
+  --everde-sidebar: #0f241a;
+  --everde-sidebar-fg: #e7e5e4;
+  --everde-border: #2a3b32;
+  --background: #f4f1ea;
+  --foreground: #1a1a1a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.everde-strip {
+  background: linear-gradient(
+    120deg,
+    var(--everde-forest-deep),
+    var(--everde-forest) 45%,
+    #234836 100%
+  );
+}
