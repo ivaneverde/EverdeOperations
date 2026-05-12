@@ -55,6 +55,15 @@ const nextConfig: NextConfig = {
   eslint: {
     dirs: ["src"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/communication/teams",
+        destination: "/communication",
+        permanent: true,
+      },
+    ];
+  },
   webpack: (config) => {
     config.plugins.push(new NormalizeProjectPathCasingPlugin());
     return config;

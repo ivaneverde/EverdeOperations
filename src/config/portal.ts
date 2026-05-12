@@ -1,29 +1,47 @@
 /**
  * Central configuration for Everde AI Operations portal navigation.
- * Paths are relative to the JS Files root on the internal share.
+ * Paths are relative to the DataDrops root on the internal share.
  *
  * Deployment: the app is developed and tested on localhost for speed.
  * The product target is a hosted web portal for many users on phones,
  * tablets, and desktop browsers (responsive UI, public or SSO URL, etc.).
  */
 export const DATA_ROOT_UNC =
-  "\\\\192.168.190.10\\Claude Sandbox\\JS Files";
+  "\\\\192.168.190.10\\Claude Sandbox\\DataDrops";
 
 export type PortalReport = {
   slug: string;
   title: string;
   /** Path under DATA_ROOT_UNC for operators / future ETL */
   sourceRelativePath: string;
+  /**
+   * When set, shown as the report Source path instead of `DATA_ROOT_UNC` + `sourceRelativePath`.
+   * Use for files that still live under another share root (e.g. legacy JS Files).
+   */
+  sourceAbsoluteUnc?: string;
   /** Optional Excel-style tab names to mirror in the web UI later */
   sheetTabs?: string[];
   notes?: string;
 };
+
+/** UNC path shown in the portal for a report's source file (workbook, HTML, etc.). */
+export function getReportSourceUncPath(report: PortalReport): string | null {
+  const abs = report.sourceAbsoluteUnc?.trim();
+  if (abs) {
+    return abs.replace(/\//g, "\\");
+  }
+  const rel = report.sourceRelativePath?.trim();
+  if (!rel) return null;
+  return `${DATA_ROOT_UNC}\\${rel}`;
+}
 
 export type PortalSection = {
   id: string;
   title: string;
   summary: string;
   shareFolder: string;
+  /** When true, navigation goes to /[id] only; `reports` should be empty. */
+  sectionOnly?: boolean;
   reports: PortalReport[];
 };
 
@@ -137,7 +155,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "everde-freight-data-ytd",
         title: "Everde Freight Data (YTD)",
         sourceRelativePath:
-          "Freight\\Everde Freight Data YTD 5-09-26 with MAR-26 Rates with adj 26 BUD YE COSTS.xlsb",
+          "Everde Freight Data YTD 5-09-26 with MAR-26 Rates with adj 26 BUD YE COSTS.xlsb",
         notes:
           "Large binary workbook — candidate for warehouse / parquet in a later phase.",
       },
@@ -158,19 +176,12 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   },
   {
     id: "communication",
-    title: "Communication",
+    title: "Communication - Teams",
+    sectionOnly: true,
     summary:
       "Microsoft Teams–backed messaging and channel surfacing for executives (Graph API).",
     shareFolder: "(Microsoft Teams — integrate via Graph)",
-    reports: [
-      {
-        slug: "teams",
-        title: "Teams workspace",
-        sourceRelativePath: "",
-        notes:
-          "Requires Entra ID app registration, delegated permissions (e.g. ChannelMessage.Send), and secure token handling in a backend service.",
-      },
-    ],
+    reports: [],
   },
 ];
 
@@ -183,8 +194,12 @@ export function getReport(
   reportSlug: string,
 ): { section: PortalSection; report: PortalReport } | undefined {
   const section = getSection(sectionId);
-  if (!section) return undefined;
+  if (!section || section.sectionOnly) return undefined;
   const report = section.reports.find((r) => r.slug === reportSlug);
   if (!report) return undefined;
   return { section, report };
+}
+
+export function isSectionOnly(section: PortalSection): boolean {
+  return section.sectionOnly === true;
 }

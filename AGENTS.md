@@ -10,7 +10,7 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 ## Everde — saved decisions & backlog (handoff)
 
-**Repo / app:** Next.js portal at `C:\Users\isunderland\everde-ai-operations` (package `everde-ai-operations`). Data config: `src/config/portal.ts` (`DATA_ROOT_UNC` = `\\192.168.190.10\Claude Sandbox\JS Files`).
+**Repo / app:** Next.js portal at `C:\Users\isunderland\everde-ai-operations` (package `everde-ai-operations`). Data config: `src/config/portal.ts` (`DATA_ROOT_UNC` = `\\192.168.190.10\Claude Sandbox\DataDrops`).
 
 **Current portal behavior:** Subsections are in-app routes only. They **do not** open Excel over SMB and **do not** recalculate workbooks yet — `ReportPlaceholder` + `ReportShell` show UNC paths for traceability; real metrics require a future **ingest → compute → persist → bind UI** pipeline.
 
@@ -20,7 +20,7 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **Centralized file drop (TODO):** Add explicit inbox under share (e.g. `Shared\_incoming` or `Shared\WeeklyDrop`) so weekly drops are not scattered; separate **inbound feeds** from **published report outputs** if needed.
 
-**Inventory script (TODO — user requested):** Walk `JS Files` tree, emit CSV/MD with columns like `path, size, lastWrite, guessed_role` (`feed` | `reference` | `output` | `code`) using heuristics (naming, size, folder).
+**Inventory script (TODO — user requested):** Walk `DataDrops` tree, emit CSV/MD with columns like `path, size, lastWrite, guessed_role` (`feed` | `reference` | `output` | `code`) using heuristics (naming, size, folder).
 
 **Online / VPN:** Production should not rely on each user mounting UNC; use **sync/ETL** from share (agent on VPN/LAN) into **cloud storage + DB** the hosted app reads. Git for **source code** is separate from where Excel binaries live.
 

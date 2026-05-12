@@ -6,9 +6,11 @@ export default function PortalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex h-dvh min-h-0">
       <AppSidebar />
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">
+        {children}
+      </main>
     </div>
   );
 }

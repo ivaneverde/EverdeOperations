@@ -1,5 +1,5 @@
 import type { PortalReport, PortalSection } from "@/config/portal";
-import { DATA_ROOT_UNC } from "@/config/portal";
+import { getReportSourceUncPath } from "@/config/portal";
 
 type ReportShellProps = {
   section: PortalSection;
@@ -8,10 +8,7 @@ type ReportShellProps = {
 };
 
 export function ReportShell({ section, report, children }: ReportShellProps) {
-  const fullPath =
-    report.sourceRelativePath.length > 0
-      ? `${DATA_ROOT_UNC}\\${report.sourceRelativePath}`
-      : null;
+  const fullPath = getReportSourceUncPath(report);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--everde-canvas)]">

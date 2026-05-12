@@ -1,0 +1,6 @@
+# Python deps for \\...\Freight\_pipeline\update.py and scripts\01_*.py … 23_*.py
+# Install: python -m pip install -r scripts/freight/requirements-pipeline.txt
+pandas>=2.0,<3
+numpy>=1.26,<3
+pyxlsb>=1.0.10
+openpyxl>=3.1,<4

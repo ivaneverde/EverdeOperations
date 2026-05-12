@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PORTAL_SECTIONS } from "@/config/portal";
+import { isSectionOnly, PORTAL_SECTIONS } from "@/config/portal";
 
 export default function PortalHomePage() {
   return (
@@ -32,7 +32,9 @@ export default function PortalHomePage() {
         </header>
         <div className="grid gap-5 md:grid-cols-2">
           {PORTAL_SECTIONS.map((section, i) => {
+            const only = isSectionOnly(section);
             const first = section.reports[0];
+            const href = only ? `/${section.id}` : first ? `/${section.id}/${first.slug}` : `/${section.id}`;
             return (
               <article
                 key={section.id}
@@ -54,12 +56,12 @@ export default function PortalHomePage() {
                   </span>
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {first && (
+                  {(only || first) && (
                     <Link
-                      href={`/${section.id}/${first.slug}`}
+                      href={href}
                       className="inline-flex items-center rounded-md bg-[var(--everde-forest)] px-3 py-2 text-sm font-medium text-white hover:bg-[#143524]"
                     >
-                      Open first report
+                      {only ? "Open section" : "Open first report"}
                     </Link>
                   )}
                 </div>
