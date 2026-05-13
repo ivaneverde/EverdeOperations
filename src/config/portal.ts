@@ -331,22 +331,31 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     ],
   },
   {
-    id: "nursery-inventory-analytics",
-    title: "Inventory Analytics (Nurseries)",
+    id: "supply-inventory",
+    title: "Supply Inventory",
     summary:
-      "Supply inventory from price-list inputs and production versus demand metrics (weekly drops on the share).",
-    shareFolder: "SalesInventoryPriceList / InventoryMetrics",
+      "Price-list and saleable inventory views for nursery operations (weekly drops on the share).",
+    shareFolder: "SalesInventoryPriceList",
     reports: [
       {
-        slug: "supply-inventory",
+        slug: "overview",
         title: "Supply Inventory",
         sourceRelativePath:
           "SalesInventoryPriceList\\Sales_Inventory___Price_List_060526.xls",
         notes:
           "Drop the latest Sales / Inventory / Price List workbook here; filenames rotate weekly.",
       },
+    ],
+  },
+  {
+    id: "production-demand-plan",
+    title: "Production & Demand Plan",
+    summary:
+      "Inventory metrics versus demand windows and plans (weekly drops on the share).",
+    shareFolder: "InventoryMetrics",
+    reports: [
       {
-        slug: "production-demand-plan",
+        slug: "overview",
         title: "Production & Demand Plan",
         sourceRelativePath: "InventoryMetrics\\Inventory Metrics 05 11 26.xlsb",
         notes:

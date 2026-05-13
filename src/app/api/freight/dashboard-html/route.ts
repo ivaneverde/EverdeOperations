@@ -11,6 +11,17 @@ export const dynamic = "force-dynamic";
 
 const DASHBOARD_HTML_RE = /^Everde_Freight_Dashboard.*\.html$/i;
 
+/** Hide duplicate inner nav when the HTML is embedded in the portal iframe (Option B). */
+const IFRAME_INNER_NAV_HIDE_STYLE = `<style data-everde-portal="hide-inner-nav">aside.sidebar{display:none!important}body .layout{grid-template-columns:1fr!important}</style>`;
+
+function injectHideInnerNav(html: string): string {
+  const m = /<\/head\s*>/i.exec(html);
+  if (m && m.index >= 0) {
+    return html.slice(0, m.index) + IFRAME_INNER_NAV_HIDE_STYLE + html.slice(m.index);
+  }
+  return IFRAME_INNER_NAV_HIDE_STYLE + html;
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -78,7 +89,8 @@ export async function GET() {
   }
 
   try {
-    const html = await fs.readFile(filePath, "utf8");
+    const raw = await fs.readFile(filePath, "utf8");
+    const html = injectHideInnerNav(raw);
     return new NextResponse(html, {
       status: 200,
       headers: {
