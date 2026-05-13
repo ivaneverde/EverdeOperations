@@ -149,7 +149,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       {
         slug: "everde-freight-dashboard",
         title: "Everde Freight Dashboard",
-        sourceRelativePath: "Freight\\Everde_Freight_Dashboard_2026-05-11.xlsx",
+        sourceRelativePath: "Freight\\Everde_Freight_Dashboard_2026-05-11.xlsb",
       },
       {
         slug: "everde-freight-data-ytd",

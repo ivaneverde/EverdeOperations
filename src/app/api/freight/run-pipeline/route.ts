@@ -8,7 +8,7 @@ import {
 } from "@/lib/sharePaths";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 900;
+export const maxDuration = 3600;
 
 const execFileAsync = promisify(execFile);
 
@@ -83,7 +83,7 @@ export async function POST() {
 
   const timeoutMs =
     Number(process.env.FREIGHT_PIPELINE_TIMEOUT_MS?.trim()) ||
-    15 * 60 * 1000;
+    60 * 60 * 1000;
 
   const cwd = uncPathForChildProcess(pipelineDirPosix);
 
@@ -116,23 +116,27 @@ export async function POST() {
       ok: true,
       cwd,
       python: [invoke.cmd, ...invoke.args].join(" "),
-      stdout: stdout.slice(-8000),
-      stderr: stderr.slice(-8000),
+      stdout: stdout.slice(-24_000),
+      stderr: stderr.slice(-24_000),
     });
   } catch (err: unknown) {
     const e = err as { stdout?: string; stderr?: string; message?: string };
     const stderr = e.stderr ?? "";
+    const msg = e.message ?? "";
     const hint =
       /Python was not found|No Python at|failed to locate py/i.test(stderr) ||
-      /Python was not found/i.test(e.message ?? "")
+      /Python was not found/i.test(msg)
         ? NO_PYTHON_HINT
-        : undefined;
+        : /ETIMEDOUT|timed out|timeout/i.test(msg)
+          ? `Pipeline hit the Node subprocess timeout (${timeoutMs} ms). Set FREIGHT_PIPELINE_TIMEOUT_MS in .env.local (e.g. 7200000 for 2 hours) and restart npm run dev.`
+          : undefined;
     return NextResponse.json(
       {
         ok: false,
-        error: e.message ?? "Pipeline failed",
-        stdout: e.stdout?.slice(-8000),
-        stderr: stderr.slice(-8000),
+        error: msg || "Pipeline failed",
+        stdout: e.stdout?.slice(-32_000),
+        stderr: stderr.slice(-32_000),
+        timeoutMs,
         ...(hint ? { hint } : {}),
       },
       { status: 500 },
