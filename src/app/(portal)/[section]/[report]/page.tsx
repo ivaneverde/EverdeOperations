@@ -19,16 +19,29 @@ export default async function ReportPage(
     return <SalesManagerSummaryPage section={sec} report={rep} />;
   }
 
-  if (sec.id === "load-board-freight" && rep.slug === "everde-freight-dashboard") {
-    return (
-      <ReportShell section={sec} report={rep}>
-        <FreightDashboardEmbed />
-      </ReportShell>
-    );
-  }
-
   if (sec.id === "load-board-freight" && rep.slug === "everde-freight-data-ytd") {
     return <FreightYtdSourcePage section={sec} report={rep} />;
+  }
+
+  const freightTab =
+    typeof rep.freightHtmlTab === "string" && rep.freightHtmlTab.trim().length > 0
+      ? rep.freightHtmlTab.trim()
+      : null;
+  const isPrimaryFreightDashboard =
+    sec.id === "load-board-freight" && rep.slug === "everde-freight-dashboard";
+  const isFreightHtmlEmbed = isPrimaryFreightDashboard || freightTab != null;
+
+  if (isFreightHtmlEmbed) {
+    const showPipeline = isPrimaryFreightDashboard;
+    const tab = freightTab ?? "Cover";
+    return (
+      <ReportShell section={sec} report={rep}>
+        <FreightDashboardEmbed
+          freightHtmlTab={tab}
+          showPipelineControls={showPipeline}
+        />
+      </ReportShell>
+    );
   }
 
   return (

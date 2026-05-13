@@ -84,11 +84,20 @@ export function AppSidebar() {
                               href={href}
                               className={
                                 isActive
-                                  ? "block rounded-md bg-[var(--everde-gold)]/15 px-1.5 py-0.5 text-white ring-1 ring-[var(--everde-gold)]/40"
-                                  : "block rounded-md px-1.5 py-0.5 text-zinc-300 hover:bg-white/5 hover:text-white"
+                                  ? "flex items-center gap-1.5 rounded-md bg-[var(--everde-gold)]/15 px-1.5 py-0.5 text-white ring-1 ring-[var(--everde-gold)]/40"
+                                  : "flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-zinc-300 hover:bg-white/5 hover:text-white"
                               }
                             >
-                              {r.title}
+                              {r.navAccent ? (
+                                <span
+                                  aria-hidden
+                                  className="h-2 w-2 shrink-0 rounded-full ring-1 ring-white/20"
+                                  style={{ backgroundColor: `#${r.navAccent}` }}
+                                />
+                              ) : (
+                                <span className="w-2 shrink-0" aria-hidden />
+                              )}
+                              <span className="min-w-0">{r.title}</span>
                             </Link>
                           </li>
                         );

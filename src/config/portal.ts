@@ -9,6 +9,10 @@
 export const DATA_ROOT_UNC =
   "\\\\192.168.190.10\\Claude Sandbox\\DataDrops";
 
+/** Workbook shown as Source for freight HTML tab mirrors (same artifact as the embed). */
+const FREIGHT_DASHBOARD_SOURCE =
+  "Freight\\Everde_Freight_Dashboard_2026-05-11.xlsb";
+
 export type PortalReport = {
   slug: string;
   title: string;
@@ -22,6 +26,13 @@ export type PortalReport = {
   /** Optional Excel-style tab names to mirror in the web UI later */
   sheetTabs?: string[];
   notes?: string;
+  /**
+   * When set, this report renders the freight HTML embed (`/api/freight/dashboard-html`)
+   * and calls the iframe `activate(tab)` with this exact tab name (must match `data-tab` in the HTML).
+   */
+  freightHtmlTab?: string;
+  /** Optional hex color (no #) for a small sidebar dot, matching dashboard tab colors */
+  navAccent?: string;
 };
 
 /** UNC path shown in the portal for a report's source file (workbook, HTML, etc.). */
@@ -94,6 +105,30 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         sourceRelativePath:
           "West Coast Retail Opportunity\\Wk13 Item-Level Miss Analysis (Refresh 5.6).xlsx",
       },
+      {
+        slug: "freight-top-opportunities",
+        title: "Top Opportunities",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Top Opportunities",
+        navAccent: "C0392B",
+        notes: "Freight dashboard tab opened here for executive retail context.",
+      },
+      {
+        slug: "freight-top-opportunities-last-week",
+        title: "Top Opportunities — Last Week",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Top Opportunities — Last Week",
+        navAccent: "C0392B",
+        notes: "Freight dashboard tab; em dash must match the HTML `data-tab` label.",
+      },
+      {
+        slug: "freight-sales-performance",
+        title: "Sales Performance",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Sales Performance",
+        navAccent: "C49B3F",
+        notes: "Freight dashboard tab (lane-level sales performance).",
+      },
     ],
   },
   {
@@ -134,6 +169,132 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     shareFolder: "Freight",
     reports: [
       {
+        slug: "everde-freight-dashboard",
+        title: "Everde Freight Dashboard",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        notes:
+          "Primary HTML embed with Run pipeline. Inner sidebar can stay visible or be hidden later (Option B).",
+      },
+      {
+        slug: "freight-tab-cover",
+        title: "Cover",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Cover",
+        navAccent: "2F5233",
+      },
+      {
+        slug: "freight-tab-exec-summary",
+        title: "Exec Summary",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Exec Summary",
+        navAccent: "C49B3F",
+      },
+      {
+        slug: "freight-tab-n-ca-dashboard",
+        title: "N. CA Dashboard",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "N. CA Dashboard",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "freight-tab-s-ca-dashboard",
+        title: "S. CA Dashboard",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "S. CA Dashboard",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "freight-tab-tx-dashboard",
+        title: "TX Dashboard",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "TX Dashboard",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "freight-tab-fl-dashboard",
+        title: "FL Dashboard",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "FL Dashboard",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "freight-tab-for-dashboard",
+        title: "FOR Dashboard",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "FOR Dashboard",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "freight-tab-site-region-analysis",
+        title: "Site & Region Analysis",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Site & Region Analysis",
+        navAccent: "404040",
+      },
+      {
+        slug: "freight-tab-trailer-trip-analysis",
+        title: "Trailer & Trip Analysis",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Trailer & Trip Analysis",
+        navAccent: "404040",
+      },
+      {
+        slug: "freight-tab-3rd-party-analysis",
+        title: "3rd Party Analysis",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "3rd Party Analysis",
+        navAccent: "404040",
+      },
+      {
+        slug: "freight-tab-internal-freight-analysis",
+        title: "Internal Freight Analysis",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Internal Freight Analysis",
+        navAccent: "404040",
+      },
+      {
+        slug: "freight-tab-variance-drivers",
+        title: "Variance Drivers",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Variance Drivers",
+        navAccent: "404040",
+      },
+      {
+        slug: "freight-tab-pivot-playground",
+        title: "Pivot Playground",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Pivot Playground",
+        navAccent: "404040",
+      },
+      {
+        slug: "freight-tab-lane-recovery",
+        title: "Lane Recovery",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Lane Recovery",
+        navAccent: "C49B3F",
+      },
+      {
+        slug: "freight-tab-fuel-cost",
+        title: "Fuel Cost",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Fuel Cost",
+        navAccent: "5B4F8A",
+      },
+      {
+        slug: "freight-tab-pricing-adjustments",
+        title: "Pricing Adjustments",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Pricing Adjustments",
+        navAccent: "7B5EA7",
+      },
+      {
+        slug: "freight-tab-reference",
+        title: "Reference",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Reference",
+        navAccent: "BFBFBF",
+      },
+      {
         slug: "3p-top5-lanes-carrier-analysis",
         title: "3P Top 5 Lanes — Carrier Cost Analysis",
         sourceRelativePath: "Freight\\3P_Top5_Lanes_Carrier_Analysis_2026-05-04.xlsx",
@@ -145,11 +306,6 @@ export const PORTAL_SECTIONS: PortalSection[] = [
           "4. GFL-TEXAS-AUSTIN-WACO-R",
           "5. FOR-CALIFORNIA-SAN-DIEGO-V",
         ],
-      },
-      {
-        slug: "everde-freight-dashboard",
-        title: "Everde Freight Dashboard",
-        sourceRelativePath: "Freight\\Everde_Freight_Dashboard_2026-05-11.xlsb",
       },
       {
         slug: "everde-freight-data-ytd",
@@ -171,6 +327,30 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         sourceRelativePath: "Freight\\Everde_Freight_Dashboard_2026-05-04.html",
         notes:
           "Prior HTML export; useful for visual parity while rebuilding charts in React.",
+      },
+    ],
+  },
+  {
+    id: "nursery-inventory-analytics",
+    title: "Inventory Analytics (Nurseries)",
+    summary:
+      "Supply inventory from price-list inputs and production versus demand metrics (weekly drops on the share).",
+    shareFolder: "SalesInventoryPriceList / InventoryMetrics",
+    reports: [
+      {
+        slug: "supply-inventory",
+        title: "Supply Inventory",
+        sourceRelativePath:
+          "SalesInventoryPriceList\\Sales_Inventory___Price_List_060526.xls",
+        notes:
+          "Drop the latest Sales / Inventory / Price List workbook here; filenames rotate weekly.",
+      },
+      {
+        slug: "production-demand-plan",
+        title: "Production & Demand Plan",
+        sourceRelativePath: "InventoryMetrics\\Inventory Metrics 05 11 26.xlsb",
+        notes:
+          "Drop the latest Inventory Metrics workbook in InventoryMetrics.",
       },
     ],
   },

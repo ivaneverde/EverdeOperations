@@ -1,3 +1,8 @@
+/**
+ * Serves the newest Everde_Freight_Dashboard*.html from PORTAL_DATA_ROOT/Freight.
+ * KPI correctness depends on how that HTML was built from the workbook; see
+ * scripts/freight/FREIGHT_DASHBOARD_DATA.md (hidden backend tabs, not display formulas).
+ */
 import { promises as fs } from "fs";
 import { NextResponse } from "next/server";
 import { freightDirectory, joinPortalDataRoot } from "@/lib/sharePaths";

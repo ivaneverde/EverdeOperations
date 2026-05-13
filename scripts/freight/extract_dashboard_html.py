@@ -10,6 +10,9 @@ Optional: emit .csv for TABLE tabs (headers + rows).
 
 Does not depend on the numbered _pipeline/scripts — only the published HTML.
 
+Data contract for *generating* that JSON (read hidden Excel tabs, not display
+formulas): see FREIGHT_DASHBOARD_DATA.md in this directory.
+
 Usage:
   python scripts/freight/extract_dashboard_html.py \\
     --html "//192.168.190.10/Claude Sandbox/DataDrops/Freight/Everde_Freight_Dashboard_2026-05-04.html" \\
