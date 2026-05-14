@@ -9,3 +9,4 @@ This root is the **Everde AI Operations** app: the internal **AI Operations Port
 
 - Read `./AGENTS.md` before large changes (share paths, freight/nursery HTML embeds, versioning, Windows path casing).
 - Portal structure and nav: `src/config/portal.ts`, routes under `src/app/(portal)/`.
+- **Release / version requests:** When the user asks to ship or bump a version (e.g. 0.4.2): update `package.json` / `package-lock.json` and `./AGENTS.md` snapshot text if needed; ensure every meaningful change is **committed**; create an **annotated git tag** `vX.Y.Z` on that commit; **`git push`** and **`git push --tags`** to `origin` so the remote matches local. If `git remote` is missing, stop and have them add `origin` (HTTPS or SSH) before pushing—never assume a URL.
