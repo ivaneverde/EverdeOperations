@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { FreightDashboardEmbed } from "@/components/reports/FreightDashboardEmbed";
 import { FreightYtdSourcePage } from "@/components/reports/FreightYtdSourcePage";
 import { ReportPlaceholder } from "@/components/ReportPlaceholder";
@@ -10,10 +10,21 @@ export default async function ReportPage(
   props: PageProps<"/[section]/[report]">,
 ) {
   const { section, report } = await props.params;
+  if (
+    (section === "supply-inventory" ||
+      section === "production-demand-plan") &&
+    report === "overview"
+  ) {
+    redirect(`/${section}`);
+  }
+
   const found = getReport(section, report);
   if (!found) notFound();
 
   const { section: sec, report: rep } = found;
+
+  const navHref = rep.navHref?.trim();
+  if (navHref) redirect(navHref);
 
   if (sec.id === "retail-sales-opportunity" && rep.slug === "sales-manager-summary") {
     return <SalesManagerSummaryPage section={sec} report={rep} />;
@@ -35,7 +46,7 @@ export default async function ReportPage(
     const showPipeline = isPrimaryFreightDashboard;
     const tab = freightTab ?? "Cover";
     return (
-      <ReportShell section={sec} report={rep}>
+      <ReportShell section={sec} report={rep} embedBody>
         <FreightDashboardEmbed
           freightHtmlTab={tab}
           showPipelineControls={showPipeline}

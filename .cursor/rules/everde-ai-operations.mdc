@@ -1,0 +1,11 @@
+---
+description: Everde AI Operations and internal AI Operations Portal (Next.js)
+alwaysApply: true
+---
+
+# Everde AI Operations
+
+This root is the **Everde AI Operations** app: the internal **AI Operations Portal** (home title in `src/app/(portal)/page.tsx`).
+
+- Read `./AGENTS.md` before large changes (share paths, freight/nursery HTML embeds, versioning, Windows path casing).
+- Portal structure and nav: `src/config/portal.ts`, routes under `src/app/(portal)/`.

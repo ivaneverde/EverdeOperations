@@ -5,9 +5,16 @@ type ReportShellProps = {
   section: PortalSection;
   report: PortalReport;
   children?: React.ReactNode;
+  /** Full-bleed embed: no outer page scroll; iframe fills remaining height. */
+  embedBody?: boolean;
 };
 
-export function ReportShell({ section, report, children }: ReportShellProps) {
+export function ReportShell({
+  section,
+  report,
+  children,
+  embedBody = false,
+}: ReportShellProps) {
   const fullPath = getReportSourceUncPath(report);
 
   return (
@@ -53,7 +60,15 @@ export function ReportShell({ section, report, children }: ReportShellProps) {
           </div>
         )}
       </header>
-      <div className="flex-1 overflow-auto p-6">{children}</div>
+      <div
+        className={
+          embedBody
+            ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+            : "min-h-0 flex-1 overflow-y-auto p-6"
+        }
+      >
+        {children}
+      </div>
     </div>
   );
 }

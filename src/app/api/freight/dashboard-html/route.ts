@@ -5,6 +5,7 @@
  */
 import { promises as fs } from "fs";
 import { NextResponse } from "next/server";
+import { ensureViewportMeta } from "@/lib/ensureViewportMeta";
 import { freightDirectory, joinPortalDataRoot } from "@/lib/sharePaths";
 
 export const dynamic = "force-dynamic";
@@ -14,12 +15,40 @@ const DASHBOARD_HTML_RE = /^Everde_Freight_Dashboard.*\.html$/i;
 /** Hide duplicate inner nav when the HTML is embedded in the portal iframe (Option B). */
 const IFRAME_INNER_NAV_HIDE_STYLE = `<style data-everde-portal="hide-inner-nav">aside.sidebar{display:none!important}body .layout{grid-template-columns:1fr!important}</style>`;
 
+/** Single horizontal scrollport on .layout; clip page edge; avoid nested x-auto fighting. */
+const IFRAME_OVERFLOW_STYLE = `<style data-everde-portal="freight-overflow">
+html,body{
+  overflow-x:hidden!important;
+  max-width:100%!important;
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box;
+}
+body .layout{
+  max-width:100%!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+  box-sizing:border-box;
+  overscroll-behavior-x:contain;
+}
+body .layout > *{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow-x:visible!important;
+}
+</style>`;
+
 function injectHideInnerNav(html: string): string {
-  const m = /<\/head\s*>/i.exec(html);
+  const withViewport = ensureViewportMeta(html);
+  const bundle = IFRAME_OVERFLOW_STYLE + IFRAME_INNER_NAV_HIDE_STYLE;
+  const m = /<\/head\s*>/i.exec(withViewport);
   if (m && m.index >= 0) {
-    return html.slice(0, m.index) + IFRAME_INNER_NAV_HIDE_STYLE + html.slice(m.index);
+    return withViewport.slice(0, m.index) + bundle + withViewport.slice(m.index);
   }
-  return IFRAME_INNER_NAV_HIDE_STYLE + html;
+  return bundle + withViewport;
 }
 
 function escapeHtml(s: string): string {

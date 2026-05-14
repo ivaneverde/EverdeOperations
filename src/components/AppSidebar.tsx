@@ -3,10 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
-import { isSectionOnly, PORTAL_SECTIONS } from "@/config/portal";
+import packageJson from "../../package.json";
+import {
+  getSectionNumberPrefix,
+  isSectionOnly,
+  PORTAL_SECTIONS,
+} from "@/config/portal";
 
 function pathForReport(sectionId: string, reportSlug: string) {
   return `/${sectionId}/${reportSlug}`;
+}
+
+function hrefForReport(
+  sectionId: string,
+  slug: string,
+  navHref: string | undefined,
+) {
+  const trimmed = navHref?.trim();
+  if (trimmed) return trimmed;
+  return pathForReport(sectionId, slug);
 }
 
 export function AppSidebar() {
@@ -26,8 +41,14 @@ export function AppSidebar() {
     <aside className="flex h-dvh w-60 shrink-0 flex-col border-r border-[var(--everde-border)] bg-[var(--everde-sidebar)] text-[var(--everde-sidebar-fg)]">
       <div className="shrink-0 border-b border-[var(--everde-border)] px-3 py-2">
         <Link href="/" className="block">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--everde-gold)]">
-            Everde
+          <p className="flex flex-wrap items-baseline gap-x-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--everde-gold)]">
+            <span>Everde</span>
+            <span
+              className="font-mono text-[9px] font-medium normal-case tracking-normal text-zinc-500"
+              title={`Portal version ${packageJson.version}`}
+            >
+              v{packageJson.version}
+            </span>
           </p>
           <p className="text-base font-semibold leading-tight text-white">
             AI Operations
@@ -39,12 +60,13 @@ export function AppSidebar() {
       </div>
       <nav className="min-h-0 flex-1 overflow-y-auto px-1.5 py-1.5 text-[11px] leading-tight">
         <ol className="space-y-0.5">
-          {PORTAL_SECTIONS.map((section, idx) => {
+          {PORTAL_SECTIONS.map((section) => {
             const only = isSectionOnly(section);
             const sectionHref = `/${section.id}`;
             const sectionActive =
               activeSectionId === section.id &&
               (only ? activeReportSlug === null : false);
+            const sectionNum = getSectionNumberPrefix(section);
 
             return (
               <li key={section.id} className="min-w-0">
@@ -57,27 +79,39 @@ export function AppSidebar() {
                         : "block rounded-md px-1.5 py-1 text-zinc-200 hover:bg-white/5 hover:text-white"
                     }
                   >
-                    <span className="text-[var(--everde-gold)] tabular-nums">
-                      {idx + 1}.{" "}
-                    </span>
+                    {sectionNum ? (
+                      <span className="text-[var(--everde-gold)] tabular-nums">
+                        {sectionNum}{" "}
+                      </span>
+                    ) : null}
                     <span className="font-medium">{section.title}</span>
                   </Link>
                 ) : (
                   <>
                     <div className="px-1.5 py-0.5 text-zinc-300">
-                      <span className="text-[var(--everde-gold)] tabular-nums">
-                        {idx + 1}.{" "}
-                      </span>
+                      {sectionNum ? (
+                        <span className="text-[var(--everde-gold)] tabular-nums">
+                          {sectionNum}{" "}
+                        </span>
+                      ) : null}
                       <span className="font-medium text-zinc-100">
                         {section.title}
                       </span>
                     </div>
                     <ul className="ml-2 border-l border-white/10 pl-1.5">
-                      {section.reports.map((r) => {
-                        const href = pathForReport(section.id, r.slug);
+                      {section.reports
+                        .filter((r) => !r.hideFromNav)
+                        .map((r) => {
+                        const href = hrefForReport(
+                          section.id,
+                          r.slug,
+                          r.navHref,
+                        );
                         const isActive =
-                          activeSectionId === section.id &&
-                          activeReportSlug === r.slug;
+                          pathname === href ||
+                          (!r.navHref?.trim() &&
+                            activeSectionId === section.id &&
+                            activeReportSlug === r.slug);
                         return (
                           <li key={r.slug}>
                             <Link

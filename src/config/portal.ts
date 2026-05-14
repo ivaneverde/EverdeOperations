@@ -33,6 +33,13 @@ export type PortalReport = {
   freightHtmlTab?: string;
   /** Optional hex color (no #) for a small sidebar dot, matching dashboard tab colors */
   navAccent?: string;
+  /**
+   * When set, sidebar links here instead of `/{sectionId}/{slug}` (e.g. Main → freight tab routes).
+   * `/main/...` still resolves for redirects.
+   */
+  navHref?: string;
+  /** When true, omitted from sidebar under this section (routes still work; e.g. Main links here). */
+  hideFromNav?: boolean;
 };
 
 /** UNC path shown in the portal for a report's source file (workbook, HTML, etc.). */
@@ -53,10 +60,100 @@ export type PortalSection = {
   shareFolder: string;
   /** When true, navigation goes to /[id] only; `reports` should be empty. */
   sectionOnly?: boolean;
+  /**
+   * When true, sidebar omits the gold "N." index (e.g. Main with Cover / Exec Summary only).
+   * Numbered sections after this still count 1, 2, 3… in display order among non-omitted sections.
+   */
+  omitSectionNumber?: boolean;
+  /**
+   * When `sectionOnly` and set, `/[id]` serves the nursery analytics HTML embed (supply vs demand pane).
+   * Source path is used for ReportShell “Source” only; dashboard data is embedded in the HTML file.
+   */
+  nurseryPane?: "supply" | "demand";
+  /** Workbook path under DATA_ROOT_UNC for shell metadata (nursery sections). */
+  sectionSourceRelativePath?: string;
+  sectionNotes?: string;
   reports: PortalReport[];
 };
 
+/** Section-only route that embeds nursery-inventory-dashboard.html (supply or demand tab). */
+export function isNurserySectionOnly(
+  section: PortalSection,
+): section is PortalSection & {
+  nurseryPane: "supply" | "demand";
+  sectionSourceRelativePath: string;
+} {
+  return (
+    section.sectionOnly === true &&
+    (section.nurseryPane === "supply" || section.nurseryPane === "demand") &&
+    typeof section.sectionSourceRelativePath === "string" &&
+    section.sectionSourceRelativePath.length > 0
+  );
+}
+
+/** Synthetic report for ReportShell on nursery section-only pages. */
+export function nurserySectionShellReport(
+  section: PortalSection & {
+    nurseryPane: "supply" | "demand";
+    sectionSourceRelativePath: string;
+  },
+): PortalReport {
+  return {
+    slug: "overview",
+    title: section.title,
+    sourceRelativePath: section.sectionSourceRelativePath,
+    notes: section.sectionNotes,
+  };
+}
+
+/** Gold index shown next to numbered sections (skips `omitSectionNumber`). */
+export function getSectionNumberPrefix(section: PortalSection): string | null {
+  if (section.omitSectionNumber) return null;
+  let n = 0;
+  for (const s of PORTAL_SECTIONS) {
+    if (!s.omitSectionNumber) n += 1;
+    if (s.id === section.id) return `${n}.`;
+  }
+  return null;
+}
+
+/** 1-based index among numbered sections only (for home “Section N” labels). */
+export function getSectionDisplayNumber(section: PortalSection): number | null {
+  if (section.omitSectionNumber) return null;
+  let n = 0;
+  for (const s of PORTAL_SECTIONS) {
+    if (!s.omitSectionNumber) n += 1;
+    if (s.id === section.id) return n;
+  }
+  return null;
+}
+
 export const PORTAL_SECTIONS: PortalSection[] = [
+  {
+    id: "main",
+    title: "Main",
+    summary: "Freight dashboard cover and executive summary (same HTML as Load Board tabs).",
+    shareFolder: "Freight",
+    omitSectionNumber: true,
+    reports: [
+      {
+        slug: "cover",
+        title: "Cover",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Cover",
+        navAccent: "2F5233",
+        navHref: "/load-board-freight/freight-tab-cover",
+      },
+      {
+        slug: "exec-summary",
+        title: "Exec Summary",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Exec Summary",
+        navAccent: "C49B3F",
+        navHref: "/load-board-freight/freight-tab-exec-summary",
+      },
+    ],
+  },
   {
     id: "retail-sales-opportunity",
     title: "Retail Sales Opportunity",
@@ -173,7 +270,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         title: "Everde Freight Dashboard",
         sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
         notes:
-          "Primary HTML embed with Run pipeline. Inner sidebar can stay visible or be hidden later (Option B).",
+          "Primary HTML embed with Run pipeline. Cover and Exec Summary are under Main (same tabs).",
       },
       {
         slug: "freight-tab-cover",
@@ -181,6 +278,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
         freightHtmlTab: "Cover",
         navAccent: "2F5233",
+        hideFromNav: true,
       },
       {
         slug: "freight-tab-exec-summary",
@@ -188,6 +286,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
         freightHtmlTab: "Exec Summary",
         navAccent: "C49B3F",
+        hideFromNav: true,
       },
       {
         slug: "freight-tab-n-ca-dashboard",
@@ -336,16 +435,13 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     summary:
       "Price-list and saleable inventory views for nursery operations (weekly drops on the share).",
     shareFolder: "SalesInventoryPriceList",
-    reports: [
-      {
-        slug: "overview",
-        title: "Supply Inventory",
-        sourceRelativePath:
-          "SalesInventoryPriceList\\Sales_Inventory___Price_List_060526.xls",
-        notes:
-          "Drop the latest Sales / Inventory / Price List workbook here; filenames rotate weekly.",
-      },
-    ],
+    sectionOnly: true,
+    nurseryPane: "supply",
+    sectionSourceRelativePath:
+      "SalesInventoryPriceList\\Sales_Inventory___Price_List_060526.xls",
+    sectionNotes:
+      "Drop the latest Sales / Inventory / Price List workbook here; filenames rotate weekly.",
+    reports: [],
   },
   {
     id: "production-demand-plan",
@@ -353,15 +449,12 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     summary:
       "Inventory metrics versus demand windows and plans (weekly drops on the share).",
     shareFolder: "InventoryMetrics",
-    reports: [
-      {
-        slug: "overview",
-        title: "Production & Demand Plan",
-        sourceRelativePath: "InventoryMetrics\\Inventory Metrics 05 11 26.xlsb",
-        notes:
-          "Drop the latest Inventory Metrics workbook in InventoryMetrics.",
-      },
-    ],
+    sectionOnly: true,
+    nurseryPane: "demand",
+    sectionSourceRelativePath: "InventoryMetrics\\Inventory Metrics 05 11 26.xlsb",
+    sectionNotes:
+      "Drop the latest Inventory Metrics workbook in InventoryMetrics.",
+    reports: [],
   },
   {
     id: "communication",

@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { isSectionOnly, PORTAL_SECTIONS } from "@/config/portal";
+import {
+  getSectionDisplayNumber,
+  isSectionOnly,
+  PORTAL_SECTIONS,
+} from "@/config/portal";
 
 export default function PortalHomePage() {
   return (
@@ -31,19 +35,33 @@ export default function PortalHomePage() {
           </p>
         </header>
         <div className="grid gap-5 md:grid-cols-2">
-          {PORTAL_SECTIONS.map((section, i) => {
+          {PORTAL_SECTIONS.map((section) => {
             const only = isSectionOnly(section);
             const first = section.reports[0];
-            const href = only ? `/${section.id}` : first ? `/${section.id}/${first.slug}` : `/${section.id}`;
+            const firstHref = first?.navHref?.trim();
+            const href = only
+              ? `/${section.id}`
+              : first
+                ? firstHref || `/${section.id}/${first.slug}`
+                : `/${section.id}`;
+            const sectionNum = getSectionDisplayNumber(section);
             return (
               <article
                 key={section.id}
                 className="flex flex-col rounded-lg border border-zinc-200 bg-white p-5 shadow-sm"
               >
-                <p className="text-xs font-semibold text-[var(--everde-forest)]">
-                  Section {i + 1}
-                </p>
-                <h2 className="mt-1 text-lg font-semibold text-zinc-900">
+                {sectionNum != null ? (
+                  <p className="text-xs font-semibold text-[var(--everde-forest)]">
+                    Section {sectionNum}
+                  </p>
+                ) : null}
+                <h2
+                  className={
+                    sectionNum != null
+                      ? "mt-1 text-lg font-semibold text-zinc-900"
+                      : "text-lg font-semibold text-zinc-900"
+                  }
+                >
                   {section.title}
                 </h2>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-600">

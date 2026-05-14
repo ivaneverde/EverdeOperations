@@ -61,10 +61,10 @@ export function FreightDashboardEmbed({
   }, [tab]);
 
   return (
-    <div className="space-y-3">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col space-y-3 overflow-hidden">
       {showPipelineControls && (
         <>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={reloadView}
@@ -94,18 +94,18 @@ export function FreightDashboardEmbed({
             manually, then use <span className="font-medium">Reload view</span>.
           </p>
           {pipelineLog && (
-            <pre className="max-h-48 overflow-auto rounded-md border border-zinc-200 bg-zinc-50 p-3 text-[11px] text-zinc-800">
+            <pre className="max-h-48 shrink-0 overflow-auto rounded-md border border-zinc-200 bg-zinc-50 p-3 text-[11px] text-zinc-800">
               {pipelineLog}
             </pre>
           )}
         </>
       )}
-      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
         <iframe
           ref={iframeRef}
           key={iframeKey}
           title="Everde Freight Dashboard"
-          className="h-[min(85vh,920px)] w-full border-0"
+          className="h-full min-h-0 w-full max-w-full flex-1 border-0"
           src="/api/freight/dashboard-html"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           onLoad={onIframeLoad}
