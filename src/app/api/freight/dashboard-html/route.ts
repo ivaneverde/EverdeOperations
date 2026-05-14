@@ -9,11 +9,11 @@ import { resolveFreightDashboardHtmlPath } from "@/lib/resolveFreightDashboardHt
 
 export const dynamic = "force-dynamic";
 
-/** Hide duplicate inner nav when the HTML is embedded in the portal iframe (Option B). */
-const IFRAME_INNER_NAV_HIDE_STYLE = `<style data-everde-portal="hide-inner-nav">aside.sidebar{display:none!important}body .layout{grid-template-columns:1fr!important}</style>`;
-
-/** Single horizontal scrollport on .layout; clip page edge; avoid nested x-auto fighting. */
-const IFRAME_OVERFLOW_STYLE = `<style data-everde-portal="freight-overflow">
+/**
+ * Legacy grid HTML used `aside.sidebar` + `body .layout`. The YTD static export uses
+ * `#sidebar` + `#app` + `#main`. Hide inner nav in both; keep one scrollport on main.
+ */
+const IFRAME_EMBED_STYLES = `<style data-everde-portal="freight-embed">
 html,body{
   overflow-x:hidden!important;
   max-width:100%!important;
@@ -21,7 +21,10 @@ html,body{
   min-width:0!important;
   box-sizing:border-box;
 }
+/* Legacy workbook-export layout */
+aside.sidebar{display:none!important}
 body .layout{
+  grid-template-columns:1fr!important;
   max-width:100%!important;
   width:100%!important;
   min-width:0!important;
@@ -36,16 +39,73 @@ body .layout > *{
   max-width:100%!important;
   overflow-x:visible!important;
 }
+/* YTD single-file layout (nav#sidebar + main#main) */
+#sidebar{display:none!important;width:0!important;min-width:0!important;margin:0!important;padding:0!important;border:none!important;overflow:hidden!important}
+#app{display:flex!important;min-height:100%!important;height:100%!important}
+#main{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  box-sizing:border-box;
+}
 </style>`;
 
-function injectHideInnerNav(html: string): string {
+/** Maps `freightHtmlTab` from portal.ts to `showTab(id)` ids inside the static HTML. */
+const PORTAL_FREIGHT_ACTIVATE_BRIDGE = `<script data-everde-portal="activate-bridge">
+(function(){
+  var M={
+    "Cover":"cover",
+    "Exec Summary":"exec",
+    "N. CA Dashboard":"nca",
+    "S. CA Dashboard":"sca",
+    "TX Dashboard":"tx",
+    "FL Dashboard":"fl",
+    "FOR Dashboard":"for",
+    "Site & Region Analysis":"site-region",
+    "Trailer & Trip Analysis":"trailer",
+    "3rd Party Analysis":"thirdparty",
+    "Internal Freight Analysis":"trailer",
+    "Variance Drivers":"variance",
+    "Pivot Playground":"pivot",
+    "Top Opportunities":"opportunities",
+    "Top Opportunities — Last Week":"opportunities",
+    "Sales Performance":"sales",
+    "Lane Recovery":"lane",
+    "Fuel Cost":"fuel",
+    "Pricing Adjustments":"variance",
+    "Reference":"masterdata"
+  };
+  window.activate=function(name){
+    var id=M[name]||M[String(name||"").trim()]||"cover";
+    if(typeof showTab==="function")showTab(id);
+  };
+})();` +
+  `</script>`;
+
+function injectFreightPortalEmbeds(html: string): string {
   const withViewport = ensureViewportMeta(html);
-  const bundle = IFRAME_OVERFLOW_STYLE + IFRAME_INNER_NAV_HIDE_STYLE;
-  const m = /<\/head\s*>/i.exec(withViewport);
-  if (m && m.index >= 0) {
-    return withViewport.slice(0, m.index) + bundle + withViewport.slice(m.index);
+  const headBundle = IFRAME_EMBED_STYLES;
+  const headClose = /<\/head\s*>/i.exec(withViewport);
+  let out =
+    headClose && headClose.index >= 0
+      ? withViewport.slice(0, headClose.index) +
+        headBundle +
+        withViewport.slice(headClose.index)
+      : headBundle + withViewport;
+
+  const bodyClose = /<\/body\s*>/i.exec(out);
+  if (bodyClose && bodyClose.index >= 0) {
+    out =
+      out.slice(0, bodyClose.index) +
+      PORTAL_FREIGHT_ACTIVATE_BRIDGE +
+      out.slice(bodyClose.index);
+  } else {
+    out += PORTAL_FREIGHT_ACTIVATE_BRIDGE;
   }
-  return bundle + withViewport;
+  return out;
 }
 
 function escapeHtml(s: string): string {
@@ -79,7 +139,7 @@ export async function GET() {
 
   try {
     const raw = await fs.readFile(filePath, "utf8");
-    const html = injectHideInnerNav(raw);
+    const html = injectFreightPortalEmbeds(raw);
     return new NextResponse(html, {
       status: 200,
       headers: {
