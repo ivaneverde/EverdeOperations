@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { MsalBootstrap } from "@/components/MsalBootstrap";
+import { getRootLayoutStylesheetHref } from "@/lib/getRootLayoutStylesheetHref";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,11 +28,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const globalCssHref = getRootLayoutStylesheetHref();
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="stylesheet" href={globalCssHref} />
+      </head>
       <body className="min-h-full flex flex-col">
         <MsalBootstrap />
         {children}
