@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "publish:freight-json": "node scripts/freight/publish-dashboard-data.mjs"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.10.1",
+    "@azure/storage-blob": "^12.31.0",
+    "jose": "^6.2.3",
     "next": "^15.5.9",
     "papaparse": "^5.5.3",
     "react": "^19.2.4",

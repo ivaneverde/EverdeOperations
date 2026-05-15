@@ -102,16 +102,13 @@ Rough order for **testing launch**:
 3. **Middleware: protect routes**  
    - Require session / MSAL account for portal routes; optional **`@everde.com`** check on server for API routes serving freight JSON.
 
-4. **Read `dashboard_data.json` from Blob**  
-   - Server-only route e.g. `GET /api/freight/dashboard-data` reading Blob with account key or managed identity pattern (Vercel typically uses connection string or SAS for Blob read).
+4. **Read `dashboard_data.json` from Blob** — **`GET /api/freight/dashboard-data`** (implemented; falls back to `public/dashboard_data.json`).  
 
 5. **Freight UI**  
    - **Short term:** keep iframe HTML embed **or** switch shell to fetch JSON and hydrate (Claude’s `fetch` approach — can follow after Blob read is stable).  
    - **Contract:** document JSON schema alongside `FREIGHT_DASHBOARD_DATA.md`.
 
-6. **`/admin` section**  
-   - Top-right link, visible only to **Admin** Entra group or allow-listed object IDs (config via env).  
-   - Upload UI + status (last successful publish time from `manifest.json`).
+6. **`/admin` section** — Top-right **Admin** link, upload to Blob `incoming/`, JSON probe (implemented). Optional later: Entra **Admin** group gate, `manifest.json` status.
 
 7. **Teams section**  
    - Verify Graph permissions and redirect URIs on production origin; test chat create/read on `https://` (no mixed content).

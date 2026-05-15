@@ -28,8 +28,20 @@ python extract_data.py "C:\path\to\Everde Freight Data YTD … .xlsb"
 python extract_data.py "… .xlsb" "C:\out\dashboard_data.json"
 ```
 
+## Upload to Azure (portal reads this)
+
+From repo root, after `dashboard_data.json` exists:
+
+```bash
+# Windows PowerShell
+$env:AZURE_STORAGE_CONNECTION_STRING="..."
+npm run publish:freight-json -- C:\path\to\dashboard_data.json
+```
+
+Then open **Admin** in the portal and use **Test fetch** on `GET /api/freight/dashboard-data`, or open that URL in the browser.
+
 ## Integration (Everde AI Operations)
 
-- **Local / VM runner:** After this JSON exists, upload to **Azure Blob** `freight/latest/dashboard_data.json` (or run from a path the Next app serves). Do not commit multi‑MB JSON or `.xlsb` to git.
+- **Local / VM runner:** Upload JSON to **Azure Blob** using `npm run publish:freight-json` (or Azure Storage Explorer). Do not commit multi‑MB JSON or `.xlsb` to git.
 - **Portal iframe HTML:** The app may continue to serve `Everde_Freight_Dashboard*.html` from `public/` or the share until the UI loads data via API (Phase C in the hosted plan).
 - **Full stack handoff** (Flask/FastAPI upload + `POST /upload`) is **optional**; this repo’s direction is **Next.js + Blob + local/VM Python**, per `docs/HOSTED_LAUNCH_PLAN.md`.

@@ -9,6 +9,7 @@ export default tseslint.config(
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "scripts/**/*.mjs",
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,
