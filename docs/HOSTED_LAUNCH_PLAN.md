@@ -169,6 +169,7 @@ Use this as the gate for “first external Everde users on HTTPS.”
 
 - `AGENTS.md` — portal snapshot and share context.  
 - `scripts/freight/FREIGHT_DASHBOARD_DATA.md` — workbook vs HTML vs metrics rules.  
+- `scripts/freight/claude-handoff/` — **`extract_data.py`** + reference HTML from Claude (`Everde_Portal_Files.zip`); see **`README.md`** there.  
 - `.env.example` — extend with Azure Blob + admin flags when implementing.
 
 ---
