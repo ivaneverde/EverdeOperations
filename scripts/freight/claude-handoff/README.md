@@ -11,6 +11,19 @@ These files came from **`Everde_Portal_Files.zip`** (Claude freight dashboard se
 
 **Input file:** This script expects the **Freight dashboard workbook** that contains the hidden/backend sheets (`_history`, `_explorer`, `_3p_explorer`, …) — the same family as `Everde_Freight_Dashboard_*.xlsb` on the share. It does **not** read the separate **“Everde Freight Data YTD … .xlsb”** data workbook (that file has different tabs such as `Raw Data`, `Key`, … and **no** `_history`).
 
+## One-command extract + Blob publish (Windows)
+
+From **repo root** (loads `.env.local` for `FREIGHT_PYTHON`, `AZURE_STORAGE_CONNECTION_STRING`, `PORTAL_DATA_ROOT`, optional `FREIGHT_DASHBOARD_XLSB`):
+
+```powershell
+npm run freight:extract-publish
+```
+
+This picks the **newest** `Everde_Freight_Dashboard*.xlsb` under your `DataDrops\Freight` path (`PORTAL_DATA_ROOT` or the default UNC), copies it to `C:\temp`, runs **`extract_data.py`**, then **`npm run publish:freight-json`** if Azure env is set.
+
+- **Override workbook:** add `FREIGHT_DASHBOARD_XLSB=\\...\Everde_Freight_Dashboard....xlsb` to `.env.local`, or run `.\scripts\freight\run-extract-and-publish.ps1 -DashboardPath "\\...\file.xlsb"`.
+- **Extract only:** `.\scripts\freight\run-extract-and-publish.ps1 -SkipPublish`
+
 ## Dependencies
 
 Same stack as `../requirements-pipeline.txt`:

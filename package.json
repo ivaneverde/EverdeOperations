@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "publish:freight-json": "node scripts/freight/publish-dashboard-data.mjs"
+    "publish:freight-json": "node scripts/freight/publish-dashboard-data.mjs",
+    "freight:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/run-extract-and-publish.ps1"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.10.1",
