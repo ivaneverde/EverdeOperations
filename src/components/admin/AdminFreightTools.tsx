@@ -72,13 +72,26 @@ export function AdminFreightTools() {
         setJsonProbe(`${res.status} ${j.error ?? res.statusText} (${src})`);
         return;
       }
-      const text = await res.text();
+      const text = (await res.text()).replace(/^\uFEFF/, "").trim();
       let keys = "";
       try {
-        const o = JSON.parse(text) as Record<string, unknown>;
-        keys = Object.keys(o).slice(0, 8).join(", ");
-      } catch {
-        keys = "(parse error)";
+        const parsed: unknown = JSON.parse(text);
+        if (
+          parsed !== null &&
+          typeof parsed === "object" &&
+          !Array.isArray(parsed)
+        ) {
+          keys = Object.keys(parsed as Record<string, unknown>)
+            .slice(0, 8)
+            .join(", ");
+        } else if (Array.isArray(parsed)) {
+          keys = `array (length ${parsed.length})`;
+        } else {
+          keys = typeof parsed;
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "parse failed";
+        keys = `(invalid JSON: ${msg})`;
       }
       setJsonProbe(`OK — source: ${src}; top-level keys: ${keys}…`);
     } catch (e) {

@@ -12,6 +12,7 @@ Dependencies:
     pip install pandas openpyxl pyxlsb
 """
 
+import math
 import sys
 import json
 import numpy as np
@@ -49,6 +50,33 @@ BACKEND_TABS = [
 # ─────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────
+
+def sanitize_for_json(obj):
+    """Replace NaN/Inf and pandas NA so output is valid RFC 8259 JSON (JavaScript JSON.parse)."""
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_for_json(v) for v in obj]
+    if isinstance(obj, tuple):
+        return [sanitize_for_json(v) for v in obj]
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating, float)):
+        x = float(obj)
+        if math.isnan(x) or math.isinf(x):
+            return None
+        return x
+    if obj is None or isinstance(obj, (str, bool)):
+        return obj
+    if isinstance(obj, np.ndarray):
+        return sanitize_for_json(obj.tolist())
+    try:
+        if pd.isna(obj) and not isinstance(obj, (list, dict)):
+            return None
+    except (ValueError, TypeError):
+        pass
+    return obj
+
 
 def safe_div(a, b, decimals=4):
     try:
@@ -511,8 +539,8 @@ def extract(file_path, output_path=None):
     if output_path is None:
         output_path = Path(file_path).with_name('dashboard_data.json')
 
-    with open(output_path, 'w') as f:
-        json.dump(result, f, default=str)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(sanitize_for_json(result), f, ensure_ascii=False, allow_nan=False)
 
     size_kb = Path(output_path).stat().st_size / 1024
     print(f"Output: {output_path} ({size_kb:.1f} KB)", flush=True)
