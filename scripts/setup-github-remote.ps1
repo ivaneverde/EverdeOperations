@@ -21,15 +21,19 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $RepoRoot
 
+$hasOrigin = $false
+git remote get-url origin 2>$null | Out-Null
+if ($LASTEXITCODE -eq 0) { $hasOrigin = $true }
+
+if ($hasOrigin) {
+  $existing = git remote get-url origin
+  Write-Host "Removing existing origin ($existing)" -ForegroundColor Yellow
+  git remote remove origin
+}
+
 $trim = $RepoUrl.Trim()
 if ($trim -notmatch "^https://github\.com/[^/]+/[^/]+(?:\.git)?$") {
   Write-Warning "URL should look like: https://github.com/OWNER/REPO.git"
-}
-
-$existing = git remote get-url origin 2>$null
-if ($LASTEXITCODE -eq 0) {
-  Write-Host "Removing existing origin ($existing)" -ForegroundColor Yellow
-  git remote remove origin
 }
 
 git remote add origin $trim
