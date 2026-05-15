@@ -110,10 +110,12 @@ def load_file(path):
 # ─────────────────────────────────────────────
 
 def extract(file_path, output_path=None):
-    print(f"Loading: {file_path}")
+    print(f"Loading: {file_path}", flush=True)
+    print("Opening workbook (large .xlsb can take several minutes)…", flush=True)
     xl = load_file(file_path)
 
     # ── Load backend tabs ──
+    print("Parsing backend sheets…", flush=True)
     hist     = xl.parse('_history')
     exp      = xl.parse('_explorer')
     tp_exp   = xl.parse('_3p_explorer')
@@ -125,18 +127,18 @@ def extract(file_path, output_path=None):
     sd_hist  = xl.parse('_sd_history')
     diesel_df= xl.parse('_diesel')
 
-    print(f"  _history: {len(hist):,} rows")
-    print(f"  _explorer: {len(exp):,} rows")
+    print(f"  _history: {len(hist):,} rows", flush=True)
+    print(f"  _explorer: {len(exp):,} rows", flush=True)
 
     # ── Detect YTD months dynamically ──
     # Use whatever months exist for 2026 (current year)
     months_2026 = hist[hist['Year'] == 2026]['Month'].dropna().unique().tolist()
     ytd_months = sorted(months_2026) if months_2026 else YTD_MONTHS
-    print(f"  YTD months detected: {ytd_months}")
+    print(f"  YTD months detected: {ytd_months}", flush=True)
 
     # ── Detect all years ──
     all_years = sorted(hist['Year'].dropna().unique().astype(int).tolist())
-    print(f"  Years detected: {all_years}")
+    print(f"  Years detected: {all_years}", flush=True)
 
     # Helper that uses dynamic ytd_months
     def ytd(df, year):
@@ -513,7 +515,7 @@ def extract(file_path, output_path=None):
         json.dump(result, f, default=str)
 
     size_kb = Path(output_path).stat().st_size / 1024
-    print(f"Output: {output_path} ({size_kb:.1f} KB)")
+    print(f"Output: {output_path} ({size_kb:.1f} KB)", flush=True)
     return str(output_path)
 
 
@@ -523,7 +525,7 @@ def extract(file_path, output_path=None):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python extract_data.py <input_file.xlsb|xlsx> [output.json]")
+        print("Usage: python extract_data.py <input_file.xlsb|xlsx> [output.json]", flush=True)
         sys.exit(1)
 
     input_file  = sys.argv[1]

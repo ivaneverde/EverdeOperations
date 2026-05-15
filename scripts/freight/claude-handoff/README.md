@@ -9,6 +9,8 @@ These files came from **`Everde_Portal_Files.zip`** (Claude freight dashboard se
 | **`extract_data.py`** | CLI: reads weekly `.xlsb` / `.xlsx`, reads `_history`, `_explorer`, … (see `BACKEND_TABS`), writes **`dashboard_data.json`**. |
 | **`Everde_Freight_Dashboard_YTD_2026.html`** | Dashboard shell; still embeds inline data until the portal switches to `fetch('/api/…')` for JSON (see `docs/HOSTED_LAUNCH_PLAN.md`). |
 
+**Input file:** This script expects the **Freight dashboard workbook** that contains the hidden/backend sheets (`_history`, `_explorer`, `_3p_explorer`, …) — the same family as `Everde_Freight_Dashboard_*.xlsb` on the share. It does **not** read the separate **“Everde Freight Data YTD … .xlsb”** data workbook (that file has different tabs such as `Raw Data`, `Key`, … and **no** `_history`).
+
 ## Dependencies
 
 Same stack as `../requirements-pipeline.txt`:
@@ -23,9 +25,9 @@ python -m pip install -r ../requirements-pipeline.txt
 
 ```bash
 cd scripts/freight/claude-handoff
-python extract_data.py "C:\path\to\Everde Freight Data YTD … .xlsb"
+python extract_data.py "C:\path\to\Everde_Freight_Dashboard_….xlsb"
 # writes dashboard_data.json next to the workbook unless you pass a second path:
-python extract_data.py "… .xlsb" "C:\out\dashboard_data.json"
+python -u extract_data.py "…Everde_Freight_Dashboard….xlsb" "C:\temp\dashboard_data.json"
 ```
 
 ## Upload to Azure (portal reads this)
