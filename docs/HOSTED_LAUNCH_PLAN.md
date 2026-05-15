@@ -148,8 +148,8 @@ Use this as the gate for “first external Everde users on HTTPS.”
 
 ## 8. Phase C — HTML → JSON-first dashboard
 
-- Replace or supplement static HTML iframe with client **`fetch('/api/freight/dashboard-data')`** and shared render components.  
-- Keeps weekly updates purely **data** rather than redeploying large HTML.
+- **Implemented (iframe path):** `GET /api/freight/dashboard-html` rewrites inline `const D = {…}` to `fetch('/api/freight/dashboard-data')` before inject (see `src/lib/freightDashboardHtmlPhaseC.ts`). Set **`FREIGHT_DASHBOARD_HTML_USE_INLINE_D=1`** to disable and keep legacy inline data.  
+- **Optional later:** React-native views sharing the same JSON contract (smaller payloads, no static HTML dependency).
 
 ---
 

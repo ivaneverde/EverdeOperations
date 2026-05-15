@@ -25,7 +25,9 @@ export type FreightDashboardEmbedProps = {
 
 /**
  * Embeds the latest `Everde_Freight_Dashboard*.html` from the share
- * (`GET /api/freight/dashboard-html`) and optionally triggers `update.py`.
+ * (`GET /api/freight/dashboard-html`). Phase C: shell loads metrics from
+ * `/api/freight/dashboard-data` unless `FREIGHT_DASHBOARD_HTML_USE_INLINE_D=1`.
+ * Optionally triggers `update.py` on the primary dashboard entry.
  */
 export function FreightDashboardEmbed({
   freightHtmlTab = null,

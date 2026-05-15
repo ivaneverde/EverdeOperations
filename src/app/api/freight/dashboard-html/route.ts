@@ -5,6 +5,7 @@
 import { promises as fs } from "fs";
 import { NextResponse } from "next/server";
 import { ensureViewportMeta } from "@/lib/ensureViewportMeta";
+import { replaceInlineFreightDataWithApiFetch } from "@/lib/freightDashboardHtmlPhaseC";
 import { resolveFreightDashboardHtmlPath } from "@/lib/resolveFreightDashboardHtmlPath";
 
 export const dynamic = "force-dynamic";
@@ -78,9 +79,14 @@ const PORTAL_FREIGHT_ACTIVATE_BRIDGE = `<script data-everde-portal="activate-bri
     "Pricing Adjustments":"variance",
     "Reference":"masterdata"
   };
+  window.__everdeFreightActivateQueue=window.__everdeFreightActivateQueue||[];
   window.activate=function(name){
-    var id=M[name]||M[String(name||"").trim()]||"cover";
-    if(typeof showTab==="function")showTab(id);
+    var run=function(){
+      var id=M[name]||M[String(name||"").trim()]||"cover";
+      if(typeof showTab==="function")showTab(id);
+    };
+    if(window.__everdeFreightDataReady){ run(); return; }
+    window.__everdeFreightActivateQueue.push(run);
   };
 })();` +
   `</script>`;
@@ -139,7 +145,11 @@ export async function GET() {
 
   try {
     const raw = await fs.readFile(filePath, "utf8");
-    const html = injectFreightPortalEmbeds(raw);
+    const phaseC =
+      process.env.FREIGHT_DASHBOARD_HTML_USE_INLINE_D === "1"
+        ? raw
+        : replaceInlineFreightDataWithApiFetch(raw);
+    const html = injectFreightPortalEmbeds(phaseC);
     return new NextResponse(html, {
       status: 200,
       headers: {
