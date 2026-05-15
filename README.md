@@ -1,36 +1,32 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Share the portal for testing (efficient path)
+
+The fastest way to give people a **stable link** is **one Vercel production URL** + **one Entra redirect URI** + **server env** for Azure Blob (freight JSON). Each branch **preview** gets its own `*.vercel.app` hostname and normally needs **another** redirect URI in Entra, so for reviews it is simpler to share **Production** only.
+
+1. **GitHub → Vercel** — Import the repo and deploy. Use the **Production** URL (or attach one custom domain).
+2. **Entra (app registration)** — Authentication → Single-page application → add  
+   `https://<your-production-host>/auth/msal-bridge`  
+   (keep `http://localhost:3000/auth/msal-bridge` for local dev). Admin consent Graph scopes if you use Teams.
+3. **Vercel → Environment Variables (Production)** — At least:  
+   `NEXT_PUBLIC_MS_ENTRA_CLIENT_ID`, `NEXT_PUBLIC_MS_ENTRA_TENANT_ID`, **`AZURE_STORAGE_CONNECTION_STRING`** (see `.env.example`). Redeploy after saving.
+4. **Share** the production URL; testers sign in with **`@everde.com`**. **Admin → Test fetch** confirms freight JSON from Blob.
+
+UNC (`PORTAL_DATA_ROOT`) is for **LAN/local**; hosted freight uses **Blob**. Full checklist: `docs/HOSTED_LAUNCH_PLAN.md`.
+
 ## Getting Started
 
-First, run the development server:
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Edit files under `src/app`; the app hot-reloads.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) with [Geist](https://vercel.com/font).
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Next.js deployment](https://nextjs.org/docs/app/building-your-application/deploying)
