@@ -8,7 +8,8 @@ import {
 } from "@/lib/sharePaths";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 3600;
+/** Vercel Hobby caps serverless functions at 300s; local/VM can use longer runs via env. */
+export const maxDuration = process.env.VERCEL ? 300 : 3600;
 
 const execFileAsync = promisify(execFile);
 
