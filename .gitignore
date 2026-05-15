@@ -41,5 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Optional local fallback for GET /api/freight/dashboard-data (real data: Blob or extract_data.py)
+/public/dashboard_data.json
+
 # local freight JSON/CSV extraction (scripts/freight/extract_dashboard_html.py)
 /scripts/freight/out/
