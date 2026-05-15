@@ -71,14 +71,14 @@ if (-not (Test-Path -LiteralPath $tempDir)) {
 }
 
 $localCopy = Join-Path $tempDir "freight_dashboard_for_extract.xlsb"
-Write-Host "Copying to $localCopy …" -ForegroundColor Cyan
+Write-Host "Copying to ${localCopy}..." -ForegroundColor Cyan
 Copy-Item -LiteralPath $inputFile -Destination $localCopy -Force
 
 $outJson = Join-Path $tempDir "dashboard_data.json"
 $handoff = Join-Path $PSScriptRoot "claude-handoff"
 Push-Location $handoff
 try {
-  Write-Host "Running extract_data.py …" -ForegroundColor Cyan
+  Write-Host "Running extract_data.py..." -ForegroundColor Cyan
   & $python -u extract_data.py $localCopy $outJson
   if ($LASTEXITCODE -ne 0) {
     Write-Error "extract_data.py exited with code $LASTEXITCODE"
@@ -96,16 +96,16 @@ if ($SkipPublish) {
 }
 
 if (-not $env:AZURE_STORAGE_CONNECTION_STRING) {
-  Write-Warning "AZURE_STORAGE_CONNECTION_STRING missing in .env.local — skip Blob upload. Add it, then run: npm run publish:freight-json -- $outJson"
+  Write-Warning "AZURE_STORAGE_CONNECTION_STRING missing in .env.local - skip Blob upload. Add it, then run: npm run publish:freight-json -- $outJson"
   exit 0
 }
 
 Push-Location $RepoRoot
 try {
-  Write-Host "Publishing to Azure Blob …" -ForegroundColor Cyan
+  Write-Host "Publishing to Azure Blob..." -ForegroundColor Cyan
   & node scripts/freight/publish-dashboard-data.mjs $outJson
 } finally {
   Pop-Location
 }
 
-Write-Host "Done. Reload Admin → Test fetch or GET /api/freight/dashboard-data" -ForegroundColor Green
+Write-Host "Done. Reload Admin - Test fetch or GET /api/freight/dashboard-data" -ForegroundColor Green
