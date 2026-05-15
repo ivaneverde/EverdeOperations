@@ -10,9 +10,9 @@ The fastest way to give people a **stable link** is **one Vercel production URL*
    (keep `http://localhost:3000/auth/msal-bridge` for local dev). Admin consent Graph scopes if you use Teams.
 3. **Vercel → Environment Variables (Production)** — At least:  
    `NEXT_PUBLIC_MS_ENTRA_CLIENT_ID`, `NEXT_PUBLIC_MS_ENTRA_TENANT_ID`, **`AZURE_STORAGE_CONNECTION_STRING`** (see `.env.example`). Redeploy after saving.
-4. **Share** the production URL; testers sign in with **`@everde.com`**. **Admin → Test fetch** confirms freight JSON from Blob.
+4. **Share** the production URL; testers sign in with **`@everde.com`**. **Admin → Test fetch** confirms freight JSON from Blob. Optional smoke check: **`GET /api/health`** (JSON `ok: true`).
 
-UNC (`PORTAL_DATA_ROOT`) is for **LAN/local**; hosted freight uses **Blob**. Full checklist: `docs/HOSTED_LAUNCH_PLAN.md`.
+UNC (`PORTAL_DATA_ROOT`) is for **LAN/local**; hosted freight uses **Blob**. Full checklist: `docs/HOSTED_LAUNCH_PLAN.md`. Repo includes **`vercel.json`** (reproducible `npm ci` + build) and **`.github/workflows/ci.yml`** so pushes run lint + build; **`GET /api/health`** is a cheap deploy smoke check.
 
 ## Getting Started
 
