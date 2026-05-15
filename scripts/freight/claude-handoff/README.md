@@ -9,7 +9,7 @@ These files came from **`Everde_Portal_Files.zip`** (Claude freight dashboard se
 | **`extract_data.py`** | CLI: reads weekly `.xlsb` / `.xlsx`, reads `_history`, `_explorer`, … (see `BACKEND_TABS`), writes **`dashboard_data.json`**. |
 | **`Everde_Freight_Dashboard_YTD_2026.html`** | Dashboard shell; still embeds inline data until the portal switches to `fetch('/api/…')` for JSON (see `docs/HOSTED_LAUNCH_PLAN.md`). |
 
-**Input file:** This script expects the **Freight dashboard workbook** that contains the hidden/backend sheets (`_history`, `_explorer`, `_3p_explorer`, …) — the same family as `Everde_Freight_Dashboard_*.xlsb` on the share. It does **not** read the separate **“Everde Freight Data YTD … .xlsb”** data workbook (that file has different tabs such as `Raw Data`, `Key`, … and **no** `_history`).
+**Input file:** This script expects the **Freight dashboard workbook** that contains the hidden/backend sheets (`_history`, `_explorer`, `_3p_explorer`, …). On the share that is usually **`Everde Freight Dashboard … (rebuilt).xlsx`** or **`Everde_Freight_Dashboard_*.xlsb`**, not the separate **“Everde Freight Data YTD … .xlsb”** raw workbook (that file has tabs such as `Raw Data`, `Key`, … and **no** `_history`).
 
 ## One-command extract + Blob publish (Windows)
 
@@ -19,9 +19,9 @@ From **repo root** (loads `.env.local` for `FREIGHT_PYTHON`, `AZURE_STORAGE_CONN
 npm run freight:extract-publish
 ```
 
-This picks the **newest** `Everde_Freight_Dashboard*.xlsb` under your `DataDrops\Freight` path (`PORTAL_DATA_ROOT` or the default UNC), copies it to `C:\temp`, runs **`extract_data.py`**, then **`npm run publish:freight-json`** if Azure env is set.
+This picks the **newest** dashboard workbook under `DataDrops\Freight`: **`Everde Freight Dashboard*.xlsx`** first, then `Everde_Freight_Dashboard*.xlsb`, then `Everde Freight Dashboard*.xlsb` (`PORTAL_DATA_ROOT` or default UNC), copies it to `C:\temp`, runs **`extract_data.py`**, then **`npm run publish:freight-json`** if Azure env is set.
 
-- **Override workbook:** add `FREIGHT_DASHBOARD_XLSB=\\...\Everde_Freight_Dashboard....xlsb` to `.env.local`, or run `.\scripts\freight\run-extract-and-publish.ps1 -DashboardPath "\\...\file.xlsb"`.
+- **Override workbook:** add `FREIGHT_DASHBOARD_XLSB=\\...\file.xlsx` (or `.xlsb`) to `.env.local`, or run `.\scripts\freight\run-extract-and-publish.ps1 -DashboardPath "\\...\path.xlsx"`.
 - **Extract only:** `.\scripts\freight\run-extract-and-publish.ps1 -SkipPublish`
 
 ## Dependencies

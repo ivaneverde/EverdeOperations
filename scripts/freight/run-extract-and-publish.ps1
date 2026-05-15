@@ -1,11 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Find latest Everde_Freight_Dashboard*.xlsb (or use -DashboardPath / FREIGHT_DASHBOARD_XLSB),
+  Find latest dashboard workbook on the Freight share (or use -DashboardPath / FREIGHT_DASHBOARD_XLSB),
   copy to C:\temp, run extract_data.py, optionally upload dashboard_data.json to Azure Blob.
 
 .DESCRIPTION
   Loads server env from repo .env.local (AZURE_*, FREIGHT_PYTHON, PORTAL_DATA_ROOT, FREIGHT_DASHBOARD_XLSB).
+
+  Auto-pick prefers the newest file matching, in order: Everde Freight Dashboard*.xlsx, Everde_Freight_Dashboard*.xlsb,
+  Everde Freight Dashboard*.xlsb. The "Everde Freight Data YTD*.xlsb" raw workbooks are not used (wrong sheet layout).
 
 .EXAMPLE
   npm run freight:extract-publish
@@ -51,12 +54,19 @@ if (-not $inputFile) {
     $root = ($env:PORTAL_DATA_ROOT.Trim() -replace "/", "\").TrimEnd("\")
     $freightShare = Join-Path $root "Freight"
   }
-  $candidates = @(
-    Get-ChildItem -LiteralPath $freightShare -Filter "Everde_Freight_Dashboard*.xlsb" -ErrorAction SilentlyContinue |
-      Sort-Object LastWriteTime -Descending
-  )
+  $merged = @()
+  foreach ($pattern in @(
+      "Everde Freight Dashboard*.xlsx",
+      "Everde_Freight_Dashboard*.xlsb",
+      "Everde Freight Dashboard*.xlsb"
+    )) {
+    $merged += Get-ChildItem -LiteralPath $freightShare -Filter $pattern -ErrorAction SilentlyContinue
+  }
+  $candidates = $merged | Sort-Object LastWriteTime -Descending
   if ($candidates.Count -eq 0) {
-    Write-Host "No Everde_Freight_Dashboard*.xlsb found under: $freightShare" -ForegroundColor Red
+    Write-Host "No dashboard workbook found under: $freightShare" -ForegroundColor Red
+    Write-Host "Expected something like ""Everde Freight Dashboard*.xlsx"" or ""Everde_Freight_Dashboard*.xlsb""." -ForegroundColor Red
+    Write-Host """Everde Freight Data*.xlsb"" is the raw data file, not the dashboard workbook." -ForegroundColor Yellow
     Write-Host "Set FREIGHT_DASHBOARD_XLSB in .env.local to the full path, or pass -DashboardPath." -ForegroundColor Yellow
     exit 1
   }
@@ -70,7 +80,9 @@ if (-not (Test-Path -LiteralPath $tempDir)) {
   New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 }
 
-$localCopy = Join-Path $tempDir "freight_dashboard_for_extract.xlsb"
+$ext = [System.IO.Path]::GetExtension($inputFile)
+if (-not $ext) { $ext = ".xlsb" }
+$localCopy = Join-Path $tempDir ("freight_dashboard_for_extract" + $ext)
 Write-Host "Copying to ${localCopy}..." -ForegroundColor Cyan
 Copy-Item -LiteralPath $inputFile -Destination $localCopy -Force
 
