@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  downloadSalesPlanDashboardJsonFromBlob,
-  downloadSalesPlanDashboardJsonFromLocal,
-} from "@/lib/azure/salesPlanDashboardBlob";
 import { guardPortalApi } from "@/lib/auth/guardApiRoute";
+import { loadSalesPlanDashboardJson } from "@/lib/salesPlan/loadSalesPlanDashboardJson";
 
 export const dynamic = "force-dynamic";
 
@@ -15,26 +12,14 @@ export async function GET(request: Request) {
   const gate = await guardPortalApi(request);
   if (!gate.ok) return gate.response;
 
-  const fromBlob = await downloadSalesPlanDashboardJsonFromBlob();
-  if (fromBlob) {
-    return new NextResponse(fromBlob, {
+  const loaded = await loadSalesPlanDashboardJson();
+  if (loaded) {
+    return new NextResponse(loaded.json, {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
-        "X-Everde-Sales-Plan-Data-Source": "azure-blob",
-      },
-    });
-  }
-
-  const local = await downloadSalesPlanDashboardJsonFromLocal();
-  if (local) {
-    return new NextResponse(local, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "no-store",
-        "X-Everde-Sales-Plan-Data-Source": "local-file",
+        "X-Everde-Sales-Plan-Data-Source": loaded.source,
       },
     });
   }

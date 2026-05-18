@@ -3,10 +3,7 @@ import {
   downloadFreightDashboardJsonFromBlob,
   downloadFreightDashboardJsonFromLocal,
 } from "@/lib/azure/freightDashboardBlob";
-import {
-  downloadSalesPlanDashboardJsonFromBlob,
-  downloadSalesPlanDashboardJsonFromLocal,
-} from "@/lib/azure/salesPlanDashboardBlob";
+import { loadSalesPlanDashboardJson } from "@/lib/salesPlan/loadSalesPlanDashboardJson";
 import { compactFreightForAssistant } from "@/lib/assistant/compactFreightForAssistant";
 import { compactNurseryForAssistant } from "@/lib/assistant/compactNurseryForAssistant";
 import { compactSalesPlanForAssistant } from "@/lib/assistant/compactSalesPlanForAssistant";
@@ -48,10 +45,8 @@ async function loadFreightJson(): Promise<string | null> {
 }
 
 async function loadSalesPlanJson(): Promise<string | null> {
-  return (
-    (await downloadSalesPlanDashboardJsonFromBlob()) ??
-    (await downloadSalesPlanDashboardJsonFromLocal())
-  );
+  const loaded = await loadSalesPlanDashboardJson();
+  return loaded?.json ?? null;
 }
 
 export async function buildAssistantContext(
@@ -112,7 +107,9 @@ export async function buildAssistantContext(
       excerpt: compactSalesPlanForAssistant(salesPlan, salesMax),
     });
   } else {
-    notes.push("Sales plan sales_plan_data.json not available.");
+    notes.push(
+      "Sales plan JSON not available (Blob, public/sales_plan_data.json, or HTML embed).",
+    );
   }
 
   const nurseryMax = maxCharsForDataset(focus, "nursery_demand");
