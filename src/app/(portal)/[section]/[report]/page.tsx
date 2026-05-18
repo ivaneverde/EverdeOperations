@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { FreightDashboardEmbed } from "@/components/reports/FreightDashboardEmbed";
+import { SalesPlanDashboardEmbed } from "@/components/reports/SalesPlanDashboardEmbed";
 import { FreightYtdSourcePage } from "@/components/reports/FreightYtdSourcePage";
 import { ReportPlaceholder } from "@/components/ReportPlaceholder";
 import { SalesManagerSummaryPage } from "@/components/reports/SalesManagerSummaryPage";
@@ -41,6 +42,21 @@ export default async function ReportPage(
   const isPrimaryFreightDashboard =
     sec.id === "load-board-freight" && rep.slug === "everde-freight-dashboard";
   const isFreightHtmlEmbed = isPrimaryFreightDashboard || freightTab != null;
+
+  const salesPlanTab =
+    typeof rep.salesPlanHtmlTab === "string" &&
+    rep.salesPlanHtmlTab.trim().length > 0
+      ? rep.salesPlanHtmlTab.trim()
+      : null;
+  const isSalesPlanHtmlEmbed = salesPlanTab != null;
+
+  if (isSalesPlanHtmlEmbed) {
+    return (
+      <ReportShell section={sec} report={rep} embedBody>
+        <SalesPlanDashboardEmbed salesPlanHtmlTab={salesPlanTab} />
+      </ReportShell>
+    );
+  }
 
   if (isFreightHtmlEmbed) {
     const showPipeline = isPrimaryFreightDashboard;

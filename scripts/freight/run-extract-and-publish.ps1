@@ -7,8 +7,9 @@
 .DESCRIPTION
   Loads server env from repo .env.local (AZURE_*, FREIGHT_PYTHON, PORTAL_DATA_ROOT, FREIGHT_DASHBOARD_XLSB).
 
-  Auto-pick prefers the newest file matching, in order: Everde Freight Dashboard*.xlsx, Everde_Freight_Dashboard*.xlsb,
-  Everde Freight Dashboard*.xlsb. The "Everde Freight Data YTD*.xlsb" raw workbooks are not used (wrong sheet layout).
+  Auto-pick: newest dashboard workbook in Freight\WeeklyDrop only (after update.py or manual copy).
+  Patterns: Everde Freight Dashboard*.xlsx, Everde_Freight_Dashboard*.xlsb, Everde Freight Dashboard*.xlsb.
+  Raw Everde Freight Data*.xlsb belong in WeeklyDrop for update.py — not used by extract_data.py.
 
 .EXAMPLE
   npm run freight:extract-publish
@@ -49,28 +50,51 @@ if (-not $inputFile -and $env:FREIGHT_DASHBOARD_XLSB) {
 }
 
 if (-not $inputFile) {
-  $freightShare = "\\192.168.190.10\Claude Sandbox\DataDrops\Freight"
+  $dataRoot = "\\192.168.190.10\Claude Sandbox\DataDrops"
   if ($env:PORTAL_DATA_ROOT) {
-    $root = ($env:PORTAL_DATA_ROOT.Trim() -replace "/", "\").TrimEnd("\")
-    $freightShare = Join-Path $root "Freight"
+    $dataRoot = ($env:PORTAL_DATA_ROOT.Trim() -replace "/", "\").TrimEnd("\")
   }
-  $merged = @()
-  foreach ($pattern in @(
-      "Everde Freight Dashboard*.xlsx",
-      "Everde_Freight_Dashboard*.xlsb",
-      "Everde Freight Dashboard*.xlsb"
-    )) {
-    $merged += Get-ChildItem -LiteralPath $freightShare -Filter $pattern -ErrorAction SilentlyContinue
+  $freightShare = Join-Path $dataRoot "Freight"
+  if ($env:FREIGHT_WEEKLY_DROP) {
+    $weeklyDrop = ($env:FREIGHT_WEEKLY_DROP.Trim() -replace "/", "\").TrimEnd("\")
+  } else {
+    $weeklyDrop = Join-Path $freightShare "WeeklyDrop"
   }
-  $candidates = $merged | Sort-Object LastWriteTime -Descending
+  $patterns = @(
+    "Everde Freight Dashboard*.xlsx",
+    "Everde_Freight_Dashboard*.xlsb",
+    "Everde Freight Dashboard*.xlsb"
+  )
+  function Get-NewestFreightDashboard {
+    param([string]$Dir)
+    if (-not (Test-Path -LiteralPath $Dir)) { return @() }
+    $merged = @()
+    foreach ($pattern in $patterns) {
+      $merged += Get-ChildItem -LiteralPath $Dir -Filter $pattern -File -ErrorAction SilentlyContinue
+    }
+    return $merged | Sort-Object LastWriteTime -Descending
+  }
+  $candidates = @(Get-NewestFreightDashboard $weeklyDrop)
   if ($candidates.Count -eq 0) {
-    Write-Host "No dashboard workbook found under: $freightShare" -ForegroundColor Red
-    Write-Host "Expected something like ""Everde Freight Dashboard*.xlsx"" or ""Everde_Freight_Dashboard*.xlsb""." -ForegroundColor Red
-    Write-Host """Everde Freight Data*.xlsb"" is the raw data file, not the dashboard workbook." -ForegroundColor Yellow
-    Write-Host "Set FREIGHT_DASHBOARD_XLSB in .env.local to the full path, or pass -DashboardPath." -ForegroundColor Yellow
+    Write-Host "No dashboard workbook in WeeklyDrop:" -ForegroundColor Red
+    Write-Host "  $weeklyDrop" -ForegroundColor Red
+    Write-Host "Expected ""Everde Freight Dashboard*.xlsx"" (rebuilt output from update.py)." -ForegroundColor Red
+    $rawInDrop = @()
+    if (Test-Path -LiteralPath $weeklyDrop) {
+      $rawInDrop = Get-ChildItem -LiteralPath $weeklyDrop -Filter "Everde Freight Data*.xlsb" -File -ErrorAction SilentlyContinue
+    }
+    if ($rawInDrop.Count -gt 0) {
+      Write-Host ""
+      Write-Host "WeeklyDrop has raw .xlsb (correct). Run the pipeline first:" -ForegroundColor Yellow
+      Write-Host "  npm run freight:patch-weeklydrop   # once, patches share update.py" -ForegroundColor Yellow
+      Write-Host "  npm run freight:update-weekly        # runs update.py from WeeklyDrop" -ForegroundColor Yellow
+      Write-Host "  npm run freight:extract-publish      # then publish JSON to Blob" -ForegroundColor Yellow
+    }
+    Write-Host "Override: FREIGHT_DASHBOARD_XLSB or -DashboardPath" -ForegroundColor Yellow
     exit 1
   }
   $inputFile = $candidates[0].FullName
+  Write-Host "Using newest dashboard from WeeklyDrop." -ForegroundColor Cyan
 }
 
 Write-Host "Dashboard workbook: $inputFile" -ForegroundColor Cyan

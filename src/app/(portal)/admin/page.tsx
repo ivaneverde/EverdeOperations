@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminFreightTools } from "@/components/admin/AdminFreightTools";
+import { AdminSalesPlanTools } from "@/components/admin/AdminSalesPlanTools";
 
 export const metadata: Metadata = {
   title: "Admin | Everde AI Operations",
@@ -15,12 +16,13 @@ export default function AdminPage() {
             Admin
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
-            Freight weekly uploads and dashboard JSON checks. Requires Entra
-            sign-in with an @everde.com account (or a configured upload key for
-            automation).
+            Freight and Sales Plan weekly uploads and JSON checks. Requires
+            Entra sign-in with an @everde.com account (or a configured upload
+            key for automation).
           </p>
         </header>
         <AdminFreightTools />
+        <AdminSalesPlanTools />
       </div>
     </div>
   );

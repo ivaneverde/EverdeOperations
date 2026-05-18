@@ -11,7 +11,18 @@
     "start": "next start",
     "lint": "eslint",
     "publish:freight-json": "node scripts/freight/publish-dashboard-data.mjs",
-    "freight:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/run-extract-and-publish.ps1"
+    "freight:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/run-extract-and-publish.ps1",
+    "freight:patch-weeklydrop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/patch-update-weeklydrop.ps1",
+    "freight:fix-weeklydrop-patch": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/fix-weeklydrop-patch-script.ps1",
+    "freight:finish-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/finish-publish-dashboard.ps1",
+    "freight:fix-update-utf8": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/fix-update-utf8-env.ps1",
+    "freight:migrate-weeklydrop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/migrate-to-weeklydrop.ps1",
+    "freight:update-weekly": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/run-update-weekly.ps1",
+    "publish:sales-plan-json": "node scripts/sales-plan-review/publish-dashboard-data.mjs",
+    "sales-plan:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-extract-and-publish.ps1",
+    "sales-plan:bootstrap-json": "node scripts/sales-plan-review/bootstrap-json-from-html.mjs",
+    "nursery:refresh-demand": "node scripts/nursery/refresh-nursery-demand.mjs",
+    "weekly:register-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.10.1",
@@ -31,7 +42,8 @@
     "eslint": "^9",
     "eslint-config-next": "^15.5.9",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "typescript-eslint": "^8.59.3"
+    "typescript": "5.8.2",
+    "typescript-eslint": "^8.59.3",
+    "xlsx": "^0.18.5"
   }
 }

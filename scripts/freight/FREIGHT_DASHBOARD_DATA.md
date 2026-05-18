@@ -73,3 +73,16 @@ Use an explicit `f"{month}-{day}-{yy}"` stamp — **not** `strftime("%-m-%-d-%y"
 2. Regenerate **`Everde_Freight_Dashboard*.html`** from that workbook using backend-tab reads only.
 3. Drop the HTML under **`DataDrops/Freight/`** (canonical), **or** under the repo’s **`public/`** for local dev (same `Everde_Freight_Dashboard*.html` name pattern; newest vs share wins by `mtime`), **or** set `FREIGHT_DASHBOARD_HTML` during testing.
 4. Use **Reload view** in the portal; optional: run `extract_dashboard_html.py` on the new file to spot empty `v` fields in the JSON early.
+
+## Weekly drop → portal JSON (hosted)
+
+1. Drop **only** in `DataDrops\Freight\WeeklyDrop\` — all raw `Everde Freight Data*.xlsb` (including historical YE files under `WeeklyDrop\archive\data\` if used by the pipeline).
+2. **`npm run freight:patch-weeklydrop`** once (patches share `update.py` to read WeeklyDrop).
+3. **`npm run freight:update-weekly`** — runs `update.py`; writes rebuilt dashboard to `Freight\` and copies a copy into `WeeklyDrop\`.
+4. **`npm run freight:extract-publish`** — reads dashboard from **WeeklyDrop only** → Blob → portal.
+
+One-time move from old layout: **`npm run freight:migrate-weeklydrop`**.
+
+Do **not** drop new raw files in `Freight\` root.
+
+Optional: **`npm run weekly:register-tasks`** registers Windows Task Scheduler jobs (Tuesday 7:00 AM by default).

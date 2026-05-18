@@ -9,9 +9,9 @@
 export const DATA_ROOT_UNC =
   "\\\\192.168.190.10\\Claude Sandbox\\DataDrops";
 
-/** Workbook shown as Source for freight HTML tab mirrors (same artifact as the embed). */
+/** Workbook shown as Source for freight HTML tab mirrors (published weekly dashboard). */
 const FREIGHT_DASHBOARD_SOURCE =
-  "Freight\\Everde_Freight_Dashboard_2026-05-11.xlsb";
+  "Freight\\WeeklyDrop\\Everde Freight Dashboard YTD 5-18-26 (rebuilt).xlsx";
 
 export type PortalReport = {
   slug: string;
@@ -31,6 +31,11 @@ export type PortalReport = {
    * and calls the iframe `activate(tab)` with this exact tab name (must match `data-tab` in the HTML).
    */
   freightHtmlTab?: string;
+  /**
+   * When set, renders the NOR CAL sales plan HTML embed (`/api/sales-plan/dashboard-html`)
+   * and calls iframe `activate(tab)` with this dashboard nav title.
+   */
+  salesPlanHtmlTab?: string;
   /** Optional hex color (no #) for a small sidebar dot, matching dashboard tab colors */
   navAccent?: string;
   /**
@@ -239,7 +244,9 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "nor-cal-forward-looking",
         title: "NOR CAL — Forward Looking INV vs Sales Plan",
         sourceRelativePath:
-          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 050426.xlsx",
+          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+        salesPlanHtmlTab: "Exec Summary",
+        navAccent: "2F5233",
         sheetTabs: [
           "Read Me & Methodology",
           "Build Health",
@@ -248,13 +255,54 @@ export const PORTAL_SECTIONS: PortalSection[] = [
           "Plan by KI",
         ],
         notes:
-          "Two-stage allocation (defend plan, then lift from surplus) documented on Read Me.",
+          "Live NOR CAL dashboard (Blob JSON + HTML embed). Two-stage allocation on Read Me.",
+      },
+      {
+        slug: "nor-cal-ytd-performance",
+        title: "YTD Performance",
+        sourceRelativePath:
+          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+        salesPlanHtmlTab: "YTD Performance",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "nor-cal-miss-by-ki",
+        title: "Miss by KI",
+        sourceRelativePath:
+          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+        salesPlanHtmlTab: "Miss by KI",
+        navAccent: "C0392B",
+      },
+      {
+        slug: "nor-cal-plan-by-ki",
+        title: "Plan by KI",
+        sourceRelativePath:
+          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+        salesPlanHtmlTab: "Plan by KI",
+        navAccent: "C49B3F",
+      },
+      {
+        slug: "nor-cal-excess-at-farm",
+        title: "Excess at Farm",
+        sourceRelativePath:
+          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+        salesPlanHtmlTab: "Excess at Farm",
+        navAccent: "5B4F8A",
+      },
+      {
+        slug: "nor-cal-channel-summary",
+        title: "Channel Summary",
+        sourceRelativePath:
+          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+        salesPlanHtmlTab: "Channel Summary",
+        navAccent: "404040",
       },
       {
         slug: "or-forward-looking-ytd",
         title: "OR Forward Looking YTD Miss vs Inventory",
         sourceRelativePath:
           "Sales Plan Review\\OR Forward Looking YTD Miss vs Inventory 051126.xlsx",
+        notes: "OR region workbook — portal embed coming after NOR CAL rollout.",
       },
     ],
   },
@@ -448,12 +496,13 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     title: "Production & Demand Plan",
     summary:
       "Inventory metrics versus demand windows and plans (weekly drops on the share).",
-    shareFolder: "InventoryMetrics",
+    shareFolder: "Inventory Metrics",
     sectionOnly: true,
     nurseryPane: "demand",
-    sectionSourceRelativePath: "InventoryMetrics\\Inventory Metrics 05 11 26.xlsb",
+    sectionSourceRelativePath:
+      "Inventory Metrics\\Inventory Metrics 05 18 26.xlsb",
     sectionNotes:
-      "Drop the latest Inventory Metrics workbook in InventoryMetrics.",
+      "Drop the latest Inventory Metrics workbook in Inventory Metrics (run npm run nursery:refresh-demand after each drop).",
     reports: [],
   },
   {

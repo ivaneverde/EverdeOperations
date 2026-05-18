@@ -1,0 +1,1521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Everde — Nursery Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1216;
+    --bg-elevated: #181c22;
+    --bg-card: #1c2026;
+    --border: #2a2f37;
+    --border-soft: #1f242a;
+    --text: #e4e4e4;
+    --text-2: #a8acb3;
+    --text-3: #6c727a;
+    --accent: #599CE7;
+    --success: #1F8A65;
+    --warning: #E8A040;
+    --danger: #C04848;
+    --info: #2E79B5;
+    --neutral: #8888A8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  body { padding: 32px 24px 64px; }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; font-weight: 600; }
+  h2 { font-size: 18px; line-height: 1.3; margin: 0 0 8px; font-weight: 600; }
+  h3 { font-size: 15px; line-height: 1.3; margin: 0 0 8px; font-weight: 600; color: var(--text-2); }
+  p { margin: 0 0 8px; color: var(--text-2); }
+  .sub { color: var(--text-2); margin: 0 0 4px; }
+  hr { border: 0; border-top: 1px solid var(--border-soft); margin: 28px 0; }
+  .section { margin: 28px 0; }
+  .grid { display: grid; gap: 16px; }
+  .grid-5 { grid-template-columns: repeat(5, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-2-asym { grid-template-columns: 2fr 1fr; }
+  .grid-search { grid-template-columns: 2fr 1fr 1fr; }
+
+  .stat {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .stat .v { font-size: 22px; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
+  .stat .l { color: var(--text-2); font-size: 12px; margin-top: 4px; }
+  .stat.success .v { color: #6BC9A1; }
+  .stat.danger .v { color: #E48D8D; }
+  .stat.warning .v { color: #F4C57E; }
+  .stat.info .v { color: #79B6E5; }
+
+  .callout {
+    border-radius: 8px;
+    padding: 14px 16px;
+    border: 1px solid;
+  }
+  .callout.info { border-color: #2E79B566; background: #2E79B514; }
+  .callout.warning { border-color: #E8A04066; background: #E8A04010; }
+  .callout .t { font-weight: 600; margin-bottom: 4px; }
+  .callout.info .t { color: #79B6E5; }
+  .callout.warning .t { color: #F4C57E; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .card .head {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 12px;
+    color: var(--text-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card .body { padding: 14px; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .pill.success { color: #8DD2B0; border-color: #1F8A6588; background: #1F8A6520; }
+  .pill.warning { color: #F4C57E; border-color: #E8A04088; background: #E8A04018; }
+  .pill.danger { color: #E48D8D; border-color: #C0484888; background: #C0484818; }
+  .pill.info { color: #79B6E5; border-color: #2E79B588; background: #2E79B520; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  thead th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-2);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elevated);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  tbody td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  tbody tr:hover td { background: rgba(89,156,231,0.08); }
+  tbody tr.success td { background: #1F8A6515; }
+  tbody tr.warning td { background: #E8A04015; }
+  tbody tr.danger td { background: #C0484818; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .table-scroll { max-height: 520px; overflow: auto; border-radius: 8px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tab {
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-2);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #0e1218; font-weight: 500; }
+
+  input[type="text"], select {
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font: inherit;
+  }
+  input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .chart-box { position: relative; }
+  .chart-box.h-220 { height: 220px; }
+  .chart-box.h-260 { height: 260px; }
+  .chart-box.h-280 { height: 280px; }
+  .chart-box.h-300 { height: 300px; }
+  .chart-box.h-360 { height: 360px; }
+  .chart-box.h-440 { height: 440px; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .small { font-size: 12px; color: var(--text-2); }
+  .muted { color: var(--text-3); }
+
+  /* Report switcher — sticky top bar */
+  .report-switcher {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+    margin: -32px -24px 24px;
+    padding: 14px 24px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-switcher-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .report-switcher .brand {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    letter-spacing: -0.005em;
+  }
+  .report-switcher .brand .badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 7px;
+    background: var(--accent);
+    color: #0e1218;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+  }
+  .report-tabs { display: flex; gap: 6px; }
+  .report-tab {
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-2);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .report-tab:hover { color: var(--text); border-color: var(--text-3); }
+  .report-tab.active { background: var(--accent); border-color: var(--accent); color: #0e1218; }
+  .report-tab .tag {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+  }
+  .report-pane { display: none; }
+  .report-pane.active { display: block; }
+
+  /* Heatmap-ish cells for the farm scorecard */
+  .delta-good { color: #6BC9A1; font-weight: 600; }
+  .delta-bad { color: #E48D8D; font-weight: 600; }
+  .delta-neutral { color: var(--text-2); }
+
+  @media (max-width: 1100px) {
+    .grid-5 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-2-asym { grid-template-columns: 1fr; }
+    .grid-search { grid-template-columns: 1fr; }
+    .report-switcher-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
+  }
+
+  .report-switcher .brand { display: inline-flex; align-items: center; gap: 10px; }
+  .report-switcher .brand img.logo { height: 32px; width: auto; display: block; }
+  .report-switcher .brand .wordmark { font-weight: 600; font-size: 14px; letter-spacing: -0.005em; }
+
+</style>
+</head>
+<body>
+
+<div class="report-switcher">
+  <div class="report-switcher-inner">
+    <div class="brand"><img class="logo" alt="Everde Growers" src="data:image/png;base64,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" /><span class="wordmark">Everde — Nursery Analytics</span><span class="badge">2 reports</span></div>
+    <div class="report-tabs" id="report-tabs">
+      <div class="report-tab active" data-report="supply">
+        <span>Supply Inventory</span>
+        <span class="tag">06/05/26</span>
+      </div>
+      <div class="report-tab" data-report="demand">
+        <span>Production &amp; Demand Plan</span>
+        <span class="tag">05/11/26</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<div id="report-supply" class="report-pane active">
+
+  <header class="section">
+    <h1>Supply Inventory &amp; Opportunity</h1>
+    <p class="sub">7,524 inventory rows · 14 farms across 5 regions · 3,209 SKUs in 1,758 unique plants · price list dated 06/05/26.</p>
+  </header>
+
+  <section class="grid grid-5">
+    <div class="stat info"><div class="v">$137.4M</div><div class="l">Revenue potential</div></div>
+    <div class="stat"><div class="v">3,480,871</div><div class="l">Saleable units</div></div>
+    <div class="stat"><div class="v">3,209</div><div class="l">SKUs · 1,758 products</div></div>
+    <div class="stat"><div class="v">14</div><div class="l">Farms · 5 regions</div></div>
+    <div class="stat warning"><div class="v">$12.2M</div><div class="l">Aging stock value</div></div>
+  </section>
+
+  <section class="section grid" style="gap: 12px;">
+    <div class="callout info">
+      <div class="t">Strategic goal: align supply to demand windows</div>
+      Of $137.4M in saleable revenue potential, $12.2M is in aging stock (ready
+      date already passed) and 766K units across 1,102 SKUs are ready
+      <strong>after</strong> their assigned demand window closes — a direct miss
+      against the buyer's planting season. Below: where stock sits, how grades
+      stack up, and which SKUs need action first.
+    </div>
+    <div class="callout warning">
+      <div class="t">Note: this is a price list, not a sales report</div>
+      The source file's <code>ORDER QTY</code> column is empty for all 7,524
+      rows because this is a generic, customer-agnostic price list.
+      "Sell-through" and "consumption" are inferred from
+      <strong>graded − saleable</strong>: stock that was graded then later moved
+      (sold/shipped/aged out). Plant image URLs from the <code>.xls</code>
+      binary are not preserved by parsers — every table includes a Google Image
+      reference link by botanical name as a workaround.
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Demand window vs. ready date alignment</h2>
+    <p class="sub">The biggest lever you have on this list. For each demand window, how much saleable supply is ready on time vs. early (idle), late (missed), or has no ready date.</p>
+    <div class="grid grid-4" style="margin: 12px 0 16px;">
+      <div class="stat success"><div class="v" id="kpi-ontime"></div><div class="l" id="kpi-ontime-label"></div></div>
+      <div class="stat danger"><div class="v" id="kpi-late"></div><div class="l" id="kpi-late-label"></div></div>
+      <div class="stat warning"><div class="v" id="kpi-nodate"></div><div class="l" id="kpi-nodate-label"></div></div>
+      <div class="stat"><div class="v" id="kpi-total"></div><div class="l" id="kpi-total-label"></div></div>
+    </div>
+    <div class="chart-box h-300"><canvas id="chart-alignment"></canvas></div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Where the stock sits</h2>
+    <div class="grid grid-2-asym" style="margin-top: 12px;">
+      <div>
+        <h3>Saleable units by farm</h3>
+        <div class="chart-box h-440"><canvas id="chart-farms"></canvas></div>
+      </div>
+      <div>
+        <h3>Revenue potential by region</h3>
+        <div class="chart-box h-260"><canvas id="chart-regions"></canvas></div>
+        <p class="small" style="margin-top: 8px;">Texas (GFL + MCR) holds $70.7M of revenue potential — driven by trees and palms. SoCal has the most farms (6) but lower unit value.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Plant grade mix</h2>
+    <p class="sub">Grade A is the premium saleable tier; SS (small/seedling) is propagation stock; GS, B, C are graded but lower spec. Across the network, <strong>34.5%</strong> of saleable units are grade A and <strong>52.4%</strong> are SS.</p>
+    <div class="grid grid-2" style="margin-top: 12px;">
+      <div>
+        <h3>Overall grade share</h3>
+        <div class="chart-box h-300"><canvas id="chart-grades"></canvas></div>
+      </div>
+      <div>
+        <h3>Grade composition by farm (100% stack)</h3>
+        <div class="chart-box h-300"><canvas id="chart-farm-grades"></canvas></div>
+        <p class="small" style="margin-top: 8px;">GFL, OAS, BNL, FOR ship mostly grade A. WIN, MIR, STE, MCR, PAU propagate heavily (SS).</p>
+      </div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Categories &amp; supply timing</h2>
+    <div class="grid grid-2" style="margin-top: 12px;">
+      <div>
+        <h3>Top 10 categories by saleable units</h3>
+        <div class="chart-box h-360"><canvas id="chart-categories"></canvas></div>
+        <p class="small" style="margin-top: 8px;">Trees are the revenue engine despite lower unit counts — average unit price is ~$170 for Tree Evergreen vs. ~$19 for Shrub Evergreen.</p>
+      </div>
+      <div>
+        <h3>Saleable units by ready month</h3>
+        <div class="chart-box h-300"><canvas id="chart-timeline"></canvas></div>
+        <p class="small" style="margin-top: 8px;">Production peaks June–July 2026 (~1.5M units), with a sharp falloff by autumn — match procurement against this curve.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Farm operations</h2>
+    <p class="sub">Consumption % = (graded − currently saleable) / graded. Higher means more of the graded crop has moved out (sold/shipped/aged). HOM (94%) and HUN (34%) are the strongest movers; OAS, PAU, ESC are sitting on their crop.</p>
+    <div class="chart-box h-260" style="margin: 12px 0;"><canvas id="chart-consumption"></canvas></div>
+    <div class="table-scroll">
+      <table id="tbl-farms"></table>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Action lists</h2>
+    <p class="sub">Tabbed view across the eight most actionable lenses. All tables are sorted by impact (revenue / value-at-risk / quantity).</p>
+    <div class="tabs" id="action-tabs"></div>
+    <div class="table-scroll" id="action-table"></div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Plant explorer</h2>
+    <p class="sub">Search and filter the curated set of revenue-driving and at-risk plants. Click "view" to open a Google Image reference for the botanical name.</p>
+    <div class="grid grid-search" style="margin: 12px 0;">
+      <input type="text" id="explorer-search" placeholder="Search common or botanical name..." />
+      <select id="explorer-category"></select>
+      <select id="explorer-farm"></select>
+    </div>
+    <p class="small" id="explorer-count"></p>
+    <div class="table-scroll" id="explorer-table"></div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Where to focus next</h2>
+    <div class="grid grid-2" style="margin-top: 12px;">
+      <div class="card">
+        <div class="head"><span>Reroute on-time stock to active sales</span><span class="pill success">Pull supply forward</span></div>
+        <div class="body">1,294,316 units (42%) are ready in time for the 2026 H1 demand window — push these into the active sales pipeline first.</div>
+      </div>
+      <div class="card">
+        <div class="head"><span>Re-classify "ready late" stock</span><span class="pill warning">Re-time</span></div>
+        <div class="body">759,159 units won't be ready inside the 2026 H1 window — either reslot to 2026 H2 demand or accept a late-ship penalty. Top offenders: MCR oaks and Camellia Marie Bracey at FAL.</div>
+      </div>
+      <div class="card">
+        <div class="head"><span>Fill 1,052,250 units missing ready dates</span><span class="pill info">Backfill plan</span></div>
+        <div class="body">34% of 2026 H1 saleable supply has no ready date — adding dates turns hidden capacity into committable inventory and removes the largest single source of forecast error.</div>
+      </div>
+      <div class="card">
+        <div class="head"><span>Move $12.2M of aging stock</span><span class="pill danger">Promote / discount</span></div>
+        <div class="body">705 rows have ready dates in the past with stock still on hand. MCR's Holly Nellie Stevens #015 alone is $4.3M of aging value — build a clearance offer for the demand-window-NONE buyer segment.</div>
+      </div>
+      <div class="card">
+        <div class="head"><span>Replenish high-value shortages</span><span class="pill danger">Replenish</span></div>
+        <div class="body">20+ items priced ≥ $25 each have fewer than 25 saleable units against active demand windows — these are revenue-blockers, especially MCR's empire / shumard oaks and OAS palm specimens.</div>
+      </div>
+      <div class="card">
+        <div class="head"><span>Reconcile 28 oversold rows</span><span class="pill danger">Resolve</span></div>
+        <div class="body">Negative saleable counts mean over-allocation — 1,720 units committed beyond stock on hand. FOR's peony &amp; hydrangea programs are the biggest exposures and need either crop rescue or buyer notification.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <footer class="section">
+    <p class="small">Source: <code>Sales_Inventory___Price_List_060526.xls</code> · 7,524 rows × 27 columns · parsed 2026-05-08. Aging cutoff: ready date before today. Late = ready date after demand window's last day. Consumption % = max(0, graded − saleable) / graded.</p>
+    <p class="small muted">To enable real "what's selling" rather than supply health, attach a sales/orders export with shipped quantities and dates.</p>
+  </footer>
+
+</div><!-- /#report-supply -->
+
+<div id="report-demand" class="report-pane">
+
+  <header class="section">
+    <h1>Production Metrics &amp; Demand Plan</h1>
+    <p class="sub">$66.1M YTD revenue · 16 farms · weeks 9–21 (Mar 1 → May 11, 2026). Operational report covering grading variance, backorders &amp; credits, demand-window allocation, ready-date pipeline, photo readiness and cycle counts.</p>
+  </header>
+
+  <section class="section grid" style="gap: 12px;">
+    <div class="callout info">
+      <div class="t">The demand plan in three pieces: <em>have · sell · need more of</em></div>
+      <strong>Have:</strong> 15,031 graded items on hand across 16 farms, with $52.1M of system EU value (variance vs graded only 0.04%, well under the 0.5% goal).
+      <strong>Sell:</strong> $66.1M YTD revenue over 13 weeks (~$4.3M / wk run-rate). Texas leads at $19.2M YTD.
+      <strong>Need more of:</strong> $693K of demand <em>backordered</em> (1.05% — under the 1.10% goal) plus $985K issued as credits — the BO reason codes below tell you which categories and qualities are missing.
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Health KPIs</h2>
+    <div class="grid grid-5" style="margin-top: 12px;">
+      <div class="stat info"><div class="v" id="d-kpi-rev"></div><div class="l">YTD revenue (wks 9–21)</div></div>
+      <div class="stat danger"><div class="v" id="d-kpi-bo"></div><div class="l" id="d-kpi-bo-label">Backorders YTD</div></div>
+      <div class="stat warning"><div class="v" id="d-kpi-cr"></div><div class="l" id="d-kpi-cr-label">Credits YTD</div></div>
+      <div class="stat success"><div class="v" id="d-kpi-bocr"></div><div class="l" id="d-kpi-bocr-label">BO + CR vs goal</div></div>
+      <div class="stat"><div class="v" id="d-kpi-inv"></div><div class="l">Graded items on hand</div></div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Weekly trend: revenue vs missed demand</h2>
+    <p class="sub">Backorders are demand we couldn't ship; credits are revenue we issued back. Both are the most direct measurement of "what we need more of."</p>
+    <div class="chart-box h-300" style="margin: 12px 0;"><canvas id="d-chart-weekly"></canvas></div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Regional fulfillment quality (BO + CR % of revenue, weekly)</h2>
+    <p class="sub">Each region's combined backorder + credit rate vs the network goal line. Closer to goal = healthier fulfillment.</p>
+    <div class="chart-box h-300" style="margin: 12px 0;"><canvas id="d-chart-region"></canvas></div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Farm scorecard</h2>
+    <p class="sub">YTD revenue, backorders, credits, and variance against each farm's individual goal. Sorted by revenue. Green Δ = beating goal, red Δ = above goal.</p>
+    <div class="table-scroll" style="margin-top: 12px;">
+      <table id="d-tbl-farms"></table>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>What we need more of — top backorder reasons</h2>
+    <p class="sub">Aggregated across all farms. "Grade — too small" dominates ($75K), telling you the production cycle isn't meeting the size spec sold at the front end. Investing in larger-spec finishing capacity is the single highest-impact lever in this report.</p>
+    <div class="grid grid-2-asym" style="margin-top: 12px;">
+      <div>
+        <div class="chart-box h-300"><canvas id="d-chart-bo-reasons"></canvas></div>
+      </div>
+      <div>
+        <h3 style="margin-top:0;">Largest backorder lines</h3>
+        <div class="table-scroll" style="max-height: 320px;"><table id="d-tbl-bo-reasons"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Quality risk — top credit reasons</h2>
+    <p class="sub">Credits are post-ship issues. Quality-Disease/Insects ($113K) and Customer-Shipped Short ($54K) are the biggest leak. Both are addressable by stricter pre-ship QA and pick-list audits.</p>
+    <div class="grid grid-2-asym" style="margin-top: 12px;">
+      <div>
+        <div class="chart-box h-300"><canvas id="d-chart-cr-reasons"></canvas></div>
+      </div>
+      <div>
+        <h3 style="margin-top:0;">Largest credit lines</h3>
+        <div class="table-scroll" style="max-height: 320px;"><table id="d-tbl-cr-reasons"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Demand window allocation by farm</h2>
+    <p class="sub">For each farm's graded items, where they sit relative to their assigned demand window. <strong>Sellable/Future</strong> is healthy; <strong>Ready After Window</strong> means stock will land <em>after</em> the buyer needs it; <strong>Missing Window</strong> means no window has been assigned yet. Network total: <span id="d-dw-summary"></span>.</p>
+    <div class="chart-box h-360" style="margin: 12px 0;"><canvas id="d-chart-dw"></canvas></div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Ready-date pipeline by farm</h2>
+    <p class="sub">Counts of graded items by ready-date status. <strong>Past ready</strong> is stock that should already be saleable; <strong>No date</strong> blocks downstream planning. Network total: <span id="d-rd-summary"></span>.</p>
+    <div class="chart-box h-360" style="margin: 12px 0;"><canvas id="d-chart-rd"></canvas></div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Operational readiness</h2>
+    <div class="grid grid-3" style="margin-top: 12px;">
+      <div>
+        <h3>Photo completeness</h3>
+        <p class="small">Photos are the leading indicator of sellability — sales reps need them. Network: <span id="d-ph-summary"></span>.</p>
+        <div class="chart-box h-260"><canvas id="d-chart-photos"></canvas></div>
+      </div>
+      <div>
+        <h3>Cycle count progress (MTD)</h3>
+        <p class="small">% of starting inventory counted in the current month. Network: <span id="d-cc-summary"></span>.</p>
+        <div class="chart-box h-260"><canvas id="d-chart-cycle"></canvas></div>
+      </div>
+      <div>
+        <h3>System vs graded variance</h3>
+        <p class="small">Absolute |EU variance| as % of system value (goal: under 0.5%). Tells you which farms have data-quality drift.</p>
+        <div class="chart-box h-260"><canvas id="d-chart-variance"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <hr/>
+
+  <section class="section">
+    <h2>Demand plan recommendations</h2>
+    <p class="sub">Where to spend the next month of capacity, ranked by dollar impact in this report.</p>
+    <div class="grid grid-2" style="margin-top: 12px;" id="d-recs"></div>
+  </section>
+
+  <hr/>
+
+  <footer class="section">
+    <p class="small">Source: <code>Inventory Metrics 05 18 26.xlsb</code> · 6 worksheets · parsed 2026-05-18. YTD figures cover 2026 fiscal weeks 9–21 (Mar 1 → May 18). BO%, CR%, and goals are per-farm targets from the workbook; deltas are reported vs. each farm's own goal.</p>
+    <p class="small muted">To extend this into a forward demand forecast, attach a per-SKU sales history feed — the demand-window and ready-date tables here pre-classify supply for matching against it.</p>
+  </footer>
+
+</div><!-- /#report-demand -->
+
+<script>
+const DATA = {
+  meta: { totalSaleable: 3480871, totalGraded: 2837156, totalConsumed: 594610, agingValue: 12185300.5, lateQty: 766117 },
+  farmConsumption: {
+    WIN: { region: "NOCAL", saleable: 1013311, graded: 777542, consumed: 187738, consumptionPct: 24.1, revenuePot: 11522049.1, shortages: 84, zeroStock: 335, gradeAPct: 19.7, gradeSSPct: 78.2 },
+    MIR: { region: "SOCAL", saleable: 315141, graded: 303077, consumed: 42700, consumptionPct: 14.1, revenuePot: 5180169.9, shortages: 43, zeroStock: 31, gradeAPct: 6.2, gradeSSPct: 68.8 },
+    GFL: { region: "TX", saleable: 536266, graded: 361946, consumed: 78437, consumptionPct: 21.7, revenuePot: 48054275.95, shortages: 62, zeroStock: 142, gradeAPct: 83.5, gradeSSPct: 7.5 },
+    BNL: { region: "FL", saleable: 127508, graded: 100917, consumed: 15412, consumptionPct: 15.3, revenuePot: 11746933.45, shortages: 26, zeroStock: 23, gradeAPct: 74, gradeSSPct: 19 },
+    STE: { region: "SOCAL", saleable: 327880, graded: 359996, consumed: 58782, consumptionPct: 16.3, revenuePot: 6080107.7, shortages: 82, zeroStock: 110, gradeAPct: 8.5, gradeSSPct: 67.5 },
+    FOR: { region: "OR", saleable: 329431, graded: 302833, consumed: 92741, consumptionPct: 30.6, revenuePot: 7789677, shortages: 73, zeroStock: 229, gradeAPct: 74.8, gradeSSPct: 19.8 },
+    HUN: { region: "SOCAL", saleable: 85673, graded: 115795, consumed: 39302, consumptionPct: 33.9, revenuePot: 1053263.15, shortages: 8, zeroStock: 78, gradeAPct: 13.3, gradeSSPct: 63.4 },
+    ESC: { region: "SOCAL", saleable: 40328, graded: 40324, consumed: 386, consumptionPct: 1, revenuePot: 420122.8, shortages: 8, zeroStock: 0, gradeAPct: 18.1, gradeSSPct: 79.8 },
+    FAL: { region: "SOCAL", saleable: 229522, graded: 222382, consumed: 50561, consumptionPct: 22.7, revenuePot: 3266846.7, shortages: 11, zeroStock: 75, gradeAPct: 6.1, gradeSSPct: 46.5 },
+    MCR: { region: "TX", saleable: 183608, graded: 33367, consumed: 2952, consumptionPct: 8.8, revenuePot: 22684786.2, shortages: 187, zeroStock: 95, gradeAPct: 19.8, gradeSSPct: 65.8 },
+    BRA: { region: "NOCAL", saleable: 12848, graded: 11943, consumed: 1590, consumptionPct: 13.3, revenuePot: 1266282.4, shortages: 28, zeroStock: 10, gradeAPct: 36.8, gradeSSPct: 57.4 },
+    PAU: { region: "SOCAL", saleable: 193794, graded: 165568, consumed: 4085, consumptionPct: 2.5, revenuePot: 4194020.45, shortages: 15, zeroStock: 26, gradeAPct: 8, gradeSSPct: 72.7 },
+    OAS: { region: "FL", saleable: 84332, graded: 20313, consumed: 0, consumptionPct: 0, revenuePot: 14046387.15, shortages: 120, zeroStock: 0, gradeAPct: 90.5, gradeSSPct: 0 },
+    HOM: { region: "FL", saleable: 1229, graded: 21153, consumed: 19924, consumptionPct: 94.2, revenuePot: 55960, shortages: 2, zeroStock: 48, gradeAPct: 16.8, gradeSSPct: 6.6 }
+  },
+  regions: {
+    NOCAL: { saleable: 1026159, revenuePot: 12788331.5 },
+    SOCAL: { saleable: 1192338, revenuePot: 20194530.7 },
+    TX: { saleable: 719874, revenuePot: 70739062.15 },
+    FL: { saleable: 213069, revenuePot: 25849280.6 },
+    OR: { saleable: 329431, revenuePot: 7789677 }
+  },
+  grades: {
+    SS: { saleable: 1823083 }, A: { saleable: 1202002 }, GS: { saleable: 215993 },
+    C: { saleable: 145221 }, B: { saleable: 94572 }
+  },
+  categories: {
+    "SHRUB EVERGREEN": 1461883, "TREE EVERGREEN": 320609, "TREE DECIDUOUS": 142505,
+    "GRASS-LIKE": 300341, "PERENNIAL": 308454, "VINE": 306052, "CONIFER": 143781,
+    "PALM": 102463, "SHRUB DECIDUOUS": 126257, "SUCCULENT/CACTUS": 80662,
+    "AZALEA/RHODODENDRON": 70618, "ROSE": 68098, "EDIBLE": 36828, "FERN": 12320
+  },
+  readyByMonth: {
+    "2026-01": 59668, "2026-02": 18004, "2026-03": 48911, "2026-04": 70566,
+    "2026-05": 349128, "2026-06": 1073078, "2026-07": 467967, "2026-08": 96107,
+    "2026-09": 87255, "2026-10": 22473, "2026-11": 23882, "2026-12": 38369,
+    "2027-01": 3086, "2027-02": 2177, "2027-03": 911, "2027-04": 2025
+  },
+  farmGradeMatrix: {
+    WIN: { SS: 792794, A: 200026, C: 6376, GS: 5394, B: 8721 },
+    MIR: { C: 29438, A: 19485, B: 18553, SS: 216949, GS: 30716 },
+    GFL: { A: 447858, SS: 40193, C: 45396, GS: 2819, B: 0 },
+    BNL: { A: 94418, SS: 24188, C: 5617, B: 2791, GS: 494 },
+    STE: { A: 27869, SS: 221421, C: 23862, GS: 41034, B: 13694 },
+    FOR: { A: 246398, GS: 8918, SS: 65334, C: 8781, B: 0 },
+    HUN: { SS: 54326, A: 11417, B: 8664, GS: 10044, C: 1222 },
+    ESC: { C: 798, SS: 32166, A: 7299, GS: 65, B: 0 },
+    FAL: { GS: 63568, SS: 106640, B: 38789, A: 14052, C: 6473 },
+    MCR: { C: 6206, SS: 120741, A: 36438, GS: 20223, B: 0 },
+    BRA: { SS: 7370, A: 4733, GS: 351, C: 394, B: 0 },
+    PAU: { SS: 140880, C: 3058, A: 15463, B: 3360, GS: 31033 },
+    OAS: { C: 7600, A: 76340, GS: 392, SS: 0, B: 0 },
+    HOM: { SS: 81, A: 206, GS: 942, C: 0, B: 0 }
+  },
+  demandReadyMatch: {
+    "2026 HALF 1": { totalSaleable: 3105728, readyOnTime: 1294316, readyEarly: 3, readyLate: 759159, noReadyDate: 1052250 },
+    "2026 HALF 2": { totalSaleable: 316398, readyOnTime: 269873, readyEarly: 26849, readyLate: 25, noReadyDate: 19651 },
+    "2027 HALF 1": { totalSaleable: 3585, readyOnTime: 1923, readyEarly: 409, readyLate: 0, noReadyDate: 1253 },
+    "2025 HALF 2": { totalSaleable: 5444, readyOnTime: 983, readyEarly: 149, readyLate: 228, noReadyDate: 4084 },
+    "2025 HALF 1": { totalSaleable: 7535, readyOnTime: 63, readyEarly: 0, readyLate: 6705, noReadyDate: 767 }
+  },
+  topByRevenuePot: [
+    { common: "OAK, SOUTHERN LIVE", botanical: "QUERCUS VIRGINIANA..", category: "TREE EVERGREEN", saleable: 44949, revenuePot: 13266092.4, avgPrice: 361.84, sellThroughPct: 11.3, farms: ["BNL","BRA","WIN","STE","GFL","MCR"] },
+    { common: "HOLLY, NELLIE STEVENS", botanical: "ILEX NELLIE R STEVENS COL..", category: "TREE EVERGREEN", saleable: 122273, revenuePot: 10666939.5, avgPrice: 153.62, sellThroughPct: 1.4, farms: ["BNL","GFL","MCR"] },
+    { common: "OAK, EMPIRE LIVE", botanical: "QUERCUS VIRGINIANA EMPIRE R..", category: "TREE EVERGREEN", saleable: 20571, revenuePot: 7421610.1, avgPrice: 754.07, sellThroughPct: 9.4, farms: ["GFL","MCR"] },
+    { common: "HOLLY, EAGLESTON", botanical: "ILEX ATTENUATA EAGLESTON TF..", category: "TREE EVERGREEN", saleable: 18278, revenuePot: 7060180, avgPrice: 403.98, sellThroughPct: 6.8, farms: ["BNL","GFL","MCR"] },
+    { common: "PALM, QUEEN", botanical: "SYAGRUS ROMANZOFFIANA..", category: "PALM", saleable: 43911, revenuePot: 6220295.5, avgPrice: 141.87, sellThroughPct: 14.3, farms: ["HOM","OAS"] },
+    { common: "MAGNOLIA, LITTLE GEM", botanical: "MAGNOLIA G LITTLE GEM FTG..", category: "TREE EVERGREEN", saleable: 23938, revenuePot: 4000105.7, avgPrice: 253.33, sellThroughPct: 8.4, farms: ["BNL","BRA","PAU","STE","GFL","MCR"] },
+    { common: "HOLLY, OAKLEAF", botanical: "ILEX OAKLEAF FG..", category: "TREE EVERGREEN", saleable: 25351, revenuePot: 2500278, avgPrice: 140.93, sellThroughPct: 2.3, farms: ["BNL","GFL","MCR"] },
+    { common: "HOLLY, EAGLESTON", botanical: "ILEX ATTENUATA EAGLESTON FG..", category: "TREE EVERGREEN", saleable: 7142, revenuePot: 1960658, avgPrice: 175.44, sellThroughPct: 7.7, farms: ["BNL","GFL"] },
+    { common: "OAK, SHUMARD", botanical: "QUERCUS SHUMARDII..", category: "TREE DECIDUOUS", saleable: 3471, revenuePot: 1717186.35, avgPrice: 744.47, sellThroughPct: 59.3, farms: ["BNL","GFL","MCR"] },
+    { common: "PALM, PYGMY DATE", botanical: "PHOENIX ROEBELENII MT..", category: "PALM", saleable: 18926, revenuePot: 1698778, avgPrice: 88.36, sellThroughPct: 23.7, farms: ["HOM","OAS"] },
+    { common: "PODOCARPUS, SHRUBBY YEW", botanical: "PODOCARPUS MACRO MAKI..", category: "SHRUB EVERGREEN", saleable: 24610, revenuePot: 1603108.4, avgPrice: 118.7, sellThroughPct: 7.6, farms: ["BNL","OAS","BRA","WIN","MIR","PAU"] },
+    { common: "CRAPE MYRTLE, COLORAMA SCARLET", botanical: "LAG COLORAMA R SCARLET..", category: "TREE DECIDUOUS", saleable: 12054, revenuePot: 1516549.1, avgPrice: 130.39, sellThroughPct: 15.7, farms: ["GFL","MCR"] },
+    { common: "OAK, CHINQUAPIN", botanical: "QUERCUS MUEHLENBERGII..", category: "TREE DECIDUOUS", saleable: 7368, revenuePot: 1320206.55, avgPrice: 495.79, sellThroughPct: 18.7, farms: ["GFL","MCR"] },
+    { common: "PODOCARPUS, PRINGLES DWARF", botanical: "PODOCARPUS MACRO PRINGLES DWF..", category: "SHRUB EVERGREEN", saleable: 53128, revenuePot: 1301636, avgPrice: 24.5, sellThroughPct: 0, farms: ["BNL","GFL"] },
+    { common: "OAK, MONTERREY", botanical: "QUERCUS POLYMORPHA..", category: "TREE EVERGREEN", saleable: 3692, revenuePot: 1274603.3, avgPrice: 709.36, sellThroughPct: 13.5, farms: ["GFL"] }
+  ],
+  hotMovers: [
+    { common: "ABELIA, SUNTASTIC PEACH", botanical: "ABELIA SUNTASTIC PEACH PPAF SL..", category: "SHRUB EVERGREEN", graded: 300, sellThroughPct: 100, avgPrice: 16.5, farms: ["GFL"] },
+    { common: "CITRUS, LEMON, MEYER", botanical: "CITRUS MEYER LEMON IMPROVED SDF (Z3)..", category: "EDIBLE", graded: 3105, sellThroughPct: 100, avgPrice: 43.57, farms: ["WIN"] },
+    { common: "BUTTERFLY BUSH, LAVENDER", botanical: "BUDD BUTTERFLY LIL' LAVENDER PPAF SUNB..", category: "SHRUB DECIDUOUS", graded: 1610, sellThroughPct: 100, avgPrice: 0, farms: ["HUN"] },
+    { common: "BLANKET FLOWER, SPINTOP YELLOW TOUCH", botanical: "GAILLARDIA SPINTOP YELLOW TOUCH..", category: "PERENNIAL", graded: 618, sellThroughPct: 100, avgPrice: 5, farms: ["FOR"] },
+    { common: "ALOE, SAFARI SUNRISE", botanical: "ALOE SAFARI SUNRISE PP23267 SUNB..", category: "SUCCULENT/CACTUS", graded: 551, sellThroughPct: 100, avgPrice: 0, farms: ["HUN"] },
+    { common: "CAT MINT, WALKERS LOW", botanical: "NEPETA FAASSENII WALKERS LOW..", category: "PERENNIAL", graded: 459, sellThroughPct: 100, avgPrice: 5.4, farms: ["FOR"] },
+    { common: "ASIATIC LILY, ROZALYNN", botanical: "LILIUM ASIATIC ROZALYNN PPAF..", category: "PERENNIAL", graded: 436, sellThroughPct: 100, avgPrice: 15, farms: ["FOR"] },
+    { common: "CITRUS, GRAPEFRUIT, RIO RED", botanical: "CITRUS RIO RED GRAPEFRUIT SDF (Z2)..", category: "EDIBLE", graded: 382, sellThroughPct: 100, avgPrice: 44, farms: ["WIN"] },
+    { common: "BLUEBERRY, DUKE HIGHBUSH", botanical: "VACCINIUM CORYMBOSUM DUKE SWT..", category: "EDIBLE", graded: 367, sellThroughPct: 100, avgPrice: 9.9, farms: ["FOR"] },
+    { common: "CITRUS, GRAPEFRUIT, ORO BLANCO", botanical: "CITRUS ORO BLANCO GRAPEFRUIT SDF (Z2)..", category: "EDIBLE", graded: 362, sellThroughPct: 100, avgPrice: 43, farms: ["WIN"] },
+    { common: "CITRUS, BLOOD ORANGE, MORO", botanical: "CITRUS MORO BLOOD ORANGE SDF (Z3)..", category: "EDIBLE", graded: 310, sellThroughPct: 100, avgPrice: 43, farms: ["WIN"] },
+    { common: "BOTTLEBRUSH, LIGHT SHOW", botanical: "CALLISTEMON LT SHOW R P27547 SUNB..", category: "SHRUB EVERGREEN", graded: 300, sellThroughPct: 100, avgPrice: 0, farms: ["WIN"] },
+    { common: "BLACKBERRY, BABY CAKES", botanical: "RUBUS BABY CAKES BLACKBERRY PP27032 BNB..", category: "EDIBLE", graded: 229, sellThroughPct: 100, avgPrice: 18.9, farms: ["FOR"] },
+    { common: "ASIATIC LILY, CHARLOTTE'S JOY", botanical: "LILIUM ASIATIC CHARLOTTE'S JOY..", category: "PERENNIAL", graded: 276, sellThroughPct: 100, avgPrice: 15, farms: ["FOR"] },
+    { common: "CITRUS, GRAPEFRUIT, RIO RED (Z4)", botanical: "CITRUS RIO RED GRAPEFRUIT SDF (Z4)..", category: "EDIBLE", graded: 212, sellThroughPct: 100, avgPrice: 43, farms: ["WIN","FOR"] }
+  ],
+  slowMovers: [
+    { common: "BOXWOOD, GREEN GEM", botanical: "BUXUS GREEN GEM..", category: "SHRUB EVERGREEN", saleable: 25640, sellThroughPct: 0, avgPrice: 15.97, revenuePot: 395696.6, farms: ["FOR"] },
+    { common: "AZALEA, PRIZE", botanical: "AZALEA PRIZE..", category: "AZALEA/RHODODENDRON", saleable: 10600, sellThroughPct: 0, avgPrice: 0.7, revenuePot: 7420, farms: ["FAL"] },
+    { common: "ARTEMISIA, POWIS CASTLE", botanical: "ARTEMISIA POWIS CASTLE..", category: "PERENNIAL", saleable: 4056, sellThroughPct: 0, avgPrice: 5.25, revenuePot: 21294, farms: ["WIN","MIR"] },
+    { common: "AGAVE, QUEEN VICTORIA", botanical: "AGAVE VICTORIA-REGINAE..", category: "SUCCULENT/CACTUS", saleable: 2956, sellThroughPct: 0, avgPrice: 21.39, revenuePot: 69148.7, farms: ["ESC","MIR","GFL"] },
+    { common: "AUSTRALIAN TEA, HELEN STRYBING", botanical: "LEPTOSPERMUM S HELEN STRYBING ..", category: "SHRUB EVERGREEN", saleable: 2558, sellThroughPct: 0, avgPrice: 27.5, revenuePot: 14905, farms: ["MIR"] },
+    { common: "ALOE, SAFARI SUNRISE", botanical: "ALOE SAFARI SUNRISE PP23267 SUN..", category: "SUCCULENT/CACTUS", saleable: 2538, sellThroughPct: 0, avgPrice: 16, revenuePot: 40608, farms: ["MIR"] },
+    { common: "AZALEA, HAPPY DAYS", botanical: "AZALEA HAPPY DAYS..", category: "AZALEA/RHODODENDRON", saleable: 2270, sellThroughPct: 0, avgPrice: 17.38, revenuePot: 32300, farms: ["WIN","FAL"] },
+    { common: "ANISE, YELLOW", botanical: "ILLICIUM PARVIFLORUM..", category: "SHRUB EVERGREEN", saleable: 2145, sellThroughPct: 0, avgPrice: 17.33, revenuePot: 30720, farms: ["BNL"] },
+    { common: "ALOE, SAFARI ROSE", botanical: "ALOE SAFARI ROSE PPAF SUN..", category: "SUCCULENT/CACTUS", saleable: 2112, sellThroughPct: 0, avgPrice: 13.5, revenuePot: 28512, farms: ["MIR"] },
+    { common: "AGAVE, CENTURY PLANT", botanical: "AGAVE AMERICANA..", category: "SUCCULENT/CACTUS", saleable: 1652, sellThroughPct: 0, avgPrice: 112.25, revenuePot: 128427, farms: ["STE"] },
+    { common: "AGAVE, FROSTY BLUE WHALE'S TONGUE", botanical: "AGAVE OVATIFOLIA FROSTY BLUE..", category: "SUCCULENT/CACTUS", saleable: 1550, sellThroughPct: 0, avgPrice: 25, revenuePot: 38044, farms: ["MIR","GFL"] },
+    { common: "ALOE, LITTLE RED RIDING HOOD", botanical: "ALOE ROOIKAPPIE..", category: "SUCCULENT/CACTUS", saleable: 1461, sellThroughPct: 0, avgPrice: 10, revenuePot: 14610, farms: ["MIR"] },
+    { common: "ALYOGYNE, BLUE HIBISCUS, SANTA CRUZ", botanical: "ALYOGYNE SANTA CRUZ..", category: "SHRUB DECIDUOUS", saleable: 1392, sellThroughPct: 0, avgPrice: 7, revenuePot: 9744, farms: ["WIN","MIR"] },
+    { common: "ABELIA, KALEIDOSCOPE", botanical: "ABELIA KALEIDOSC P16988 SUN..", category: "SHRUB EVERGREEN", saleable: 1374, sellThroughPct: 0, avgPrice: 13.5, revenuePot: 18549, farms: ["WIN"] },
+    { common: "BOUGAINVILLEA, BAMBINO LILAC", botanical: "BOUGAINVILLEA BAMBINO LILAC PW..", category: "VINE", saleable: 1204, sellThroughPct: 0, avgPrice: 15, revenuePot: 18060, farms: ["FAL"] }
+  ],
+  agingStock: [
+    { item: "ILENEF0015", common: "HOLLY, NELLIE STEVENS", botanical: "ILEX NELLIE R STEVENS COL..", size: "#015", grade: "SS", farm: "MCR", ready: "2025-09-08", saleable: 51158, value: 4348430 },
+    { item: "ILENEF0215", common: "HOLLY, OAKLEAF", botanical: "ILEX OAKLEAF FG..", size: "#015", grade: "GS", farm: "MCR", ready: "2026-05-01", saleable: 12771, value: 1085535 },
+    { item: "EUOKIF0215", common: "EUONYMUS, MANHATTAN", botanical: "EUONYMUS KIAUTSCHOVICUS MANHATTAN ES..", size: "#015", grade: "A", farm: "WIN", ready: "2026-01-13", saleable: 4680, value: 702000 },
+    { item: "ILENEF0030", common: "HOLLY, NELLIE STEVENS", botanical: "ILEX NELLIE R STEVENS COL..", size: "#030", grade: "SS", farm: "MCR", ready: "2026-05-01", saleable: 1605, value: 280875 },
+    { item: "ILECRF0015", common: "HOLLY, SKY PENCIL", botanical: "ILEX CRENATA SKY PENCIL..", size: "#015", grade: "GS", farm: "MCR", ready: "2026-05-01", saleable: 2928, value: 248880 },
+    { item: "EUOJAF2805", common: "EUONYMUS, CHOLLIPO JAPANESE", botanical: "EUONYMUS J CHOLLIPO PYRAMID..", size: "#005", grade: "A", farm: "WIN", ready: "2026-01-01", saleable: 4228, value: 202944 },
+    { item: "ILENEF0245", common: "HOLLY, OAKLEAF", botanical: "ILEX OAKLEAF FG..", size: "#045", grade: "SS", farm: "MCR", ready: "2026-05-01", saleable: 528, value: 158400 },
+    { item: "BUXMIF0905", common: "BOXWOOD, WINTER GEM", botanical: "BUXUS M WINTER GEM..", size: "#005", grade: "A", farm: "WIN", ready: "2026-01-30", saleable: 5349, value: 128376 },
+    { item: "CUPARF0245", common: "CYPRESS, CAROLINA SAPPHIRE", botanical: "CUPRESSUS CAROLINA SAPPHIRE..", size: "#045", grade: "SS", farm: "MCR", ready: "2026-05-01", saleable: 405, value: 121500 },
+    { item: "QUESHS0067", common: "OAK, SHUMARD", botanical: "QUERCUS SHUMARDII..", size: "#670", grade: "SS", farm: "MCR", ready: "2026-05-01", saleable: 21, value: 121275 },
+    { item: "ILEEMF0030", common: "HOLLY, EMERALD COLONNADE", botanical: "ILEX EMERALD COLONNADE R PP23905 MON..", size: "#030", grade: "GS", farm: "MCR", ready: "2026-05-01", saleable: 426, value: 100110 },
+    { item: "QUEMAS0095", common: "OAK, BURR", botanical: "QUERCUS MACROCARPA..", size: "#095", grade: "C", farm: "MCR", ready: "2025-06-17", saleable: 118, value: 79060 },
+    { item: "BUXMIF0901", common: "BOXWOOD, WINTER GEM", botanical: "BUXUS M WINTER GEM..", size: "#001", grade: "A", farm: "WIN", ready: "2026-02-11", saleable: 13050, value: 78300 },
+    { item: "ILENEF0045", common: "HOLLY, NELLIE STEVENS", botanical: "ILEX NELLIE R STEVENS COL..", size: "#045", grade: "SS", farm: "MCR", ready: "2026-05-01", saleable: 252, value: 75600 },
+    { item: "EUOJAF0001", common: "EUONYMUS, GOLDEN JAPANESE", botanical: "EUONYMUS J AUREO-MARGINATUS..", size: "#001", grade: "A", farm: "WIN", ready: "2026-01-15", saleable: 13728, value: 75504 }
+  ],
+  lateReady: [
+    { item: "QUEVRS0745", common: "OAK, EMPIRE LIVE", botanical: "QUERCUS VIRGINIANA EMPIRE R..", size: "#045", farm: "MCR", dw: "2026 HALF 1", ready: "2026-08-01", daysLate: 32, saleable: 3245, value: 1005950 },
+    { item: "QUEVRS0795", common: "OAK, EMPIRE LIVE", botanical: "QUERCUS VIRGINIANA EMPIRE R..", size: "#095", farm: "MCR", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 855, value: 572850 },
+    { item: "CAMJAF9705", common: "CAMELLIA, MARIE BRACEY", botanical: "CAM J MARIE BRACEY..", size: "#005", farm: "FAL", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 14222, value: 469326 },
+    { item: "FICMIF0115", common: "FICUS, GLOSSY INDIAN LAUREL", botanical: "FICUS MICRO NITIDA COL..", size: "#015", farm: "MIR", dw: "2026 HALF 1", ready: "2026-09-01", daysLate: 63, saleable: 6836, value: 410160 },
+    { item: "QUEMUS0015", common: "OAK, CHINQUAPIN", botanical: "QUERCUS MUEHLENBERGII..", size: "#015", farm: "MCR", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 4375, value: 371875 },
+    { item: "RHAINF2505", common: "INDIAN HAWTHORN, CLARA", botanical: "RHAPH INDICA CLARA..", size: "#005", farm: "WIN", dw: "2026 HALF 1", ready: "2026-06-30", daysLate: 0, saleable: 26788, value: 321456 },
+    { item: "TRAJAF0301", common: "JASMINE, STAR", botanical: "TRACHELOSPERMUM JASMINOIDES..", size: "#001", farm: "WIN", dw: "2026 HALF 1", ready: "2026-06-30", daysLate: 0, saleable: 63725, value: 318625 },
+    { item: "ILENEF0015", common: "HOLLY, NELLIE STEVENS", botanical: "ILEX NELLIE R STEVENS COL..", size: "#015", farm: "MCR", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 2842, value: 241570 },
+    { item: "ILENEF0030", common: "HOLLY, NELLIE STEVENS", botanical: "ILEX NELLIE R STEVENS COL..", size: "#030", farm: "MCR", dw: "2026 HALF 1", ready: "2026-09-01", daysLate: 63, saleable: 1284, value: 224700 },
+    { item: "CALVIF1405", common: "BOTTLEBRUSH, LITTLE JOHN", botanical: "CALLISTEMON VIM LITTLE JOHN..", size: "#005", farm: "WIN", dw: "2026 HALF 1", ready: "2026-06-30", daysLate: 0, saleable: 17135, value: 205620 },
+    { item: "JUNCHF3305", common: "JUNIPER, BLUE POINT", botanical: "JUNIPERUS CHIN BLUE POINT..", size: "#005", farm: "PAU", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 5607, value: 196245 },
+    { item: "QUEMUS0095", common: "OAK, CHINQUAPIN", botanical: "QUERCUS MUEHLENBERGII..", size: "#095", farm: "MCR", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 246, value: 169740 },
+    { item: "BOUBAF0405", common: "BOUGAINVILLEA, BARBARA KARST", botanical: "BOUGAINVILLEA BARBARA KARST STK..", size: "#005", farm: "PAU", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 5792, value: 149144 },
+    { item: "GARJAF09Q1", common: "GARDENIA, VEITCHII", botanical: "GARDENIA J VEITCHII..", size: "Quart 1.0", farm: "FAL", dw: "2026 HALF 1", ready: "2026-07-01", daysLate: 1, saleable: 13916, value: 146118 },
+    { item: "OLEEUF1905", common: "OLIVE, FRUITLESS DWARF EUROPEAN", botanical: "OLEA EUROPAEA DWARF..", size: "#005", farm: "WIN", dw: "2026 HALF 1", ready: "2026-06-30", daysLate: 0, saleable: 8421, value: 143157 }
+  ],
+  shortages: [
+    { item: "QUEVRS0767", common: "OAK, EMPIRE LIVE", botanical: "QUERCUS VIRGINIANA EMPIRE R..", size: "#670", grade: "A", saleable: 4, price: 5775, revenuePot: 23100, farms: ["MCR"], demandWindow: "2026 HALF 1" },
+    { item: "MAGGRF0382", common: "MAGNOLIA, D.D. BLANCHARD", botanical: "MAGNOLIA D D BLANCHARD COL..", size: "#200", grade: "A", saleable: 17, price: 1850, revenuePot: 31450, farms: ["BNL","GFL","MCR"], demandWindow: "2026 HALF 1" },
+    { item: "GINBIF0395", common: "GINKGO, AUTUMN GOLD", botanical: "GINKGO BILOBA AUTUMN GOLD..", size: "#095", grade: "A", saleable: 10, price: 800, revenuePot: 8000, farms: ["BRA"], demandWindow: "2026 HALF 1" },
+    { item: "PHOSYDF0014", common: "PALM, WILD DATE", botanical: "PHOENIX SYLVESTRIS DB..", size: "14 - 15 ft", grade: "A", saleable: 10, price: 825, revenuePot: 8250, farms: ["OAS"], demandWindow: "2026 HALF 1" },
+    { item: "QUEVRS0067", common: "OAK, SOUTHERN LIVE", botanical: "QUERCUS VIRGINIANA..", size: "#670", grade: "C", saleable: 1, price: 5775, revenuePot: 5775, farms: ["MCR"], demandWindow: "2025 HALF 2" },
+    { item: "PODGRSF0014", common: "PODOCARPUS, FERN PINE", botanical: "PODOCARPUS GRACILIOR..", size: "14 - 15 ft", grade: "A", saleable: 7, price: 735, revenuePot: 5145, farms: ["OAS"], demandWindow: "2026 HALF 1" },
+    { item: "ROYRESF0024", common: "PALM, ROYAL", botanical: "ROYSTONEA REGIA..", size: "24 - 25 ft", grade: "C", saleable: 6, price: 765, revenuePot: 4590, farms: ["OAS"], demandWindow: "NONE" },
+    { item: "ERIJASF0014", common: "LOQUAT, JAPANESE", botanical: "ERIOBOTRYA JAPONICA..", size: "14 - 15 ft", grade: "C", saleable: 5, price: 800, revenuePot: 4000, farms: ["OAS"], demandWindow: "NONE" },
+    { item: "PHOREMF0014", common: "PALM, SENEGAL DATE", botanical: "PHOENIX RECLINATA MT..", size: "14 - 15 ft", grade: "A", saleable: 5, price: 670, revenuePot: 3350, farms: ["OAS"], demandWindow: "2026 HALF 1" },
+    { item: "PANUTMF0018", common: "PINE, SCREW", botanical: "PANDANUS UTILIS MT..", size: "18 - 19 ft", grade: "C", saleable: 4, price: 865, revenuePot: 3460, farms: ["OAS"], demandWindow: "NONE" },
+    { item: "ERIJASF0012", common: "LOQUAT, JAPANESE", botanical: "ERIOBOTRYA JAPONICA..", size: "12 - 13 ft", grade: "C", saleable: 4, price: 735, revenuePot: 2940, farms: ["OAS"], demandWindow: "NONE" },
+    { item: "ACASTS0036", common: "ACACIA, DALBY MYALL", botanical: "ACACIA STENOPHYLLA..", size: "036 Inch Box", grade: "SS", saleable: 3, price: 564, revenuePot: 1692, farms: ["STE"], demandWindow: "2026 HALF 1" },
+    { item: "ULMPAS0095", common: "ELM, CHINESE", botanical: "ULMUS PARVIFOLIA..", size: "#095", grade: "C", saleable: 2, price: 710, revenuePot: 1420, farms: ["MCR"], demandWindow: "2023 HALF 2" },
+    { item: "PHOREMF0012", common: "PALM, SENEGAL DATE", botanical: "PHOENIX RECLINATA MT..", size: "12 - 13 ft", grade: "A", saleable: 2, price: 632.5, revenuePot: 1265, farms: ["OAS"], demandWindow: "2026 HALF 1" },
+    { item: "PROCHM0136", common: "MESQUITE, CHILEAN", botanical: "PROSOPIS CHILENSIS MT..", size: "036 Inch Box", grade: "A", saleable: 2, price: 564, revenuePot: 1128, farms: ["STE"], demandWindow: "2026 HALF 1" },
+    { item: "MAGGRF0982", common: "MAGNOLIA, BRACKENS BROWN BEAUTY", botanical: "MAGNOLIA G BRACKENS BROWN BEAUTY FG..", size: "#200", grade: "A", saleable: 1, price: 1850, revenuePot: 1850, farms: ["BNL"], demandWindow: "2026 HALF 1" },
+    { item: "METEXF0095", common: "NEW ZEALAND CHRISTMAS", botanical: "METROSIDEROS EXCELSUS..", size: "#095", grade: "A", saleable: 1, price: 550, revenuePot: 550, farms: ["MIR"], demandWindow: "2026 HALF 1" },
+    { item: "ARCALSF0022", common: "PALM, KING ALEXANDER", botanical: "ARCHONTOPHOENIX ALEXANDRAE MT..", size: "22 - 23 ft", grade: "A", saleable: 1, price: 550, revenuePot: 550, farms: ["OAS"], demandWindow: "2026 HALF 1" },
+    { item: "GEIPAS0095", common: "WILLOW, AUSTRALIAN", botanical: "GEIJERA PARVIFLORA TF..", size: "#095", grade: "SS", saleable: 1, price: 550, revenuePot: 550, farms: ["PAU"], demandWindow: "2026 HALF 1" },
+    { item: "CERCAS1895", common: "REDBUD, FOREST PANSY", botanical: "CERCIS CAN FOREST PANSY..", size: "#095", grade: "C", saleable: 1, price: 525, revenuePot: 525, farms: ["PAU"], demandWindow: "2026 HALF 1" }
+  ],
+  stockouts: [
+    { item: "MAGGRF3595", common: "MAGNOLIA, LITTLE GEM", botanical: "MAGNOLIA G LITTLE GEM..", size: "#095", grade: "SS", price: 688, farm: "BRA", demandWindow: "2026 HALF 1", ready: "2026-06-01" },
+    { item: "SEQAPF0095", common: "REDWOOD, APTOS BLUE COAST", botanical: "SEQUOIA SEMPERVIRENS APTOS BLUE..", size: "#095", grade: "A", price: 525, farm: "BRA", demandWindow: "2026 HALF 1", ready: "2026-01-01" },
+    { item: "PLAMES0465", common: "SYCAMORE, TRINITY MEXICAN 2.0", botanical: "PLATANUS M. TRINITY 2.0 / SYCAMORE VHT..", size: "#065", grade: "C", price: 525, farm: "GFL", demandWindow: "2026 HALF 2", ready: "2026-09-01" },
+    { item: "ELADES0230", common: "BLUEBERRY TREE, JAPANESE, MORNING SUN", botanical: "ELAEOCARPUS D MORNING SUN R PP29266 TF..", size: "#030", grade: "A", price: 235, farm: "BNL", demandWindow: "2026 HALF 1", ready: null },
+    { item: "GINBIF0330", common: "GINKGO, AUTUMN GOLD", botanical: "GINKGO BILOBA AUTUMN GOLD..", size: "#030", grade: "SS", price: 231.25, farm: "BRA", demandWindow: "2026 HALF 1", ready: "2026-06-15" },
+    { item: "CHAHUM0030", common: "PALM, EUROPEAN FAN", botanical: "CHAMAEROPS HUMILIS MT..", size: "#030", grade: "A", price: 225, farm: "HOM", demandWindow: "2026 HALF 1", ready: null },
+    { item: "BUTCAS0030", common: "PALM, PINDO", botanical: "BUTIA CAPITATA..", size: "#030", grade: "A", price: 225, farm: "BNL", demandWindow: "2026 HALF 1", ready: null },
+    { item: "CYCRES0030", common: "PALM, SAGO", botanical: "CYCAS REVOLUTA..", size: "#030", grade: "SS", price: 210, farm: "HOM", demandWindow: "2026 HALF 1", ready: "2026-06-01" },
+    { item: "LAGINM16524", common: "CRAPE MYRTLE, TUSCARORA", botanical: "LAG TUSCARORA..", size: "024 Inch Box", grade: "C", price: 200, farm: "STE", demandWindow: "2026 HALF 1", ready: "2026-12-01" },
+    { item: "ULMPAS0330", common: "ELM, DRAKE CHINESE", botanical: "ULMUS PARVIFOLIA DRAKE..", size: "#030", grade: "A", price: 200, farm: "BRA", demandWindow: "2026 HALF 1", ready: "2026-03-17" },
+    { item: "JUNVIF0130", common: "JUNIPER, BRODIE", botanical: "JUNIPERUS VIRGINIANA BRODIE..", size: "#030", grade: "SS", price: 200, farm: "MCR", demandWindow: "2026 HALF 2", ready: "2026-07-01" },
+    { item: "LAUNOS0030", common: "LAUREL, BAY", botanical: "LAURUS NOBILIS TF..", size: "#030", grade: "SS", price: 200, farm: "BRA", demandWindow: "2026 HALF 1", ready: "2026-06-15" },
+    { item: "TILCOF0030", common: "LIDEN, GREENSPIRE", botanical: "TILIA CORDATA GREENSPIRE..", size: "#030", grade: "SS", price: 200, farm: "BRA", demandWindow: "2026 HALF 1", ready: "2026-06-01" },
+    { item: "QUEWIF0030", common: "OAK, INTERIOR LIVE", botanical: "QUERCUS WISLIZENI..", size: "#030", grade: "SS", price: 200, farm: "BRA", demandWindow: "2026 HALF 1", ready: "2026-06-01" },
+    { item: "COCNUS0030", common: "PALM, COCONUT", botanical: "COCOS NUCIFERA COCONUT..", size: "#030", grade: "SS", price: 200, farm: "HOM", demandWindow: "2026 HALF 2", ready: "2026-08-01" }
+  ],
+  oversold: [
+    { farm: "FOR", item: "PAELAF1502", common: "PEONY, SARAH BERNHARDT", botanical: "PAEONIA LACTIFLORA SARAH BERNHARDT..", size: "#002", grade: "A", dw: "NONE", qtyOver: 631, valueAtRisk: 10727 },
+    { farm: "FOR", item: "HYDENF0308IN", common: "HYDRANGEA, MOPHEAD, SUMMER CRUSH", botanical: "HYD END SUM CRUSH PP30359..", size: "008 Inch", grade: "A", dw: "2026 HALF 1", qtyOver: 210, valueAtRisk: 2835 },
+    { farm: "FOR", item: "PAEEOF0002", common: "PEONY, CORAL CHARM", botanical: "PAEONIA LACTIFLORA CORAL CHARM..", size: "#002", grade: "A", dw: "2026 HALF 1", qtyOver: 148, valueAtRisk: 2516 },
+    { farm: "FOR", item: "PAELAF0802", common: "PEONY, KARL ROSENFIELD", botanical: "PAEONIA LACTIFLORA KARL ROSENFIELD..", size: "#002", grade: "A", dw: "2026 HALF 1", qtyOver: 115, valueAtRisk: 1955 },
+    { farm: "FOR", item: "HYDARF0005", common: "HYDRANGEA, ANNABELLE SMOOTH", botanical: "HYD ARB ANNABELLE..", size: "#005", grade: "A", dw: "2026 HALF 1", qtyOver: 41, valueAtRisk: 1148 },
+    { farm: "WIN", item: "MAHEUF00PF4", common: "MAHONIA, SOFT CARESS", botanical: "MAHONIA E SOFT CARESS PP20183 SUN..", size: "008 Inch", grade: "A", dw: "2026 HALF 1", qtyOver: 41, valueAtRisk: 553.5 },
+    { farm: "STE", item: "BUXMIF0901", common: "BOXWOOD, WINTER GEM", botanical: "BUXUS M WINTER GEM..", size: "#001", grade: "A", dw: "2026 HALF 1", qtyOver: 60, valueAtRisk: 360 },
+    { farm: "FOR", item: "RHOROF0805", common: "RHODODENDRON, ROCKET", botanical: "RHODODENDRON ROCKET H2 SQ..", size: "#005", grade: "A", dw: "2026 HALF 1", qtyOver: 10, valueAtRisk: 312.5 },
+    { farm: "FOR", item: "HYDMAF10305", common: "HYDRANGEA, MOPHEAD, BOUQUET PLUSH", botanical: "HYDRANGEA MAC BOUQUET PLUSH PPAF..", size: "#005", grade: "A", dw: "2026 HALF 1", qtyOver: 11, valueAtRisk: 308 },
+    { farm: "STE", item: "ROSSHF8402", common: "ROSE, ETERNAL FLAME TEA", botanical: "ROSA ETERNAL FLAME PP18918..", size: "#002", grade: "A", dw: "2026 HALF 1", qtyOver: 24, valueAtRisk: 288 },
+    { farm: "FOR", item: "HOSPAF0001", common: "HOSTA, PATRIOT", botanical: "HOSTA PATRIOT..", size: "#001", grade: "A", dw: "2026 HALF 1", qtyOver: 34, valueAtRisk: 251.6 }
+  ]
+};
+
+// === Formatting helpers ===
+const fmtInt = (n) => Math.round(n).toLocaleString("en-US");
+const fmtMoney = (n) => n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${Math.round(n)}`;
+const fmtPct = (n) => `${n.toFixed(1)}%`;
+const imgSearch = (b) => `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(b.replace(/\.\.$/, "").trim() + " plant")}`;
+
+// === Chart palette (matches canvas) ===
+const palette = ["#1F8A65E8","#70B0D8E0","#5A6CC0F0","#F0A040E0","#C06028E0","#E8C030E0","#C85898E0","#F0A088E0","#7B64B8F0","#7DCAB0E0","#8888A8E0","#2A9A8AE0"];
+const semantic = { success: "#1F8A65E8", info: "#70B0D8E0", warning: "#F0A040E0", danger: "#C04848E0", neutral: "#8888A8E0" };
+
+// Chart.js global defaults
+Chart.defaults.color = "#a8acb3";
+Chart.defaults.borderColor = "#2a2f37";
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.plugins.legend.position = "bottom";
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+Chart.defaults.plugins.legend.labels.boxHeight = 12;
+Chart.defaults.plugins.legend.labels.padding = 12;
+
+// === Demand vs Ready Alignment ===
+(function () {
+  const dwOrder = ["2026 HALF 1", "2026 HALF 2", "2027 HALF 1", "2025 HALF 2", "2025 HALF 1"];
+  const m = DATA.demandReadyMatch;
+  const onTime = dwOrder.map(d => m[d].readyOnTime);
+  const early = dwOrder.map(d => m[d].readyEarly);
+  const late = dwOrder.map(d => m[d].readyLate);
+  const noDate = dwOrder.map(d => m[d].noReadyDate);
+
+  new Chart(document.getElementById("chart-alignment"), {
+    type: "bar",
+    data: {
+      labels: dwOrder,
+      datasets: [
+        { label: "Ready on time", data: onTime, backgroundColor: semantic.success },
+        { label: "Ready early (idle)", data: early, backgroundColor: semantic.info },
+        { label: "Ready late (miss)", data: late, backgroundColor: semantic.danger },
+        { label: "No ready date", data: noDate, backgroundColor: semantic.warning },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: "#1f242a" }, ticks: { callback: v => fmtInt(v) } } },
+      plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtInt(ctx.parsed.y)}` } } }
+    }
+  });
+
+  const top = m["2026 HALF 1"];
+  document.getElementById("kpi-ontime").textContent = fmtPct(top.readyOnTime / top.totalSaleable * 100);
+  document.getElementById("kpi-ontime-label").textContent = `On-time supply (${fmtInt(top.readyOnTime)})`;
+  document.getElementById("kpi-late").textContent = fmtPct(top.readyLate / top.totalSaleable * 100);
+  document.getElementById("kpi-late-label").textContent = `Late ready (${fmtInt(top.readyLate)})`;
+  document.getElementById("kpi-nodate").textContent = fmtPct(top.noReadyDate / top.totalSaleable * 100);
+  document.getElementById("kpi-nodate-label").textContent = `No ready date (${fmtInt(top.noReadyDate)})`;
+  document.getElementById("kpi-total").textContent = fmtInt(top.totalSaleable);
+  document.getElementById("kpi-total-label").textContent = "Total in 2026 HALF 1";
+})();
+
+// === Farm supply (horizontal bar) ===
+(function () {
+  const farms = Object.entries(DATA.farmConsumption).sort((a,b) => b[1].saleable - a[1].saleable);
+  new Chart(document.getElementById("chart-farms"), {
+    type: "bar",
+    data: {
+      labels: farms.map(([f,v]) => `${f} (${v.region})`),
+      datasets: [{ label: "Saleable units", data: farms.map(([,v]) => v.saleable), backgroundColor: palette[1] }]
+    },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { color: "#1f242a" }, ticks: { callback: v => fmtInt(v) } }, y: { grid: { display: false } } }
+    }
+  });
+})();
+
+// === Region revenue chart ===
+(function () {
+  const regs = Object.entries(DATA.regions).sort((a,b) => b[1].revenuePot - a[1].revenuePot);
+  new Chart(document.getElementById("chart-regions"), {
+    type: "bar",
+    data: {
+      labels: regs.map(([r]) => r),
+      datasets: [{ label: "Revenue potential", data: regs.map(([,v]) => v.revenuePot), backgroundColor: palette[2] }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } } },
+      scales: { x: { grid: { display: false } }, y: { grid: { color: "#1f242a" }, ticks: { callback: v => fmtMoney(v) } } }
+    }
+  });
+})();
+
+// === Grade donut ===
+(function () {
+  const tones = { A: semantic.success, SS: semantic.info, GS: semantic.neutral, C: semantic.warning, B: semantic.danger };
+  const grades = Object.entries(DATA.grades).filter(([,v]) => v.saleable > 0);
+  new Chart(document.getElementById("chart-grades"), {
+    type: "doughnut",
+    data: {
+      labels: grades.map(([g,v]) => `${g} · ${fmtInt(v.saleable)}`),
+      datasets: [{ data: grades.map(([,v]) => v.saleable), backgroundColor: grades.map(([g]) => tones[g] || semantic.neutral), borderColor: "#0f1216", borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "55%",
+      plugins: { tooltip: { callbacks: { label: ctx => {
+        const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+        return `${ctx.label}: ${fmtInt(ctx.parsed)} (${fmtPct(ctx.parsed/total*100)})`;
+      } } } }
+    }
+  });
+})();
+
+// === Farm × Grade (100% stack) ===
+(function () {
+  const farmKeys = Object.keys(DATA.farmGradeMatrix);
+  const gradeKeys = ["A", "SS", "GS", "C", "B"];
+  const tones = { A: semantic.success, SS: semantic.info, GS: semantic.neutral, C: semantic.warning, B: semantic.danger };
+  const totals = farmKeys.map(f => gradeKeys.reduce((sum, g) => sum + (DATA.farmGradeMatrix[f][g] || 0), 0));
+  const datasets = gradeKeys.map(g => ({
+    label: `Grade ${g}`,
+    data: farmKeys.map((f, i) => totals[i] > 0 ? (DATA.farmGradeMatrix[f][g] || 0) / totals[i] * 100 : 0),
+    backgroundColor: tones[g]
+  }));
+  new Chart(document.getElementById("chart-farm-grades"), {
+    type: "bar",
+    data: { labels: farmKeys, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, max: 100, grid: { color: "#1f242a" }, ticks: { callback: v => `${v}%` } } },
+      plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}` } } }
+    }
+  });
+})();
+
+// === Categories bar ===
+(function () {
+  const cats = Object.entries(DATA.categories).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  new Chart(document.getElementById("chart-categories"), {
+    type: "bar",
+    data: {
+      labels: cats.map(([c]) => c),
+      datasets: [{ label: "Saleable units", data: cats.map(([,v]) => v), backgroundColor: palette[0] }]
+    },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { color: "#1f242a" }, ticks: { callback: v => fmtInt(v) } }, y: { grid: { display: false } } }
+    }
+  });
+})();
+
+// === Ready timeline ===
+(function () {
+  const months = Object.keys(DATA.readyByMonth).sort();
+  new Chart(document.getElementById("chart-timeline"), {
+    type: "line",
+    data: {
+      labels: months,
+      datasets: [{
+        label: "Saleable units ready",
+        data: months.map(m => DATA.readyByMonth[m]),
+        borderColor: palette[1], backgroundColor: "#70B0D844",
+        fill: true, tension: 0.25, pointRadius: 3, pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${fmtInt(ctx.parsed.y)} units` } } },
+      scales: { x: { grid: { display: false } }, y: { grid: { color: "#1f242a" }, ticks: { callback: v => fmtInt(v) } } }
+    }
+  });
+})();
+
+// === Consumption bar ===
+(function () {
+  const farms = Object.entries(DATA.farmConsumption).sort((a,b) => b[1].consumptionPct - a[1].consumptionPct);
+  new Chart(document.getElementById("chart-consumption"), {
+    type: "bar",
+    data: {
+      labels: farms.map(([f]) => f),
+      datasets: [{ label: "Consumption %", data: farms.map(([,v]) => v.consumptionPct), backgroundColor: semantic.warning }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)}%` } } },
+      scales: { x: { grid: { display: false } }, y: { grid: { color: "#1f242a" }, ticks: { callback: v => `${v}%` } } }
+    }
+  });
+})();
+
+// === Farm operations table ===
+(function () {
+  const rows = Object.entries(DATA.farmConsumption).sort((a,b) => b[1].revenuePot - a[1].revenuePot);
+  const tbl = document.getElementById("tbl-farms");
+  const thead = ["Farm","Region","Saleable","Revenue pot.","Grade A %","Grade SS %","Consumption %","Shortages","Zero-stock"];
+  const align = ["","","num","num","num","num","num","num","num"];
+  let html = `<thead><tr>${thead.map((h,i)=>`<th class="${align[i]}">${h}</th>`).join("")}</tr></thead><tbody>`;
+  for (const [f, v] of rows) {
+    html += `<tr>
+      <td><strong>${f}</strong></td>
+      <td>${v.region}</td>
+      <td class="num">${fmtInt(v.saleable)}</td>
+      <td class="num">${fmtMoney(v.revenuePot)}</td>
+      <td class="num">${fmtPct(v.gradeAPct)}</td>
+      <td class="num">${fmtPct(v.gradeSSPct)}</td>
+      <td class="num">${fmtPct(v.consumptionPct)}</td>
+      <td class="num">${v.shortages}</td>
+      <td class="num">${v.zeroStock}</td>
+    </tr>`;
+  }
+  html += "</tbody>";
+  tbl.innerHTML = html;
+})();
+
+// === Action tabs ===
+const ACTIONS = [
+  { id: "topRev", label: "Top revenue potential", render: renderTopRev },
+  { id: "hot", label: "Hot movers (sold out)", render: renderHot },
+  { id: "slow", label: "Slow movers (high stock)", render: renderSlow },
+  { id: "aging", label: "Aging stock", render: renderAging },
+  { id: "late", label: "Late ready (miss demand)", render: renderLate },
+  { id: "shortages", label: "High-value shortages", render: renderShortages },
+  { id: "stockouts", label: "Stockouts vs demand", render: renderStockouts },
+  { id: "oversold", label: "Over-committed", render: renderOversold },
+];
+
+const tabsEl = document.getElementById("action-tabs");
+const tableEl = document.getElementById("action-table");
+let activeTab = "topRev";
+function renderTabs() {
+  tabsEl.innerHTML = ACTIONS.map(a => `<div class="tab ${a.id===activeTab?"active":""}" data-id="${a.id}">${a.label}</div>`).join("");
+  tabsEl.querySelectorAll(".tab").forEach(el => {
+    el.addEventListener("click", () => { activeTab = el.dataset.id; renderTabs(); renderActive(); });
+  });
+}
+function renderActive() {
+  const action = ACTIONS.find(a => a.id === activeTab);
+  tableEl.innerHTML = action.render();
+}
+function imgCell(b) {
+  return `<a href="${imgSearch(b)}" target="_blank" rel="noopener noreferrer">view</a>`;
+}
+function thRow(headers, aligns) {
+  return `<thead><tr>${headers.map((h,i)=>`<th class="${aligns[i]||""}">${h}</th>`).join("")}</tr></thead>`;
+}
+function tableHTML(headers, aligns, rows, toneClass) {
+  return `<table>${thRow(headers, aligns)}<tbody>${rows.map(r => `<tr class="${toneClass||""}">${r.map((c,i)=>`<td class="${aligns[i]||""}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+function renderTopRev() {
+  const headers = ["Common name","Botanical","Category","Saleable","Avg $","Revenue pot.","Sell-thru","Farms","Image"];
+  const aligns = ["","","","num","num","num","num","",""];
+  return tableHTML(headers, aligns, DATA.topByRevenuePot.map(p => [
+    p.common, p.botanical.replace(/\.\.$/, ""), p.category, fmtInt(p.saleable),
+    `$${p.avgPrice.toFixed(2)}`, fmtMoney(p.revenuePot), fmtPct(p.sellThroughPct),
+    p.farms.join(", "), imgCell(p.botanical)
+  ]));
+}
+function renderHot() {
+  const headers = ["Common name","Botanical","Category","Graded","Sell-thru %","Avg $","Farms","Image"];
+  const aligns = ["","","","num","num","num","",""];
+  return tableHTML(headers, aligns, DATA.hotMovers.map(p => [
+    p.common, p.botanical.replace(/\.\.$/, ""), p.category, fmtInt(p.graded),
+    fmtPct(p.sellThroughPct), `$${p.avgPrice.toFixed(2)}`, p.farms.join(", "), imgCell(p.botanical)
+  ]), "success");
+}
+function renderSlow() {
+  const headers = ["Common name","Botanical","Category","Saleable","Avg $","Revenue pot.","Sell-thru","Farms","Image"];
+  const aligns = ["","","","num","num","num","num","",""];
+  return tableHTML(headers, aligns, DATA.slowMovers.map(p => [
+    p.common, p.botanical.replace(/\.\.$/, ""), p.category, fmtInt(p.saleable),
+    `$${p.avgPrice.toFixed(2)}`, fmtMoney(p.revenuePot), fmtPct(p.sellThroughPct),
+    p.farms.join(", "), imgCell(p.botanical)
+  ]), "warning");
+}
+function renderAging() {
+  const headers = ["Item","Common name","Size","Grade","Farm","Ready date","Saleable","Value","Image"];
+  const aligns = ["","","","","","","num","num",""];
+  return tableHTML(headers, aligns, DATA.agingStock.map(p => [
+    p.item, p.common, p.size, p.grade, p.farm, p.ready, fmtInt(p.saleable), fmtMoney(p.value), imgCell(p.botanical)
+  ]), "warning");
+}
+function renderLate() {
+  const headers = ["Item","Common name","Size","Farm","Demand","Ready date","Days late","Saleable","Value","Image"];
+  const aligns = ["","","","","","","num","num","num",""];
+  return tableHTML(headers, aligns, DATA.lateReady.map(p => [
+    p.item, p.common, p.size, p.farm, p.dw, p.ready, p.daysLate, fmtInt(p.saleable), fmtMoney(p.value), imgCell(p.botanical)
+  ]), "danger");
+}
+function renderShortages() {
+  const headers = ["Item","Common name","Size","Grade","Demand","Saleable","Unit $","Revenue pot.","Farms","Image"];
+  const aligns = ["","","","","","num","num","num","",""];
+  return tableHTML(headers, aligns, DATA.shortages.map(p => [
+    p.item, p.common, p.size, p.grade, p.demandWindow, p.saleable, `$${p.price.toFixed(2)}`, fmtMoney(p.revenuePot), p.farms.join(", "), imgCell(p.botanical)
+  ]), "danger");
+}
+function renderStockouts() {
+  const headers = ["Item","Common name","Size","Grade","Farm","Demand","Next ready","Unit $","Image"];
+  const aligns = ["","","","","","","","num",""];
+  return tableHTML(headers, aligns, DATA.stockouts.map(p => [
+    p.item, p.common, p.size, p.grade, p.farm, p.demandWindow, p.ready ?? "—", `$${p.price.toFixed(2)}`, imgCell(p.botanical)
+  ]), "danger");
+}
+function renderOversold() {
+  const headers = ["Item","Common name","Size","Grade","Farm","Demand","Qty over","Value at risk","Image"];
+  const aligns = ["","","","","","","num","num",""];
+  return tableHTML(headers, aligns, DATA.oversold.map(p => [
+    p.item, p.common, p.size, p.grade, p.farm, p.dw, fmtInt(p.qtyOver), fmtMoney(p.valueAtRisk), imgCell(p.botanical)
+  ]), "danger");
+}
+renderTabs(); renderActive();
+
+// === Plant explorer ===
+(function () {
+  const allRows = [];
+  const seen = new Set();
+  const push = (p, def) => { if (!seen.has(p.botanical)) { seen.add(p.botanical); allRows.push({ ...def, ...p }); } };
+  DATA.topByRevenuePot.forEach(p => push(p, { saleable: 0, revenuePot: 0 }));
+  DATA.slowMovers.forEach(p => push(p, { saleable: 0, revenuePot: 0 }));
+  DATA.hotMovers.forEach(p => push(p, { saleable: 0, revenuePot: 0 }));
+
+  const searchEl = document.getElementById("explorer-search");
+  const catEl = document.getElementById("explorer-category");
+  const farmEl = document.getElementById("explorer-farm");
+  const countEl = document.getElementById("explorer-count");
+  const tableHost = document.getElementById("explorer-table");
+
+  catEl.innerHTML = `<option value="ALL">All categories</option>` +
+    Object.keys(DATA.categories).map(c => `<option value="${c}">${c}</option>`).join("");
+  farmEl.innerHTML = `<option value="ALL">All farms</option>` +
+    Object.keys(DATA.farmConsumption).map(f => `<option value="${f}">${f} · ${DATA.farmConsumption[f].region}</option>`).join("");
+
+  function render() {
+    const q = searchEl.value.trim().toLowerCase();
+    const cat = catEl.value;
+    const farm = farmEl.value;
+    const filtered = allRows.filter(r => {
+      if (q && !`${r.common} ${r.botanical}`.toLowerCase().includes(q)) return false;
+      if (cat !== "ALL" && r.category !== cat) return false;
+      if (farm !== "ALL" && !r.farms.includes(farm)) return false;
+      return true;
+    }).sort((a,b) => b.revenuePot - a.revenuePot).slice(0, 60);
+    countEl.textContent = `${filtered.length} of ${allRows.length} plants matched.`;
+    if (!filtered.length) { tableHost.innerHTML = `<p class="small muted" style="padding:12px">No matches — try clearing filters.</p>`; return; }
+    const headers = ["Common name","Botanical","Category","Saleable","Avg $","Revenue pot.","Sell-thru","Farms","Image"];
+    const aligns = ["","","","num","num","num","num","",""];
+    tableHost.innerHTML = tableHTML(headers, aligns, filtered.map(p => [
+      p.common, p.botanical.replace(/\.\.$/, ""), p.category, fmtInt(p.saleable),
+      `$${(p.avgPrice||0).toFixed(2)}`, fmtMoney(p.revenuePot), fmtPct(p.sellThroughPct||0),
+      p.farms.join(", "), imgCell(p.botanical)
+    ]));
+  }
+  searchEl.addEventListener("input", render);
+  catEl.addEventListener("change", render);
+  farmEl.addEventListener("change", render);
+  render();
+})();
+</script>
+
+<script>
+// === Report switcher ===
+(function () {
+  const tabs = document.querySelectorAll(".report-tab");
+  const panes = { supply: document.getElementById("report-supply"), demand: document.getElementById("report-demand") };
+  let initialized = { supply: true, demand: false };
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const id = tab.dataset.report;
+      tabs.forEach(t => t.classList.toggle("active", t === tab));
+      Object.entries(panes).forEach(([k, el]) => el.classList.toggle("active", k === id));
+      if (!initialized[id] && id === "demand") {
+        renderDemand();
+        initialized.demand = true;
+      }
+      window.scrollTo({ top: 0, behavior: "instant" });
+    });
+  });
+})();
+
+// === DEMAND data (parsed from Inventory Metrics 05 18 26.xlsb) ===
+const DEMAND = JSON.parse(`{"meta":{"totalRevenue":88954523.052437,"totalBO":1020413.64,"totalCR":1307684.86,"farmCount":16,"weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"weekStart":9,"weekEnd":21,"reportPeriod":"2026 weeks 9–21","reportDate":"2026-05-18","boPct":0.011471,"crPct":0.014701,"boCrPct":0.026172},"variance":{"BRA":{"region":"North West","systemEU":1271409,"gradedEU":1271409,"eVar":0,"absVar":60,"absVarPct":0.000047,"pctNotGraded":0},"FOR":{"region":"—","systemEU":5403795.5,"gradedEU":5402063.5,"eVar":-1732,"absVar":1872,"absVarPct":0.000347,"pctNotGraded":0.000321},"WIN":{"region":"—","systemEU":8514860.5,"gradedEU":8507205.5,"eVar":-7655,"absVar":8481,"absVarPct":0.000997,"pctNotGraded":0.000899},"ESC":{"region":"South West","systemEU":98162.5,"gradedEU":98162.5,"eVar":0,"absVar":0,"absVarPct":0,"pctNotGraded":0},"FAL":{"region":"—","systemEU":1332665.65,"gradedEU":1332665.65,"eVar":0,"absVar":0,"absVarPct":0,"pctNotGraded":0},"HUN":{"region":"—","systemEU":1077065,"gradedEU":1077065,"eVar":0,"absVar":0,"absVarPct":0,"pctNotGraded":0},"MIR":{"region":"—","systemEU":2492964,"gradedEU":2493464,"eVar":500,"absVar":500,"absVarPct":0.000201,"pctNotGraded":-0.000201},"PAU":{"region":"—","systemEU":2331386.5,"gradedEU":2331386.5,"eVar":0,"absVar":0,"absVarPct":0,"pctNotGraded":0},"PIR":{"region":"—","systemEU":1519733.5,"gradedEU":1519749.5,"eVar":16,"absVar":16,"absVarPct":0.000011,"pctNotGraded":-0.000011},"STE":{"region":"—","systemEU":4126035,"gradedEU":4126059,"eVar":24,"absVar":24,"absVarPct":0.000006,"pctNotGraded":-0.000006},"BNL":{"region":"Southeast","systemEU":4608153.2,"gradedEU":4613736.2,"eVar":5583,"absVar":8583,"absVarPct":0.00186,"pctNotGraded":-0.001212},"GFL":{"region":"—","systemEU":10583808.8,"gradedEU":10584868.4,"eVar":1059.6,"absVar":2888.4,"absVarPct":0.000273,"pctNotGraded":-0.0001},"HOM":{"region":"—","systemEU":1113003.4,"gradedEU":1113003.4,"eVar":0,"absVar":0,"absVarPct":0,"pctNotGraded":0},"MCR":{"region":"—","systemEU":5580227.4,"gradedEU":5580227.4,"eVar":0,"absVar":0,"absVarPct":0,"pctNotGraded":0},"OAS":{"region":"—","systemEU":1890782,"gradedEU":1890773,"eVar":-9,"absVar":9,"absVarPct":0.000005,"pctNotGraded":0.000005}},"farmBO":{"BNL":{"region":"FL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[0,2064.5,0,5005.26,0,1119.5,668.4200000000001,1178,39453.60000000002,2781.4,1800,2996.9,0],"crWeekly":[957.8,477.8,261.5,19,168.15,713.15,476,100,0,0,0,0,0],"revWeekly":[88682.2200000001,134575.3000000003,119232.71000000027,182167.8700000003,133703.2200000002,176241.54000000015,170902.98000000013,278625.95000000217,159507.4700000002,140040.4900000002,179712.1600000003,105537.67000000029,0],"pctWeekly":[0.010800361109588808,0.018891282427012938,0.0021931901069765117,0.027580385059121526,0.0012576361287334721,0.01039851331303618,0.006696313896925608,0.004586794589663992,0.24734640954433024,0.019861398656916985,0.010016016723631819,0.028396495772552037,0],"boTotal":57067.58,"crTotal":3173.4,"revTotal":1868929.58,"pctTotal":0.032233},"BRA":{"region":"NOR CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[0,1764,427,0,0,254.5,0,0,0,436,1583,1214,0],"crWeekly":[2701,0,2931.4,4915.1,64,4545.48,2677.06,2649,5100.04,844.6,160,364,0],"revWeekly":[70307.18,45126.909999999996,92432.59000000003,52458.200000000004,90538.83000000002,93664.76,51421.15,91613.34,62996.14,64028.89000000001,64279.75,65855.23000000001,0],"pctWeekly":[0.038417128947569795,0.039089758195276395,0.03633350531452163,0.09369555188702625,0.0007068790263801729,0.05124638124306302,0.052061457201949,0.02891500298973927,0.08095797615536444,0.020000346718489104,0.027115849081553678,0.023961650426245564,0],"boTotal":5678.5,"crTotal":26951.68,"revTotal":844722.97,"pctTotal":0.038628},"ESC":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[55,400.3,0,0,1600.4499999999998,0,6.55,18.75,4436.56,4216,80,0,0],"crWeekly":[0,336,169.85,1180.4,525,0,740.5,328.95,81.16,76.56,59.6,83.2,0],"revWeekly":[8568.46,5262.57,12450.070000000002,9163.919999999998,7317.630000000001,10171.77,6466.320000000001,8708.06,6847.949999999998,8759.27,4181.17,8498.74,0],"pctWeekly":[0.006418889742147364,0.13991262824057446,0.013642493576341336,0.12880950510261988,0.2904560629602753,0,0.1155293892043697,0.03992852598627019,0.6597186019173623,0.4900591030987742,0.0333877838021415,0.009789686471171021,0],"boTotal":10813.61,"crTotal":3581.22,"revTotal":96395.93,"pctTotal":0.14933},"FAL":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[6139.33,3635.87,9289.24,8578.409999999998,3145,5155.9800000000005,7108.3099999999995,19100.659999999993,11831.85,2786.36,2183,2298.14,0],"crWeekly":[4293.91,10153.570000000002,4411.640000000001,6457.699999999999,8435.47,3109.31,6404.009999999999,12119.94,11119.14,11426.75,3739.9900000000002,8668.62,0],"revWeekly":[395297.03000000113,303782.1,304397.43000000005,387926.6100000004,253271.78000000035,213542.4300000001,352275.91000000003,190445.07000000015,270004.7299999997,204603.89000000077,60508.20999999997,240014.7199999997,0],"pctWeekly":[0.02639341864015515,0.04539253629492983,0.045009841246031544,0.038760192295135366,0.04572349118405526,0.03870560993428798,0.03835720699720852,0.16393493409937032,0.08500217755444515,0.06946647006564707,0.09788737759718892,0.04569203088877221,0],"boTotal":81252.15,"crTotal":90340.05,"revTotal":3176069.91,"pctTotal":0.054027},"FOR":{"region":"OR","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[2834.02,5095.08,7031.8,7479.66,6543.54,2031.12,4584.32,1498.5,309.09000000000003,6259.150000000001,16034.580000000004,13374.930000000011,0],"crWeekly":[2452.41,344.34999999999997,2892.56,1274.03,760.6999999999999,1551.48,8605.279999999999,5678.41,2493.21,2214.16,1241.25,257.85,0],"revWeekly":[156971.3300000001,325833.6700000005,358651.3800000009,393459.2700000001,434702.49000000017,674981.1700000011,672270.0500000024,275570.2,405561.29999999906,897857.7100000087,620396.1899999991,423195.7299999987,0],"pctWeekly":[0.033677678592644894,0.01669388556437397,0.027671328073518013,0.02224802074176572,0.016802848311266855,0.0053077036208284065,0.019619496659117792,0.026043853798415065,0.006909682950518224,0.009437252590947756,0.027846447606327217,0.03221388835846726,0],"boTotal":73075.79,"crTotal":29765.69,"revTotal":5639450.49,"pctTotal":0.018236},"GFL":{"region":"TX","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[9203.5,3726.25,5379.89,4632.5,5388,9035.05,6037.639999999999,5500.05,5793,264.9,1481.41,9528.8,0],"crWeekly":[300.85,1401.1,2739.85,5600.2,6840.31,5145.95,1403,9253.6,8404.45,1518.2,2284.5,11154.310000000001,0],"revWeekly":[758283.520014936,1214357.206126609,901635.7516981938,855119.0633859672,760358.3407123497,787072.9542716284,925585.9142534758,691995.2828546419,831195.1847579369,632813.7048869468,545170.0525693998,897451.3704780355,0],"pctWeekly":[0.012534032125362282,0.004222274940299093,0.009005565700679907,0.011966403788826963,0.01608229876000805,0.018017389522834455,0.008038843164549657,0.02132044880297125,0.01708076545719478,0.0028177329065882883,0.006907771221568708,0.023046496646367542,0],"boTotal":65970.99,"crTotal":56046.32,"revTotal":9801038.34601,"pctTotal":0.012449},"HOM":{"region":"FL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[0,0,0,0,0,0,0,0,0,0,0,0,0],"crWeekly":[0,0,0,0,0,0,0,0,0,0,0,0,0],"revWeekly":[61542.98999999991,81125.61999999953,124446.40999999971,144616.30000000008,191923.06000000096,159029.59000000122,140447.5200000001,172253.59000000058,149805.380000001,135225.60000000003,136360.82,95157.65000000004,0],"pctWeekly":[0,0,0,0,0,0,0,0,0,0,0,0,0],"boTotal":0,"crTotal":0,"revTotal":1591934.53,"pctTotal":0},"HUN":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[1177.8,350,4058.9,7977.02,2203.04,12551,2042.06,805.6199999999999,3456.1899999999996,3657.06,1008.37,884.24,0],"crWeekly":[486.1,1624.3000000000002,1807.52,1205.7800000000002,3126.94,506.28,3609.7700000000004,2427.62,3176.0299999999997,1844.26,617.85,3743.68,0],"revWeekly":[129436.04000000007,165036.52999999997,97239.2,127883.21999999987,240221.59000000003,197480.4800000002,217160.39000000007,204296.50999999943,252421.4499999998,226353.84999999974,52299.57999999999,182157.97999999986,0],"pctWeekly":[0.012854997727062719,0.011962806052696336,0.060329784695883966,0.07180613688019437,0.02218776422219168,0.06611934506134473,0.026026063040317796,0.015826212596583313,0.02627439149882074,0.02430407081655561,0.031094322363583043,0.0254060788333292,0],"boTotal":40171.3,"crTotal":24176.13,"revTotal":2091986.82,"pctTotal":0.030759},"MCR":{"region":"TX","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[1187.9,2651.2,4119,5399.469999999998,367.2,17867.629999999997,2838.88,2210.52,2242,1486,3393.7200000000003,13752.000000000004,0],"crWeekly":[4666,212,997,665.5,650.0899999999999,1922,784.31,2559.4800000000005,741.72,18053.81,1393.0299999999997,878.02,0],"revWeekly":[627742.5499850835,560381.7338733994,771409.418301829,529890.8966140412,311393.8492876653,250072.5457283816,279374.9857465298,278346.01714537246,202324.12524207451,183358.36511306473,201022.6374306018,19355.559521973257,0],"pctWeekly":[0.009325319751129027,0.00510937424781738,0.006632016512401803,0.01144569578144228,0.0032668917588678146,0.07913555621373436,0.012968913413340565,0.01713694361040115,0.014747227976051162,0.10656623158671337,0.023811994814029385,0.75585621709315,0],"boTotal":57515.52,"crTotal":33522.96,"revTotal":4214672.68399,"pctTotal":0.0216},"MIR":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[2947.7799999999997,641.12,8128.799999999999,908.64,1641.1,589.2,3817.68,2878.85,3092.66,6977.67,852.5999999999999,972.1899999999999,0],"crWeekly":[592.4,5636.74,2740.0199999999995,2878.87,11440.399999999996,2866.7999999999993,2802.6400000000003,1737.9299999999998,2761.6899999999996,5409.879999999999,2841.1900000000005,3182.84,0],"revWeekly":[93845.68000000005,126228.07,124169.13999999996,170525.62999999992,196438.33,107093.81999999995,120508.49000000003,294368.69000000024,168929.83999999985,165855.36000000007,122594.10000000005,228797.68999999974,0],"pctWeekly":[0.03772341998054676,0.049734262751541705,0.08753237720741243,0.022210796113170797,0.06659341891167572,0.03227076968586984,0.05493654430488672,0.01568366527024323,0.03465551142415103,0.07468887348590961,0.030130242809401096,0.018160279502821924,0],"boTotal":33448.29,"crTotal":44891.4,"revTotal":1919354.84,"pctTotal":0.040816},"MLC":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[0,0,0,0,0,0,84.36,0,0,405,0,0,0],"crWeekly":[7545.1500000000015,8131.429999999998,17276.77999999999,7895.059999999999,13005.16,5175.819999999999,13480.6,8562.67,12936.320000000003,20327.95999999999,5183.390000000001,12691.570000000003,0],"revWeekly":[165435.8500000004,189747.08000000034,180790.39000000016,187477.68000000037,177529.18999999977,159568.68000000058,199318.26000000053,203842.08000000042,174905.44000000035,200188.00000000044,196986.00000000052,224953.3200000005,0],"pctWeekly":[0.045607708365508336,0.042854045500989965,0.09556249090452196,0.04211199967910838,0.07325645996582318,0.03243631519669136,0.06805678516358694,0.04200639043714616,0.07396179329813857,0.10356744660019553,0.026313494360005216,0.05641868277383048,0],"boTotal":489.36,"crTotal":132211.91,"revTotal":2260741.97,"pctTotal":0.058698},"OAS":{"region":"FL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[0,0,0,0,0,720,2448,0,368,0,0,0,0],"crWeekly":[0,0,0,0,0,540,460,0,0,0,0,0,0],"revWeekly":[33878.7,60758.619999999995,32640.5,45426.86,38774.159999999996,26891.8,40524.51,49968.81999999999,35859.62,54459.45,25751.089999999997,45433.39,0],"pctWeekly":[0,0,0,0,0,0.046854431462378866,0.07175904162690677,0,0.01026223925406906,0,0,0,0],"boTotal":3536,"crTotal":1000,"revTotal":490367.52,"pctTotal":0.00925},"PAU":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[2221.0699999999997,1698.9199999999998,10501.16,2600.9,2776.47,2143.9000000000005,2064.01,1279.57,2487.7,879.6100000000001,844.83,84,0],"crWeekly":[17.39,2415.04,484.7099999999999,2238.0399999999995,2331.8599999999997,355.84000000000003,1675.59,5435.07,7612.760000000001,1963.2400000000002,6327.9800000000005,3447.35,0],"revWeekly":[103075.98,103211.05999999997,110361.59999999995,127076.54000000004,117610.18999999997,87348.96999999991,123701.77999999981,117738.62000000017,176691.73000000013,115937.31999999986,114671.62,132847.2299999998,0],"pctWeekly":[0.021716601675773536,0.03985968170465453,0.09954431613894692,0.03807894045588586,0.04343441669467587,0.028617853192773803,0.030230769516817028,0.05703005521892468,0.05716430531298773,0.024520577153241113,0.06255087352912604,0.026582037126404556,0],"boTotal":29582.14,"crTotal":34304.87,"revTotal":1430272.64,"pctTotal":0.044668},"PIR":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[0,0,0,960,1187.72,0,627.1600000000001,219.12,0,1087.32,1619.86,1878,0],"crWeekly":[0,186.6,1853.9499999999998,2357.0299999999997,1429.4099999999999,259.26,922,313.72,1941.6,720.4300000000001,993.1399999999999,4262.779999999999,0],"revWeekly":[90510.25999999995,126798.89,156119.73000000004,93339.48000000007,63308.879999999976,109524.70999999998,99767.21999999997,172616.93999999925,246030.6600000001,259905.28000000035,223717.50000000055,180367.5599999998,0],"pctWeekly":[0,0.0014716217153005046,0.011875180670630158,0.03553726676000335,0.041339066494305396,0.0023671370597557395,0.015527745485942181,0.0030868349305694003,0.007891699351617393,0.006955418527857524,0.011679908813570658,0.03404592267035162,0],"boTotal":7579.18,"crTotal":15239.92,"revTotal":1822007.11,"pctTotal":0.012524},"STE":{"region":"SO CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[656.6,3418.05,920.25,3146.78,5030.9,102,7748.34,1328.3600000000001,2668.92,3507.86,587,2466.6499999999996,0],"crWeekly":[3345.05,11075.230000000001,5258.16,6619.29,17580.770000000004,6489.67,10141.79,4129.68,8625.26,3471.1,2295.3,5038.89,0],"revWeekly":[199585.63999999958,225891.04000000007,204544.05000000008,306081.1899999998,161441.68000000002,177343.79999999996,339859.05000000086,238825.66999999946,280747.8099999995,252650.59,182013.19999999995,331513.0699999987,0],"pctWeekly":[0.020049789153167574,0.06416049082779024,0.030205767412936225,0.031906795709987945,0.14006091859301764,0.037168877626395744,0.05263985172676719,0.02285365723039744,0.04022891576607497,0.027622971313860777,0.015835664666079167,0.02264025367084329,0],"boTotal":31581.71,"crTotal":84070.19,"revTotal":2900496.79,"pctTotal":0.039873},"WIN":{"region":"NOR CAL","weeks":[9,10,11,12,13,14,15,16,17,18,19,20,21],"boWeekly":[1127.02,6206.729999999998,2982.75,4430.08,3988.62,9222.9,4996.51,682.15,4138.05,7157.25,3396.3899999999994,2979.1499999999996,0],"crWeekly":[4822.31,21250.849999999995,5121.4,15033.449999999999,10129.470000000003,5320.99,4750.41,7852.089999999999,13096.629999999997,5347.839999999999,2601.08,12697.770000000004,0],"revWeekly":[603725.4199999986,739414.6600000004,786539.2999999985,1098534.1800000004,982690.1200000013,1226100.940000002,879710.6700000013,997997.3500000018,1073703.5500000017,761166.7600000016,886344.390000001,1052203.490000001,0],"pctWeekly":[0.00985436392590528,0.037134210998737816,0.010303553808436545,0.017717728182112633,0.014366777189130573,0.011861902658683204,0.011079688279784063,0.008551365391902077,0.0160516187172893,0.01642884405514499,0.0067665233375031495,0.0148991332465548,0],"boTotal":51307.6,"crTotal":108024.29,"revTotal":11088130.83,"pctTotal":0.01437}},"farmYTD":{"BNL":{"boValue":62393.58,"crValue":11001.85,"customer":0,"distribution":2727.9,"farmCredits":1970.5,"sales":6303.45,"rebate":20174.88,"ytdRevenue":2291065.96,"boPct":0.027233,"crPct":0.004802,"boCrPct":0.032035,"boGoal":0.01,"crGoal":0.009,"boCrGoal":0.019,"boPctVar":-0.017233,"crPctVar":0.004198,"boCrPctVar":-0.013035,"boDollarVar":-39482.9204,"crDollarVar":9617.74364,"boCrDollarVar":-29865.17676},"BRA":{"boValue":79377.7,"crValue":32484.47,"customer":5168,"distribution":1562.97,"farmCredits":7134,"sales":18619.5,"rebate":62667.63,"ytdRevenue":7370913.1,"boPct":0.010769,"crPct":0.004407,"boCrPct":0.015176,"boGoal":0.01,"crGoal":0.0106,"boCrGoal":0.0206,"boPctVar":-0.000769,"crPctVar":0.006193,"boCrPctVar":0.005424,"boDollarVar":-5668.569,"crDollarVar":45647.20886,"boCrDollarVar":39978.63986},"ESC":{"boValue":88256.02,"crValue":150044.76,"customer":1500,"distribution":17960,"farmCredits":10220.45,"sales":120364.31,"rebate":51942.72,"ytdRevenue":6678302.292436,"boPct":0.013215,"crPct":0.022468,"boCrPct":0.035683,"boGoal":0.01,"crGoal":0.0155,"boCrGoal":0.0255,"boPctVar":-0.003215,"crPctVar":-0.006968,"boCrPctVar":-0.010183,"boDollarVar":-21472.997076,"crDollarVar":-46531.074467,"boCrDollarVar":-68004.071543},"FAL":{"boValue":44890.43,"crValue":61553.21,"customer":19906.17,"distribution":8615.14,"farmCredits":19822.75,"sales":13209.15,"rebate":1956.33,"ytdRevenue":2265080.61,"boPct":0.019818,"crPct":0.027175,"boCrPct":0.046993,"boGoal":0.015,"crGoal":0.0255,"boCrGoal":0.0405,"boPctVar":-0.004818,"crPctVar":-0.001675,"boCrPctVar":-0.006493,"boDollarVar":-10914.22085,"crDollarVar":-3793.654445,"boCrDollarVar":-14707.875295},"FOR":{"boValue":745495.91,"crValue":1052600.57,"customer":406106.41,"distribution":124826.36,"farmCredits":253690.22,"sales":267977.58,"rebate":632543.16,"ytdRevenue":70349161.09,"boPct":0.010597,"crPct":0.014963,"boCrPct":0.02556,"boGoal":0.011091,"crGoal":0.020632,"boCrGoal":0.031722,"boPctVar":0.000494,"crPctVar":0.005669,"boCrPctVar":0.006163,"boDollarVar":34718.023207,"crDollarVar":398832.812036,"boCrDollarVar":433550.835243},"GFL":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"HOM":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"HUN":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"MCR":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"MIR":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"MLC":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"OAS":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"PAU":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"PIR":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"STE":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0},"WIN":{"boValue":0,"crValue":0,"customer":0,"distribution":0,"farmCredits":0,"sales":0,"rebate":0,"ytdRevenue":0,"boPct":0,"crPct":0,"boCrPct":0,"boGoal":0,"crGoal":0,"boCrGoal":0,"boPctVar":0,"crPctVar":0,"boCrPctVar":0,"boDollarVar":0,"crDollarVar":0,"boCrDollarVar":0}},"boReasons":[{"farm":"BRA","reason":"GRADE - TOO SMALL","value":1322},{"farm":"ESC","reason":"QUALITY - DISEASED/INSECTS","value":4296},{"farm":"FAL","reason":"QUALITY - DISEASED/INSECTS","value":3748.22},{"farm":"FOR","reason":"GRADE - TOO SMALL","value":33592.03},{"farm":"GFL","reason":"GRADE - TOO SMALL","value":13884.8},{"farm":"HUN","reason":"GRADE - NO BUD / BLOOM","value":1078.6},{"farm":"MCR","reason":"QUALITY - DISEASED/INSECTS","value":5047.64},{"farm":"MIR","reason":"GRADE - TOO SMALL","value":6471.8},{"farm":"PAU","reason":"GRADE - WRONG VARIETY/COLOR","value":190},{"farm":"PIR","reason":"QUALITY - GWSS CANCELLATION","value":2915.72},{"farm":"STE","reason":"GRADE - TOO SMALL","value":8610.6},{"farm":"WIN","reason":"GRADE - TOO SMALL","value":9209.96}],"crReasons":[{"farm":"BNL","reason":"11-CUSTOMER - SHIPPED SHORT","value":2727.9},{"farm":"BNL","reason":"GRADE (CUST) - TOO SMALL","value":1382.5},{"farm":"BRA","reason":"GRADE (CUST) - TOO SMALL","value":7992.15},{"farm":"BRA","reason":"8-GRADE(CUST) WRONG VARIETY/COLOR","value":3667.88},{"farm":"ESC","reason":"11-CUSTOMER - SHIPPED SHORT","value":509.63},{"farm":"ESC","reason":"8-GRADE(CUST) WRONG VARIETY/COLOR","value":467.6},{"farm":"FAL","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":50054.11},{"farm":"FAL","reason":"11-CUSTOMER - SHIPPED SHORT","value":14527.01},{"farm":"FOR","reason":"GRADE (CUST) - TOO SMALL","value":4451.6},{"farm":"FOR","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":2076},{"farm":"GFL","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":15988.51},{"farm":"GFL","reason":"GRADE (CUST) - TOO SMALL","value":8510.75},{"farm":"HUN","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":9468.09},{"farm":"HUN","reason":"11-CUSTOMER - SHIPPED SHORT","value":2324.17},{"farm":"MCR","reason":"11-CUSTOMER - SHIPPED SHORT","value":15672},{"farm":"MCR","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":7552.65},{"farm":"MIR","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":20391.06},{"farm":"MIR","reason":"GRADE (CUST) - TOO SMALL","value":5688.65},{"farm":"OAS","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":540},{"farm":"OAS","reason":"DAMAGED - COMMON CARRIER","value":300},{"farm":"PAU","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":13056.25},{"farm":"PAU","reason":"11-CUSTOMER - SHIPPED SHORT","value":6423.04},{"farm":"PIR","reason":"11-CUSTOMER - SHIPPED SHORT","value":4469.08},{"farm":"PIR","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":3223.6},{"farm":"STE","reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":17895.76},{"farm":"STE","reason":"GRADE (CUST) - TOO SMALL","value":8844.75},{"farm":"WIN","reason":"11-CUSTOMER - SHIPPED SHORT","value":23858.7},{"farm":"WIN","reason":"GRADE (CUST) - TOO SMALL","value":15026}],"regionWeekly":[{"week":9,"OR":0.033678,"NORCAL":0.012834,"SOCAL":0.02486,"TX":0.011081,"FL":0.005202,"GOAL":0.031722},{"week":10,"OR":0.016694,"NORCAL":0.037247,"SOCAL":0.039892,"TX":0.004502,"FL":0.009196,"GOAL":0.031722},{"week":11,"OR":0.027671,"NORCAL":0.013041,"SOCAL":0.056216,"TX":0.007911,"FL":0.000946,"GOAL":0.031722},{"week":12,"OR":0.022248,"NORCAL":0.021181,"SOCAL":0.039024,"TX":0.011767,"FL":0.013498,"GOAL":0.031722},{"week":13,"OR":0.016803,"NORCAL":0.013214,"SOCAL":0.061998,"TX":0.012359,"FL":0.000461,"GOAL":0.031722},{"week":14,"OR":0.005308,"NORCAL":0.014657,"SOCAL":0.037008,"TX":0.032754,"FL":0.008539,"GOAL":0.031722},{"week":15,"OR":0.019619,"NORCAL":0.013343,"SOCAL":0.043367,"TX":0.009182,"FL":0.011517,"GOAL":0.031722},{"week":16,"OR":0.026044,"NORCAL":0.010264,"SOCAL":0.042413,"TX":0.02012,"FL":0.002552,"GOAL":0.031722},{"week":17,"OR":0.00691,"NORCAL":0.019649,"SOCAL":0.04835,"TX":0.016624,"FL":0.115367,"GOAL":0.031722},{"week":18,"OR":0.009437,"NORCAL":0.016706,"SOCAL":0.047939,"TX":0.026126,"FL":0.008436,"GOAL":0.031722},{"week":19,"OR":0.027846,"NORCAL":0.008143,"SOCAL":0.030549,"TX":0.011462,"FL":0.005266,"GOAL":0.031722},{"week":20,"OR":0.032214,"NORCAL":0.015433,"SOCAL":0.032503,"TX":0.038518,"FL":0.012176,"GOAL":0.031722},{"week":21,"OR":0,"NORCAL":0,"SOCAL":0,"TX":0,"FL":0,"GOAL":0.031722}],"readyDate":{"FOR":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":1,"P2N":0},"total":1}},"BRA":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":0,"P2N":0},"total":0},"future":{"counts":{"SS":109,"SN":58,"S2N":1,"GS":3,"GN":1,"PN":57,"P2N":0},"total":229}},"WIN":{"noDate":{"counts":{"SS":2,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":4,"P2N":0},"total":6},"past":{"counts":{"SS":1,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":15,"P2N":0},"total":16}},"ESC":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":0,"P2N":0},"total":0},"past":{"counts":{"SS":3,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":224,"P2N":15},"total":242}},"FAL":{"noDate":{"counts":{"SS":1,"SN":0,"S2N":0,"GS":16,"GN":0,"PN":0,"P2N":0},"total":17}},"HUN":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":7,"GN":0,"PN":0,"P2N":0},"total":7}},"MIR":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":15,"GN":0,"PN":0,"P2N":0},"total":15}},"PAU":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":4,"GN":0,"PN":0,"P2N":0},"total":4}},"PIR":{"noDate":{"counts":{"SS":5,"SN":0,"S2N":0,"GS":1,"GN":0,"PN":0,"P2N":0},"total":6}},"STE":{"noDate":{"counts":{"SS":1,"SN":1,"S2N":0,"GS":8,"GN":0,"PN":1,"P2N":0},"total":11}},"GFL":{"noDate":{"counts":{"SS":1,"SN":1,"S2N":0,"GS":1,"GN":0,"PN":0,"P2N":0},"total":3}},"MCR":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":0,"GN":1,"PN":0,"P2N":0},"total":1}},"BNL":{"noDate":{"counts":{"SS":2,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":0,"P2N":0},"total":2}},"HOM":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":0,"P2N":0},"total":0},"future":{"counts":{"SS":30,"SN":42,"S2N":0,"GS":1,"GN":4,"PN":63,"P2N":18},"total":158}},"OAS":{"noDate":{"counts":{"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0,"PN":0,"P2N":0},"total":0},"future":{"counts":{"SS":0,"SN":58,"S2N":0,"GS":7,"GN":4,"PN":6,"P2N":1},"total":76}}},"demandWin":{"FOR":{"missing":{"counts":{"A":1,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":1}},"BRA":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"WIN":{"missing":{"counts":{"A":0,"B":0,"SS":3,"SN":0,"S2N":0,"GS":0,"GN":0},"total":3}},"ESC":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"FAL":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"HUN":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"MIR":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"PAU":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"PIR":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"STE":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":1,"S2N":0,"GS":0,"GN":0},"total":1}},"GFL":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":0},"total":0}},"MCR":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":2},"total":2}},"BNL":{"missing":{"counts":{"A":2,"B":0,"SS":5,"SN":0,"S2N":0,"GS":0,"GN":0},"total":7}},"HOM":{"missing":{"counts":{"A":0,"B":0,"SS":0,"SN":0,"S2N":0,"GS":0,"GN":1},"total":1}},"OAS":{"missing":{"counts":{"A":26,"B":0,"SS":0,"SN":2,"S2N":0,"GS":0,"GN":0},"total":28}}},"photos":{"FOR":{"current":{"counts":{"A":545,"B":0,"C":41,"GS":41,"SS":107},"total":734}},"BRA":{"current":{"counts":{"A":60,"B":1,"C":8,"GS":3,"SS":108},"total":180}},"WIN":{"current":{"counts":{"A":532,"B":28,"C":16,"GS":32,"SS":841},"total":1449}},"ESC":{"current":{"counts":{"A":25,"B":0,"C":5,"GS":0,"SS":60},"total":90}},"FAL":{"current":{"counts":{"A":89,"B":30,"C":13,"GS":93,"SS":161},"total":386}},"HUN":{"current":{"counts":{"A":56,"B":16,"C":5,"GS":33,"SS":106},"total":216}},"MIR":{"current":{"counts":{"A":82,"B":33,"C":96,"GS":50,"SS":202},"total":463}},"PAU":{"current":{"counts":{"A":65,"B":32,"C":13,"GS":21,"SS":137},"total":268}},"PIR":{"current":{"counts":{"A":48,"B":32,"C":29,"GS":8,"SS":51},"total":168}},"STE":{"current":{"counts":{"A":119,"B":54,"C":121,"GS":12,"SS":328},"total":634}},"GFL":{"current":{"counts":{"A":597,"B":0,"C":156,"GS":20,"SS":121},"total":894}},"MCR":{"current":{"counts":{"A":1,"B":0,"C":230,"GS":0,"SS":0},"total":231}},"BNL":{"current":{"counts":{"A":176,"B":2,"C":42,"GS":1,"SS":67},"total":288}},"HOM":{"current":{"counts":{"A":1,"B":0,"C":0,"GS":0,"SS":0},"total":1}},"OAS":{"current":{"counts":{"A":16,"B":0,"C":1,"GS":0,"SS":0},"total":17}}},"cycle":{"BRA":{"startQty":299,"counted":189,"pct":0.632107,"mtdPacing":0},"FOR":{"startQty":2488,"counted":1565,"pct":0.629019,"mtdPacing":0},"WIN":{"startQty":2671,"counted":1674,"pct":0.626732,"mtdPacing":0},"ESC":{"startQty":497,"counted":451,"pct":0.907445,"mtdPacing":0},"FAL":{"startQty":593,"counted":597,"pct":1.006745,"mtdPacing":0},"HUN":{"startQty":266,"counted":276,"pct":1.037594,"mtdPacing":0},"MIR":{"startQty":580,"counted":435,"pct":0.75,"mtdPacing":0},"PAU":{"startQty":389,"counted":364,"pct":0.935733,"mtdPacing":0},"PIR":{"startQty":354,"counted":338,"pct":0.954802,"mtdPacing":0},"STE":{"startQty":840,"counted":617,"pct":0.734524,"mtdPacing":0},"BNL":{"startQty":714,"counted":142,"pct":0.19888,"mtdPacing":0},"OAS":{"startQty":688,"counted":57,"pct":0.082849,"mtdPacing":0},"HOM":{"startQty":215,"counted":161,"pct":0.748837,"mtdPacing":0},"GFL":{"startQty":2464,"counted":996,"pct":0.404221,"mtdPacing":0},"MCR":{"startQty":1973,"counted":332,"pct":0.168272,"mtdPacing":0}},"weeklyTotals":{"revenue":[3586888.8500000197,4407531.06000001,4377059.670000023,4711146.910000009,4161223.3400000185,4456129.960000015,4619295.20000001,4267212.190000018,4497532.380000013,4303204.530000024,3616008.470000003,4233340.400000007,0],"bo":[27550.019999999997,31652.019999999997,52838.79000000001,51118.72,33872.04,60792.78,45072.240000000005,36700.149999999994,80277.62000000001,41901.58,34864.76,52429.000000000015,0],"cr":[32180.370000000003,63245.009999999995,48946.33999999999,58339.44999999999,76487.73000000001,38502.03,58932.95999999999,63148.159999999996,78090.01000000001,73218.78999999998,29738.300000000003,66470.88,0]},"topReasons":[{"farm":"FOR","reason":"GRADE - TOO SMALL","value":33592.03},{"farm":"GFL","reason":"GRADE - TOO SMALL","value":13884.8},{"farm":"WIN","reason":"GRADE - TOO SMALL","value":9209.96},{"farm":"STE","reason":"GRADE - TOO SMALL","value":8610.6},{"farm":"MIR","reason":"GRADE - TOO SMALL","value":6471.8},{"farm":"MCR","reason":"QUALITY - DISEASED/INSECTS","value":5047.64},{"farm":"ESC","reason":"QUALITY - DISEASED/INSECTS","value":4296},{"farm":"FAL","reason":"QUALITY - DISEASED/INSECTS","value":3748.22},{"farm":"PIR","reason":"QUALITY - GWSS CANCELLATION","value":2915.72},{"farm":"BRA","reason":"GRADE - TOO SMALL","value":1322}],"topCrReasons":[{"reason":"6-QUALITY(CUST)-DISEASED/INSECTS","value":140246.03},{"reason":"11-CUSTOMER - SHIPPED SHORT","value":70511.53},{"reason":"GRADE (CUST) - TOO SMALL","value":51896.4},{"reason":"8-GRADE(CUST) WRONG VARIETY/COLOR","value":4135.48},{"reason":"DAMAGED - COMMON CARRIER","value":300}],"dwAgg":{"missing":43,"past":0,"sellable":0,"readyAfter":0},"dwTotal":43,"rdAgg":{"noDate":73,"past":258,"future":463},"rdTotal":794,"phAgg":{"current":6019,"late":0,"no":0},"phTotal":6019,"cycleAgg":{"startQty":15031,"counted":8194,"pct":0.54514}}`);
+
+function renderDemand() {
+  const D = DEMAND;
+  const sem = { success: "#1F8A65E8", info: "#70B0D8E0", warning: "#F0A040E0", danger: "#C04848E0", neutral: "#8888A8E0" };
+  const pal = ["#1F8A65E8","#70B0D8E0","#5A6CC0F0","#F0A040E0","#C06028E0","#E8C030E0","#C85898E0","#F0A088E0","#7B64B8F0","#7DCAB0E0","#8888A8E0","#2A9A8AE0"];
+  const fmtPct1 = (n) => `${(n * 100).toFixed(2)}%`;
+
+  // === KPIs ===
+  document.getElementById("d-kpi-rev").textContent = fmtMoney(D.meta.totalRevenue);
+  document.getElementById("d-kpi-bo").textContent = fmtMoney(D.meta.totalBO);
+  document.getElementById("d-kpi-bo-label").textContent = `Backorders YTD (${fmtPct1(D.meta.boPct)})`;
+  document.getElementById("d-kpi-cr").textContent = fmtMoney(D.meta.totalCR);
+  document.getElementById("d-kpi-cr-label").textContent = `Credits YTD (${fmtPct1(D.meta.crPct)})`;
+
+  // Compute network-level goal and variance for BO+CR
+  const farms = Object.entries(D.farmYTD);
+  const totalRev = farms.reduce((s, [, f]) => s + f.ytdRevenue, 0);
+  const wtdGoal = farms.reduce((s, [, f]) => s + f.boCrGoal * f.ytdRevenue, 0) / totalRev;
+  const actual = D.meta.boCrPct;
+  const dollarDelta = (wtdGoal - actual) * totalRev;
+  const bocrEl = document.getElementById("d-kpi-bocr");
+  bocrEl.textContent = (actual < wtdGoal ? "−" : "+") + fmtMoney(Math.abs(dollarDelta));
+  document.getElementById("d-kpi-bocr-label").textContent = `BO+CR vs goal (${fmtPct1(actual)} vs ${fmtPct1(wtdGoal)})`;
+
+  document.getElementById("d-kpi-inv").textContent = fmtInt(D.cycleAgg.startQty);
+
+  // === Weekly trend (Revenue / BO / CR) ===
+  (function () {
+    const labels = D.meta.weeks.filter((_, i) => D.weeklyTotals.revenue[i] > 0).map(w => `Wk ${w}`);
+    const revData = D.weeklyTotals.revenue.filter(v => v > 0);
+    const boData = D.weeklyTotals.bo.slice(0, revData.length);
+    const crData = D.weeklyTotals.cr.slice(0, revData.length);
+    new Chart(document.getElementById("d-chart-weekly"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: "Revenue", data: revData, borderColor: sem.success, backgroundColor: "#1F8A6520", fill: true, tension: 0.25, yAxisID: "y", pointRadius: 3 },
+          { label: "Backorders", data: boData, borderColor: sem.danger, backgroundColor: "#C0484820", fill: false, tension: 0.25, yAxisID: "y1", pointRadius: 3 },
+          { label: "Credits", data: crData, borderColor: sem.warning, backgroundColor: "#F0A04020", fill: false, tension: 0.25, yAxisID: "y1", pointRadius: 3 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false } },
+          y: { position: "left", grid: { color: "#1f242a" }, ticks: { callback: v => fmtMoney(v) }, title: { display: true, text: "Revenue ($)", color: "#a8acb3" } },
+          y1: { position: "right", grid: { display: false }, ticks: { callback: v => fmtMoney(v) }, title: { display: true, text: "BO / CR ($)", color: "#a8acb3" } }
+        },
+        plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}` } } }
+      }
+    });
+  })();
+
+  // === Region weekly BO+CR % vs goal ===
+  (function () {
+    const data = D.regionWeekly.filter(w => w.OR + w.NORCAL + w.SOCAL + w.TX + w.FL > 0);
+    const regs = [
+      { key: "OR", label: "Oregon", color: pal[0] },
+      { key: "NORCAL", label: "Nor Cal", color: pal[1] },
+      { key: "SOCAL", label: "So Cal", color: pal[3] },
+      { key: "TX", label: "Texas", color: pal[2] },
+      { key: "FL", label: "Florida", color: pal[5] },
+    ];
+    new Chart(document.getElementById("d-chart-region"), {
+      type: "line",
+      data: {
+        labels: data.map(d => `Wk ${d.week}`),
+        datasets: [
+          ...regs.map(r => ({ label: r.label, data: data.map(d => d[r.key] * 100), borderColor: r.color, backgroundColor: r.color + "20", fill: false, tension: 0.25, pointRadius: 3 })),
+          { label: "Goal", data: data.map(d => d.GOAL * 100), borderColor: "#888888", borderDash: [6, 4], fill: false, tension: 0, pointRadius: 0, borderWidth: 1.5 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: { x: { grid: { display: false } }, y: { grid: { color: "#1f242a" }, ticks: { callback: v => `${v.toFixed(1)}%` } } },
+        plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%` } } }
+      }
+    });
+  })();
+
+  // === Farm scorecard table ===
+  (function () {
+    const rows = Object.entries(D.farmYTD).sort((a, b) => b[1].ytdRevenue - a[1].ytdRevenue);
+    const tbl = document.getElementById("d-tbl-farms");
+    const headers = ["Farm", "Region", "YTD Revenue", "BO $", "BO %", "BO Δ$ vs goal", "CR $", "CR %", "CR Δ$ vs goal", "BO+CR %", "Status"];
+    const aligns = ["", "", "num", "num", "num", "num", "num", "num", "num", "num", ""];
+    const fmtDelta = (v) => {
+      if (Math.abs(v) < 100) return `<span class="delta-neutral">~$0</span>`;
+      const cls = v >= 0 ? "delta-good" : "delta-bad";
+      const sign = v >= 0 ? "−" : "+";
+      return `<span class="${cls}">${sign}${fmtMoney(Math.abs(v))}</span>`;
+    };
+    let html = `<thead><tr>${headers.map((h, i) => `<th class="${aligns[i] || ""}">${h}</th>`).join("")}</tr></thead><tbody>`;
+    for (const [farm, v] of rows) {
+      const region = (D.farmBO[farm] && D.farmBO[farm].region) || "—";
+      const status = v.boCrPctVar > 0
+        ? '<span class="pill success">Under goal</span>'
+        : v.boCrPctVar > -0.005
+        ? '<span class="pill warning">Near goal</span>'
+        : '<span class="pill danger">Over goal</span>';
+      html += `<tr>
+        <td><strong>${farm}</strong></td>
+        <td>${region}</td>
+        <td class="num">${fmtMoney(v.ytdRevenue)}</td>
+        <td class="num">${fmtMoney(v.boValue)}</td>
+        <td class="num">${fmtPct1(v.boPct)}</td>
+        <td class="num">${fmtDelta(v.boDollarVar)}</td>
+        <td class="num">${fmtMoney(v.crValue)}</td>
+        <td class="num">${fmtPct1(v.crPct)}</td>
+        <td class="num">${fmtDelta(v.crDollarVar)}</td>
+        <td class="num">${fmtPct1(v.boCrPct)}</td>
+        <td>${status}</td>
+      </tr>`;
+    }
+    html += "</tbody>";
+    tbl.innerHTML = html;
+  })();
+
+  // === Top BO reasons bar chart + table ===
+  (function () {
+    const reasons = D.topReasons.slice(0, 8);
+    new Chart(document.getElementById("d-chart-bo-reasons"), {
+      type: "bar",
+      data: { labels: reasons.map(r => r.reason), datasets: [{ data: reasons.map(r => r.value), backgroundColor: sem.danger, label: "Backorder $" }] },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${fmtMoney(ctx.parsed.x)}` } } },
+        scales: { x: { grid: { color: "#1f242a" }, ticks: { callback: v => fmtMoney(v) } }, y: { grid: { display: false } } }
+      }
+    });
+    // Table of individual farm + reason lines, sorted by value desc
+    const lines = D.boReasons.slice().sort((a, b) => b.value - a.value).slice(0, 20);
+    document.getElementById("d-tbl-bo-reasons").innerHTML = thRow(["Farm", "Reason", "$"], ["", "", "num"]) + `<tbody>` +
+      lines.map(l => `<tr><td><strong>${l.farm}</strong></td><td>${l.reason}</td><td class="num">${fmtMoney(l.value)}</td></tr>`).join("") + `</tbody>`;
+  })();
+
+  // === Top CR reasons bar chart + table ===
+  (function () {
+    const reasons = D.topCrReasons.slice(0, 8);
+    new Chart(document.getElementById("d-chart-cr-reasons"), {
+      type: "bar",
+      data: { labels: reasons.map(r => r.reason), datasets: [{ data: reasons.map(r => r.value), backgroundColor: sem.warning, label: "Credit $" }] },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${fmtMoney(ctx.parsed.x)}` } } },
+        scales: { x: { grid: { color: "#1f242a" }, ticks: { callback: v => fmtMoney(v) } }, y: { grid: { display: false } } }
+      }
+    });
+    const lines = D.crReasons.slice().sort((a, b) => b.value - a.value).slice(0, 20);
+    document.getElementById("d-tbl-cr-reasons").innerHTML = thRow(["Farm", "Reason", "$"], ["", "", "num"]) + `<tbody>` +
+      lines.map(l => `<tr><td><strong>${l.farm}</strong></td><td>${l.reason}</td><td class="num">${fmtMoney(l.value)}</td></tr>`).join("") + `</tbody>`;
+  })();
+
+  // === Demand window stacked bar ===
+  (function () {
+    const farms = Object.keys(D.demandWin);
+    const cats = [
+      { key: "sellable", label: "Sellable / Future Window", color: sem.success },
+      { key: "missing", label: "Missing Window", color: sem.warning },
+      { key: "readyAfter", label: "Ready After Window (late)", color: sem.danger },
+      { key: "past", label: "Past Window", color: sem.neutral },
+    ];
+    const datasets = cats.map(c => ({ label: c.label, data: farms.map(f => D.demandWin[f][c.key].total), backgroundColor: c.color }));
+    new Chart(document.getElementById("d-chart-dw"), {
+      type: "bar",
+      data: { labels: farms, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: "#1f242a" }, ticks: { callback: v => fmtInt(v) } } },
+        plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtInt(ctx.parsed.y)}` } } }
+      }
+    });
+    const total = D.dwTotal;
+    document.getElementById("d-dw-summary").innerHTML =
+      `${fmtInt(D.dwAgg.sellable)} sellable (${fmtPct1(D.dwAgg.sellable / total)}) · ` +
+      `${fmtInt(D.dwAgg.readyAfter)} ready after window (${fmtPct1(D.dwAgg.readyAfter / total)}) · ` +
+      `${fmtInt(D.dwAgg.missing)} missing window (${fmtPct1(D.dwAgg.missing / total)})`;
+  })();
+
+  // === Ready date stacked bar ===
+  (function () {
+    const farms = Object.keys(D.readyDate);
+    const cats = [
+      { key: "future", label: "Future Ready", color: sem.success },
+      { key: "past", label: "Past Ready (overdue)", color: sem.danger },
+      { key: "noDate", label: "No Date", color: sem.warning },
+    ];
+    const datasets = cats.map(c => ({ label: c.label, data: farms.map(f => D.readyDate[f][c.key].total), backgroundColor: c.color }));
+    new Chart(document.getElementById("d-chart-rd"), {
+      type: "bar",
+      data: { labels: farms, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: "#1f242a" }, ticks: { callback: v => fmtInt(v) } } },
+        plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtInt(ctx.parsed.y)}` } } }
+      }
+    });
+    const total = D.rdTotal;
+    document.getElementById("d-rd-summary").innerHTML =
+      `${fmtInt(D.rdAgg.future)} future ready (${fmtPct1(D.rdAgg.future / total)}) · ` +
+      `${fmtInt(D.rdAgg.past)} past due (${fmtPct1(D.rdAgg.past / total)}) · ` +
+      `${fmtInt(D.rdAgg.noDate)} missing date (${fmtPct1(D.rdAgg.noDate / total)})`;
+  })();
+
+  // === Photo readiness bar chart ===
+  (function () {
+    const farms = Object.keys(D.photos);
+    const data = farms.map(f => {
+      const p = D.photos[f];
+      const total = p.current.total + p.late.total + p.no.total;
+      return total ? p.current.total / total * 100 : 0;
+    });
+    new Chart(document.getElementById("d-chart-photos"), {
+      type: "bar",
+      data: { labels: farms, datasets: [{ data, backgroundColor: sem.info, label: "Current photo %" }] },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toFixed(1)}%` } } },
+        scales: { x: { grid: { color: "#1f242a" }, max: 100, ticks: { callback: v => `${v}%` } }, y: { grid: { display: false } } }
+      }
+    });
+    document.getElementById("d-ph-summary").textContent = `${fmtPct1(D.phAgg.current / D.phTotal)} current · ${fmtPct1(D.phAgg.late / D.phTotal)} late · ${fmtPct1(D.phAgg.no / D.phTotal)} missing`;
+  })();
+
+  // === Cycle count bar chart ===
+  (function () {
+    const farms = Object.entries(D.cycle).sort((a, b) => b[1].pct - a[1].pct);
+    new Chart(document.getElementById("d-chart-cycle"), {
+      type: "bar",
+      data: {
+        labels: farms.map(([f]) => f),
+        datasets: [{ data: farms.map(([, v]) => Math.min(v.pct * 100, 110)), backgroundColor: farms.map(([, v]) => v.pct >= 0.5 ? sem.success : v.pct >= 0.25 ? sem.warning : sem.danger), label: "Counted %" }]
+      },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toFixed(1)}%` } } },
+        scales: { x: { grid: { color: "#1f242a" }, max: 110, ticks: { callback: v => `${v}%` } }, y: { grid: { display: false } } }
+      }
+    });
+    document.getElementById("d-cc-summary").textContent = `${fmtInt(D.cycleAgg.counted)} of ${fmtInt(D.cycleAgg.startQty)} counted (${fmtPct1(D.cycleAgg.pct)}) · goal 50% MTD`;
+  })();
+
+  // === Variance bar chart ===
+  (function () {
+    const farms = Object.entries(D.variance).sort((a, b) => b[1].absVarPct - a[1].absVarPct);
+    new Chart(document.getElementById("d-chart-variance"), {
+      type: "bar",
+      data: {
+        labels: farms.map(([f]) => f),
+        datasets: [
+          { data: farms.map(([, v]) => v.absVarPct * 100), backgroundColor: farms.map(([, v]) => v.absVarPct < 0.005 ? sem.success : sem.danger), label: "ABS variance %" }
+        ]
+      },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toFixed(3)}%` } } },
+        scales: { x: { grid: { color: "#1f242a" }, ticks: { callback: v => `${v.toFixed(2)}%` } }, y: { grid: { display: false } } }
+      }
+    });
+  })();
+
+  // === Recommendations ===
+  (function () {
+    const recsHost = document.getElementById("d-recs");
+    // Compute top contributors
+    const topBoFarms = Object.entries(D.farmYTD).map(([f, v]) => ({ farm: f, dollarVar: v.boDollarVar })).filter(o => o.dollarVar < -1000).sort((a, b) => a.dollarVar - b.dollarVar).slice(0, 3);
+    const topCrFarms = Object.entries(D.farmYTD).map(([f, v]) => ({ farm: f, dollarVar: v.crDollarVar })).filter(o => o.dollarVar < -1000).sort((a, b) => a.dollarVar - b.dollarVar).slice(0, 3);
+    const lateWindowFarms = Object.entries(D.demandWin).map(([f, v]) => {
+      const total = v.missing.total + v.past.total + v.sellable.total + v.readyAfter.total;
+      return { farm: f, pct: total ? v.readyAfter.total / total : 0, count: v.readyAfter.total };
+    }).filter(o => o.pct > 0.3 && o.count > 20).sort((a, b) => b.count - a.count).slice(0, 5);
+    const noPhotoFarms = Object.entries(D.photos).map(([f, v]) => {
+      const total = v.current.total + v.late.total + v.no.total;
+      return { farm: f, pct: total ? v.no.total / total : 0, count: v.no.total };
+    }).filter(o => o.pct > 0.05).sort((a, b) => b.pct - a.pct).slice(0, 5);
+    const cycleLag = Object.entries(D.cycle).map(([f, v]) => ({ farm: f, pct: v.pct })).filter(o => o.pct < 0.4).sort((a, b) => a.pct - b.pct).slice(0, 5);
+
+    const cards = [
+      {
+        title: "Replenish: backorder hotspots",
+        pill: '<span class="pill danger">Need more</span>',
+        body: topBoFarms.length
+          ? `${topBoFarms.map(o => `<strong>${o.farm}</strong> ($${fmtInt(-o.dollarVar)} over goal)`).join(", ")} are the top farms where demand outran supply. <strong>Grade — too small</strong> alone drove $${fmtInt(D.topReasons[0].value)} of backorders network-wide — the fastest win is finishing-capacity for larger sizes at FOR.`
+          : "All farms inside backorder goal."
+      },
+      {
+        title: "Quality leak: credits issued",
+        pill: '<span class="pill warning">Improve</span>',
+        body: topCrFarms.length
+          ? `${topCrFarms.map(o => `<strong>${o.farm}</strong> ($${fmtInt(-o.dollarVar)} over goal)`).join(", ")} drove credits past target. <strong>${D.topCrReasons[0].reason}</strong> ($${fmtInt(D.topCrReasons[0].value)}) and <strong>Customer — shipped short</strong> ($${fmtInt(D.topCrReasons[1].value)}) are the top two reason codes — tighten pre-ship QA and pick audits.`
+          : "Credits inside goal."
+      },
+      {
+        title: "Re-window 'ready after window' stock",
+        pill: '<span class="pill warning">Re-time</span>',
+        body: lateWindowFarms.length
+          ? `${lateWindowFarms.map(o => `${o.farm} (${o.count} items, ${fmtPct1(o.pct)})`).join(" · ")} have a large share of items ready <em>after</em> the demand window closes. Either advance grade-up or re-slot to the next window.`
+          : "No farm has a large 'ready after window' position."
+      },
+      {
+        title: "Backfill missing demand windows",
+        pill: '<span class="pill info">Plan</span>',
+        body: `${fmtInt(D.dwAgg.missing)} items (${fmtPct1(D.dwAgg.missing / D.dwTotal)}) have no demand window assigned. Top contributors: ${Object.entries(D.demandWin).sort((a, b) => b[1].missing.total - a[1].missing.total).slice(0, 3).map(([f, v]) => `<strong>${f}</strong> (${v.missing.total})`).join(", ")}. Assigning windows unlocks committable inventory and clears forecast noise.`
+      },
+      {
+        title: "Catch up cycle counts",
+        pill: '<span class="pill warning">Data quality</span>',
+        body: cycleLag.length
+          ? `Pace check: ${cycleLag.map(o => `${o.farm} (${fmtPct1(o.pct)} of starting qty counted)`).join(" · ")} are below the 50% MTD bar. Cycle-count cadence is the foundation for accurate availability — fix this before deeper analyses.`
+          : "All farms on cycle-count pace."
+      },
+      {
+        title: "Photo backlog blocking sales",
+        pill: '<span class="pill info">Visual readiness</span>',
+        body: noPhotoFarms.length
+          ? `Top photo gaps: ${noPhotoFarms.map(o => `<strong>${o.farm}</strong> (${o.count} no-photo, ${fmtPct1(o.pct)})`).join(" · ")}. Photos are the gating asset for online listings — these farms are blocking sales conversion.`
+          : "Photo coverage above 95% on every farm."
+      }
+    ];
+    recsHost.innerHTML = cards.map(c => `<div class="card"><div class="head"><span>${c.title}</span>${c.pill}</div><div class="body">${c.body}</div></div>`).join("");
+  })();
+}
+</script>
+
+</div><!-- /.wrap -->
+</body>
+</html>
