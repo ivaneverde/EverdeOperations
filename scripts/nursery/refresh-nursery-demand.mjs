@@ -39,7 +39,10 @@ function injectDemandCopy(html, demand) {
     { month: "short", day: "numeric" },
   );
   const sub = `${fmtMoney(demand.meta.totalRevenue)} YTD revenue · ${demand.meta.farmCount} farms · weeks ${demand.meta.weekStart}–${demand.meta.weekEnd} (Mar 1 → ${endLabel}, 2026). Operational report covering grading variance, backorders &amp; credits, demand-window allocation, ready-date pipeline, photo readiness and cycle counts.`;
-  html = html.replace(/<p class="sub">[^<]*<\/p>/, `<p class="sub">${sub}</p>`);
+  html = html.replace(
+    /(<div id="report-demand"[\s\S]*?<p class="sub">)[^<]*(<\/p>)/,
+    `$1${sub}$2`,
+  );
 
   const systemEu = Object.values(demand.variance).reduce(
     (s, v) => s + (v.systemEU || 0),
