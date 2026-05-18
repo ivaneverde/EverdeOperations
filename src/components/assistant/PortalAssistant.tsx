@@ -3,8 +3,27 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { suggestedPromptsForPath } from "@/lib/assistant/suggestedPrompts";
+import type { AssistantProvider } from "@/lib/assistant/types";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+
+type ProviderOption = {
+  id: AssistantProvider;
+  label: string;
+  model: string;
+};
+
+const PROVIDER_STORAGE_KEY = "everde-assistant-provider";
+
+function readStoredProvider(): AssistantProvider | null {
+  if (typeof window === "undefined") return null;
+  const v = localStorage.getItem(PROVIDER_STORAGE_KEY);
+  return v === "openai" || v === "anthropic" ? v : null;
+}
+
+function storeProvider(provider: AssistantProvider) {
+  localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
+}
 
 export function PortalAssistant() {
   const pathname = usePathname() ?? "/";
@@ -13,12 +32,57 @@ export function PortalAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [providers, setProviders] = useState<ProviderOption[]>([]);
+  const [provider, setProvider] = useState<AssistantProvider>("openai");
+  const [lastModel, setLastModel] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const suggestions = useMemo(
     () => suggestedPromptsForPath(pathname),
     [pathname],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/assistant/config", {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          defaultProvider?: AssistantProvider;
+          providers?: ProviderOption[];
+        };
+        if (cancelled) return;
+        const list = data.providers ?? [];
+        setProviders(list);
+        const stored = readStoredProvider();
+        const pick =
+          stored && list.some((p) => p.id === stored)
+            ? stored
+            : data.defaultProvider && list.some((p) => p.id === data.defaultProvider)
+              ? data.defaultProvider
+              : list[0]?.id ?? "openai";
+        setProvider(pick);
+      } catch {
+        /* config optional for render */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const onProviderChange = (next: AssistantProvider) => {
+    setProvider(next);
+    storeProvider(next);
+    setMessages([]);
+    setError(null);
+    setLastModel(null);
+  };
+
+  const activeProviderMeta = providers.find((p) => p.id === provider);
 
   useEffect(() => {
     if (!open) return;
@@ -48,12 +112,15 @@ export function PortalAssistant() {
           body: JSON.stringify({
             messages: nextMessages,
             pathname,
+            provider,
           }),
         });
         const data = (await res.json()) as {
           error?: string;
           detail?: string;
           message?: ChatMessage;
+          model?: string;
+          provider?: AssistantProvider;
         };
         if (!res.ok) {
           throw new Error(
@@ -63,13 +130,14 @@ export function PortalAssistant() {
         if (data.message?.content) {
           setMessages((prev) => [...prev, data.message!]);
         }
+        if (data.model) setLastModel(data.model);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       } finally {
         setLoading(false);
       }
     },
-    [loading, messages, pathname],
+    [loading, messages, pathname, provider],
   );
 
   const onHeaderSubmit = (e: React.FormEvent) => {
@@ -77,29 +145,56 @@ export function PortalAssistant() {
     void send(draft);
   };
 
+  const showProviderToggle = providers.length > 1;
+
   return (
     <>
-      <form
-        onSubmit={onHeaderSubmit}
-        className="flex w-full max-w-xl min-w-0 items-center gap-2"
-      >
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onFocus={() => setOpen(true)}
-          placeholder="Ask the analyst about this page…"
-          className="min-w-0 flex-1 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-[var(--everde-forest)] focus:outline-none focus:ring-1 focus:ring-[var(--everde-forest)]"
-          aria-label="Ask the analyst"
-        />
-        <button
-          type="submit"
-          disabled={loading || !draft.trim()}
-          className="shrink-0 rounded-full bg-[var(--everde-forest)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white hover:opacity-90 disabled:opacity-50"
+      <div className="flex w-full max-w-xl min-w-0 flex-col items-stretch gap-1.5">
+        {showProviderToggle ? (
+          <div
+            className="flex justify-center gap-1"
+            role="group"
+            aria-label="AI provider"
+          >
+            {providers.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onProviderChange(p.id)}
+                className={
+                  provider === p.id
+                    ? "rounded-full bg-[var(--everde-forest)] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
+                    : "rounded-full border border-zinc-300 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 hover:border-[var(--everde-forest)]"
+                }
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <form
+          onSubmit={onHeaderSubmit}
+          className="flex min-w-0 items-center gap-2"
         >
-          Ask
-        </button>
-      </form>
+          <input
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => setOpen(true)}
+            placeholder="Ask the analyst about this page…"
+            className="min-w-0 flex-1 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-[var(--everde-forest)] focus:outline-none focus:ring-1 focus:ring-[var(--everde-forest)]"
+            aria-label="Ask the analyst"
+          />
+          <button
+            type="submit"
+            disabled={loading || !draft.trim()}
+            className="shrink-0 rounded-full bg-[var(--everde-forest)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white hover:opacity-90 disabled:opacity-50"
+          >
+            Ask
+          </button>
+        </form>
+      </div>
 
       {open ? (
         <div
@@ -113,22 +208,51 @@ export function PortalAssistant() {
             aria-label="Analyst assistant"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3">
-              <div>
-                <h2 className="text-sm font-semibold text-zinc-900">
-                  Analyst assistant
-                </h2>
-                <p className="text-xs text-zinc-500">
-                  Answers use published freight &amp; sales plan data.
-                </p>
+            <header className="border-b border-zinc-200 px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold text-zinc-900">
+                    Analyst assistant
+                  </h2>
+                  <p className="text-xs text-zinc-500">
+                    {activeProviderMeta
+                      ? `${activeProviderMeta.label} · ${activeProviderMeta.model}`
+                      : "Answers use published freight & sales plan data."}
+                    {lastModel && activeProviderMeta?.model !== lastModel
+                      ? ` (replied with ${lastModel})`
+                      : null}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="shrink-0 text-xs font-medium text-zinc-500 hover:text-zinc-800"
+                >
+                  Close
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-xs font-medium text-zinc-500 hover:text-zinc-800"
-              >
-                Close
-              </button>
+              {showProviderToggle ? (
+                <div
+                  className="mt-2 flex gap-1"
+                  role="group"
+                  aria-label="AI provider"
+                >
+                  {providers.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => onProviderChange(p.id)}
+                      className={
+                        provider === p.id
+                          ? "rounded-md bg-[var(--everde-forest)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white"
+                          : "rounded-md border border-zinc-200 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 hover:border-[var(--everde-forest)]"
+                      }
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </header>
 
             <div
@@ -162,7 +286,7 @@ export function PortalAssistant() {
                   className={
                     m.role === "user"
                       ? "ml-6 rounded-lg bg-[var(--everde-forest)]/10 px-3 py-2 text-sm text-zinc-900"
-                      : "mr-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 whitespace-pre-wrap"
+                      : "mr-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm whitespace-pre-wrap text-zinc-800"
                   }
                 >
                   {m.content}

@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server";
-import { buildAssistantContext } from "@/lib/assistant/buildAssistantContext";
 import {
+  defaultAssistantProvider,
   isPortalAssistantEnabled,
-  openAiApiKey,
-  openAiAssistantModel,
-} from "@/lib/assistant/openaiConfig";
+  parseAssistantProvider,
+} from "@/lib/assistant/assistantConfig";
+import { buildAssistantContext } from "@/lib/assistant/buildAssistantContext";
+import { runAssistantCompletion } from "@/lib/assistant/runAssistant";
+import type { AssistantChatTurn } from "@/lib/assistant/types";
 import { guardPortalApi } from "@/lib/auth/guardApiRoute";
 
 export const dynamic = "force-dynamic";
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
-
 type ChatBody = {
-  messages?: ChatMessage[];
+  messages?: AssistantChatTurn[];
   pathname?: string;
   sectionId?: string;
   reportSlug?: string;
+  provider?: string;
 };
 
 function buildSystemPrompt(ctx: Awaited<ReturnType<typeof buildAssistantContext>>): string {
@@ -41,7 +42,10 @@ export async function POST(request: Request) {
 
   if (!isPortalAssistantEnabled()) {
     return NextResponse.json(
-      { error: "Portal assistant is not configured (OPENAI_API_KEY missing)." },
+      {
+        error:
+          "Portal assistant is not configured (set OPENAI_API_KEY and/or ANTHROPIC_API_KEY).",
+      },
       { status: 503 },
     );
   }
@@ -59,6 +63,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A user message is required." }, { status: 400 });
   }
 
+  const provider =
+    parseAssistantProvider(body.provider) ?? defaultAssistantProvider();
+
   const pathname =
     typeof body.pathname === "string" && body.pathname.trim()
       ? body.pathname.trim()
@@ -70,52 +77,29 @@ export async function POST(request: Request) {
     reportSlug: body.reportSlug,
   });
 
-  const openAiMessages = [
-    { role: "system" as const, content: buildSystemPrompt(ctx) },
-    ...messages
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .slice(-12)
-      .map((m) => ({
-        role: m.role,
-        content: m.content.slice(0, 8_000),
-      })),
-  ];
+  const turns = messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .slice(-12)
+    .map((m) => ({
+      role: m.role,
+      content: m.content.slice(0, 8_000),
+    }));
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAiApiKey()}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: openAiAssistantModel(),
-      messages: openAiMessages,
-      temperature: 0.2,
-      max_tokens: 2_048,
-    }),
-  });
+  try {
+    const result = await runAssistantCompletion({
+      provider,
+      system: buildSystemPrompt(ctx),
+      messages: turns,
+    });
 
-  if (!res.ok) {
-    const errText = await res.text();
-    return NextResponse.json(
-      {
-        error: "OpenAI request failed.",
-        detail: errText.slice(0, 500),
-      },
-      { status: 502 },
-    );
+    return NextResponse.json({
+      message: { role: "assistant", content: result.content },
+      provider: result.provider,
+      model: result.model,
+      routeLabel: ctx.routeLabel,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Assistant request failed.";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
-
-  const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  const reply =
-    data.choices?.[0]?.message?.content?.trim() ||
-    "I could not generate a response.";
-
-  return NextResponse.json({
-    message: { role: "assistant", content: reply },
-    model: openAiAssistantModel(),
-    routeLabel: ctx.routeLabel,
-  });
 }
