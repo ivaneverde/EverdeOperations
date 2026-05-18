@@ -9,7 +9,7 @@ import {
 import {
   createPortalSessionToken,
   sessionCookieOptions,
-  userFromEntraAccessToken,
+  userFromEntraSessionCredentials,
   verifyPortalSessionToken,
 } from "@/lib/auth/portalSession";
 
@@ -63,27 +63,49 @@ export async function POST(request: Request) {
     );
   }
 
-  let bearer: string | null = null;
+  let accessToken: string | null = null;
+  let idToken: string | undefined;
+  let accountUsername: string | undefined;
+
   const auth = request.headers.get("authorization");
   if (auth?.startsWith("Bearer ") || auth?.startsWith("bearer ")) {
-    bearer = auth.slice(7).trim();
+    accessToken = auth.slice(7).trim();
+    try {
+      const body = (await request.json()) as {
+        idToken?: string;
+        accountUsername?: string;
+      };
+      idToken = body.idToken?.trim();
+      accountUsername = body.accountUsername?.trim();
+    } catch {
+      // Bearer-only POST is fine
+    }
   } else {
     try {
-      const body = (await request.json()) as { accessToken?: string };
-      bearer = body.accessToken?.trim() ?? null;
+      const body = (await request.json()) as {
+        accessToken?: string;
+        idToken?: string;
+        accountUsername?: string;
+      };
+      accessToken = body.accessToken?.trim() ?? null;
+      idToken = body.idToken?.trim();
+      accountUsername = body.accountUsername?.trim();
     } catch {
-      bearer = null;
+      accessToken = null;
     }
   }
 
-  if (!bearer) {
+  if (!accessToken) {
     return NextResponse.json(
       { error: "Missing Bearer token or accessToken in body." },
       { status: 400 },
     );
   }
 
-  const user = await userFromEntraAccessToken(bearer, tenantId);
+  const user = await userFromEntraSessionCredentials(
+    { accessToken, idToken, accountUsername },
+    tenantId,
+  );
   if (!user) {
     return NextResponse.json(
       {

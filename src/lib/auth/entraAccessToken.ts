@@ -30,3 +30,29 @@ export async function verifyEntraAccessToken(
     return null;
   }
 }
+
+/**
+ * Validates an Entra ID token from MSAL (audience = SPA client id).
+ * ID tokens include preferred_username / email for @everde.com checks.
+ */
+export async function verifyEntraIdToken(
+  token: string,
+  tenantId: string,
+): Promise<Record<string, unknown> | null> {
+  const clientId = process.env.NEXT_PUBLIC_MS_ENTRA_CLIENT_ID?.trim();
+  if (!clientId) return null;
+  try {
+    const JWKS = createRemoteJWKSet(
+      new URL(
+        `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`,
+      ),
+    );
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
+      audience: clientId,
+    });
+    return payload as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}

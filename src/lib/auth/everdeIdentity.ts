@@ -8,7 +8,11 @@ export function emailFromEntraPayload(
   payload: Record<string, unknown>,
 ): string {
   return String(
-    payload.preferred_username ?? payload.upn ?? payload.email ?? "",
+    payload.preferred_username ??
+      payload.upn ??
+      payload.email ??
+      payload.unique_name ??
+      "",
   ).toLowerCase();
 }
 

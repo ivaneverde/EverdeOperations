@@ -7,7 +7,10 @@ import {
   PORTAL_SESSION_COOKIE,
   portalSessionSecret,
 } from "@/lib/auth/portalAuthConfig";
-import { verifyEntraAccessToken } from "@/lib/auth/entraAccessToken";
+import {
+  verifyEntraAccessToken,
+  verifyEntraIdToken,
+} from "@/lib/auth/entraAccessToken";
 
 const SESSION_DAYS = 7;
 
@@ -69,12 +72,9 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
   };
 }
 
-export async function userFromEntraAccessToken(
-  bearer: string,
-  tenantId: string,
-): Promise<PortalSessionUser | null> {
-  const payload = await verifyEntraAccessToken(bearer, tenantId);
-  if (!payload) return null;
+function portalUserFromEntraPayload(
+  payload: Record<string, unknown>,
+): PortalSessionUser | null {
   const email = emailFromEntraPayload(payload);
   if (!isAllowedEverdeEmail(email)) return null;
   return {
@@ -82,6 +82,73 @@ export async function userFromEntraAccessToken(
     name: String(payload.name ?? ""),
     oid: String(payload.oid ?? payload.sub ?? ""),
   };
+}
+
+export async function userFromEntraAccessToken(
+  bearer: string,
+  tenantId: string,
+): Promise<PortalSessionUser | null> {
+  const payload = await verifyEntraAccessToken(bearer, tenantId);
+  if (!payload) return null;
+  return portalUserFromEntraPayload(payload);
+}
+
+export async function userFromEntraIdToken(
+  idToken: string,
+  tenantId: string,
+): Promise<PortalSessionUser | null> {
+  const payload = await verifyEntraIdToken(idToken, tenantId);
+  if (!payload) return null;
+  return portalUserFromEntraPayload(payload);
+}
+
+/** Verified access token + MSAL account username when JWT lacks email claims. */
+export async function userFromEntraAccessTokenAndAccount(
+  bearer: string,
+  tenantId: string,
+  accountUsername: string,
+): Promise<PortalSessionUser | null> {
+  const payload = await verifyEntraAccessToken(bearer, tenantId);
+  if (!payload) return null;
+  const fromToken = portalUserFromEntraPayload(payload);
+  if (fromToken) return fromToken;
+  const email = accountUsername.trim().toLowerCase();
+  if (!isAllowedEverdeEmail(email)) return null;
+  return {
+    email,
+    name: String(payload.name ?? ""),
+    oid: String(payload.oid ?? payload.sub ?? ""),
+  };
+}
+
+export type EntraSessionCredentials = {
+  accessToken: string;
+  idToken?: string;
+  accountUsername?: string;
+};
+
+export async function userFromEntraSessionCredentials(
+  creds: EntraSessionCredentials,
+  tenantId: string,
+): Promise<PortalSessionUser | null> {
+  const access = creds.accessToken.trim();
+  if (!access) return null;
+
+  const fromAccess = await userFromEntraAccessToken(access, tenantId);
+  if (fromAccess) return fromAccess;
+
+  const idToken = creds.idToken?.trim();
+  if (idToken) {
+    const fromId = await userFromEntraIdToken(idToken, tenantId);
+    if (fromId) return fromId;
+  }
+
+  const username = creds.accountUsername?.trim();
+  if (username) {
+    return userFromEntraAccessTokenAndAccount(access, tenantId, username);
+  }
+
+  return null;
 }
 
 export async function getPortalSessionFromRequest(

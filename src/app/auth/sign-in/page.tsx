@@ -13,23 +13,28 @@ import {
 } from "@/lib/msal/clientApp";
 import { USER_READ_SCOPES } from "@/lib/msal/userReadScopes";
 
-async function acquireUserReadToken(
+type MsalTokens = {
+  accessToken: string;
+  idToken?: string;
+};
+
+async function acquireUserReadTokens(
   app: PublicClientApplication,
   account: AccountInfo,
-): Promise<string> {
+): Promise<MsalTokens> {
   try {
     const res = await app.acquireTokenSilent({
       account,
       scopes: [...USER_READ_SCOPES],
     });
-    return res.accessToken;
+    return { accessToken: res.accessToken, idToken: res.idToken };
   } catch (e) {
     if (e instanceof InteractionRequiredAuthError) {
       const res = await app.acquireTokenPopup({
         account,
         scopes: [...USER_READ_SCOPES],
       });
-      return res.accessToken;
+      return { accessToken: res.accessToken, idToken: res.idToken };
     }
     throw e;
   }
@@ -49,13 +54,19 @@ function SignInForm() {
   }, []);
 
   const establishSession = useCallback(
-    async (accessToken: string) => {
+    async (
+      accessToken: string,
+      idToken?: string,
+      accountUsername?: string,
+    ) => {
       const res = await fetch("/api/auth/session", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accessToken,
+          idToken,
+          accountUsername,
+        }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -76,16 +87,22 @@ function SignInForm() {
     setBusy(true);
     try {
       let account = pca.getActiveAccount() ?? pca.getAllAccounts()[0] ?? null;
+      let idToken: string | undefined;
       if (!account) {
         const login = await pca.loginPopup({ scopes: [...USER_READ_SCOPES] });
         account = login.account;
+        idToken = login.idToken;
         if (account) pca.setActiveAccount(account);
       }
       if (!account) {
         throw new Error("No Microsoft account selected.");
       }
-      const token = await acquireUserReadToken(pca, account);
-      await establishSession(token);
+      const tokens = await acquireUserReadTokens(pca, account);
+      await establishSession(
+        tokens.accessToken,
+        tokens.idToken ?? idToken,
+        account.username,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in failed.");
     } finally {
