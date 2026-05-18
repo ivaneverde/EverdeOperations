@@ -7,7 +7,11 @@ import {
   downloadSalesPlanDashboardJsonFromBlob,
   downloadSalesPlanDashboardJsonFromLocal,
 } from "@/lib/azure/salesPlanDashboardBlob";
-import { truncateForContext } from "@/lib/assistant/truncateForContext";
+import { compactJsonForAssistant } from "@/lib/assistant/compactJsonForAssistant";
+import {
+  contextFocusForPathname,
+  maxCharsForDataset,
+} from "@/lib/assistant/contextBudget";
 
 export type AssistantRouteContext = {
   pathname: string;
@@ -65,32 +69,45 @@ export async function buildAssistantContext(
     }
   }
 
+  const focus = contextFocusForPathname(input.pathname);
   const datasets: AssistantDataContext["datasets"] = [];
   const notes = [
     "Answer only from the JSON datasets below. If data is missing, say so clearly.",
     "Do not invent UNC paths or numbers. Retail and Supply Inventory are not in Blob yet unless noted.",
+    `Context focus for this page: ${focus} (payloads are compacted to stay within API limits).`,
   ];
 
-  const freight = await loadFreightJson();
-  if (freight) {
-    datasets.push({
-      name: "freight_dashboard_data",
-      bytes: freight.length,
-      excerpt: truncateForContext(freight, 90_000),
-    });
-  } else {
-    notes.push("Freight dashboard_data.json was not available from Blob or local fallback.");
+  const freightMax = maxCharsForDataset(focus, "freight");
+  const salesMax = maxCharsForDataset(focus, "sales-plan");
+
+  if (freightMax > 0) {
+    const freight = await loadFreightJson();
+    if (freight) {
+      datasets.push({
+        name: "freight_dashboard_data",
+        bytes: freight.length,
+        excerpt: compactJsonForAssistant(freight, freightMax),
+      });
+    } else {
+      notes.push(
+        "Freight dashboard_data.json was not available from Blob or local fallback.",
+      );
+    }
   }
 
-  const salesPlan = await loadSalesPlanJson();
-  if (salesPlan) {
-    datasets.push({
-      name: "sales_plan_data",
-      bytes: salesPlan.length,
-      excerpt: truncateForContext(salesPlan, 60_000),
-    });
-  } else {
-    notes.push("Sales plan sales_plan_data.json was not available from Blob or local fallback.");
+  if (salesMax > 0) {
+    const salesPlan = await loadSalesPlanJson();
+    if (salesPlan) {
+      datasets.push({
+        name: "sales_plan_data",
+        bytes: salesPlan.length,
+        excerpt: compactJsonForAssistant(salesPlan, salesMax),
+      });
+    } else {
+      notes.push(
+        "Sales plan sales_plan_data.json was not available from Blob or local fallback.",
+      );
+    }
   }
 
   return { routeLabel, datasets, notes };

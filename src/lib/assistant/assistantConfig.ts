@@ -15,9 +15,7 @@ export function openAiAssistantModel(): string {
 }
 
 export function anthropicAssistantModel(): string {
-  return (
-    process.env.ANTHROPIC_ASSISTANT_MODEL?.trim() || "claude-sonnet-4-20250514"
-  );
+  return process.env.ANTHROPIC_ASSISTANT_MODEL?.trim() || "claude-sonnet-4-6";
 }
 
 export function defaultAssistantProvider(): AssistantProvider {

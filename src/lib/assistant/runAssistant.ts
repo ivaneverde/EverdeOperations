@@ -37,6 +37,11 @@ async function runOpenAi(
 
   if (!res.ok) {
     const errText = await res.text();
+    if (errText.includes("rate_limit")) {
+      throw new Error(
+        "OpenAI rate limit reached (large dashboard context). Wait about a minute and try again.",
+      );
+    }
     throw new Error(`OpenAI request failed: ${errText.slice(0, 500)}`);
   }
 
@@ -77,6 +82,11 @@ async function runAnthropic(
 
   if (!res.ok) {
     const errText = await res.text();
+    if (errText.includes("not_found_error")) {
+      throw new Error(
+        "Claude model not found. Set ANTHROPIC_ASSISTANT_MODEL to a valid ID (e.g. claude-sonnet-4-6) in Vercel and redeploy.",
+      );
+    }
     throw new Error(`Anthropic request failed: ${errText.slice(0, 500)}`);
   }
 
