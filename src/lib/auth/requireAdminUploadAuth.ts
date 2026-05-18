@@ -1,25 +1,21 @@
 import { verifyEntraAccessToken } from "@/lib/auth/entraAccessToken";
+import {
+  allowedEmailDomain,
+  emailFromEntraPayload,
+  isAllowedEverdeEmail,
+} from "@/lib/auth/everdeIdentity";
+import { entraTenantId } from "@/lib/auth/portalAuthConfig";
+import { getPortalSessionFromRequest } from "@/lib/auth/portalSession";
 
 export type AdminUploadAuthResult =
-  | { ok: true; via: "shared_key" | "entra_token" }
+  | { ok: true; via: "shared_key" | "entra_token" | "session" }
   | { ok: false; status: number; message: string };
-
-function allowedEmailDomain(): string {
-  return (process.env.EVERDE_ALLOWED_EMAIL_DOMAIN || "everde.com")
-    .replace(/^@/, "")
-    .toLowerCase();
-}
-
-function emailFromPayload(payload: Record<string, unknown>): string {
-  return String(
-    payload.preferred_username ?? payload.upn ?? payload.email ?? "",
-  ).toLowerCase();
-}
 
 /**
  * Protects POST /api/admin/freight-upload.
  * 1) If EVERDE_ADMIN_UPLOAD_KEY is set and x-everde-admin-key matches → allow (automation).
- * 2) Else Authorization: Bearer & valid Entra token with @everde.com (or EVERDE_ALLOWED_EMAIL_DOMAIN) UPN.
+ * 2) Else valid portal session cookie (@everde.com).
+ * 3) Else Authorization: Bearer with valid Entra token (@everde.com).
  */
 export async function requireAdminUploadAuth(
   request: Request,
@@ -30,16 +26,19 @@ export async function requireAdminUploadAuth(
     return { ok: true, via: "shared_key" };
   }
 
+  const session = await getPortalSessionFromRequest(request);
+  if (session) {
+    return { ok: true, via: "session" };
+  }
+
   const auth = request.headers.get("authorization");
   const bearer =
     auth?.startsWith("Bearer ") || auth?.startsWith("bearer ")
       ? auth.slice(7).trim()
       : null;
-  const tenantId =
-    process.env.AZURE_AD_TENANT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_MS_ENTRA_TENANT_ID?.trim();
+  const tenantId = entraTenantId();
 
-  if (!bearer || !tenantId || tenantId === "organizations") {
+  if (!bearer || !tenantId) {
     return {
       ok: false,
       status: 401,
@@ -53,13 +52,12 @@ export async function requireAdminUploadAuth(
     return { ok: false, status: 401, message: "Invalid or expired token." };
   }
 
-  const domain = allowedEmailDomain();
-  const upn = emailFromPayload(payload);
-  if (!upn.endsWith(`@${domain}`)) {
+  const upn = emailFromEntraPayload(payload);
+  if (!isAllowedEverdeEmail(upn)) {
     return {
       ok: false,
       status: 403,
-      message: `Only @${domain} accounts may upload.`,
+      message: `Only @${allowedEmailDomain()} accounts may upload.`,
     };
   }
 

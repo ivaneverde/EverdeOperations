@@ -99,8 +99,8 @@ Rough order for **testing launch**:
    - Single-tenant, redirect: `https://<prod-domain>/auth/msal-bridge`, localhost for dev.  
    - Admin consent for Graph scopes used by Communications.
 
-3. **Middleware: protect routes**  
-   - Require session / MSAL account for portal routes; optional **`@everde.com`** check on server for API routes serving freight JSON.
+3. **Middleware: protect routes** — **implemented** (`PORTAL_REQUIRE_AUTH=1`, `PORTAL_SESSION_SECRET`, `/auth/sign-in`, `src/middleware.ts`).  
+   - Locks portal pages and protected APIs to **`@everde.com`** session cookie (Entra-verified). Set env on Vercel; leave unset for open local dev.
 
 4. **Read `dashboard_data.json` from Blob** — **`GET /api/freight/dashboard-data`** (implemented; falls back to `public/dashboard_data.json`).  
 

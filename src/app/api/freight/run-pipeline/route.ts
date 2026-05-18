@@ -2,6 +2,7 @@ import { execFile } from "child_process";
 import { promises as fs } from "fs";
 import { promisify } from "util";
 import { NextResponse } from "next/server";
+import { guardPortalApi } from "@/lib/auth/guardApiRoute";
 import {
   joinPortalDataRoot,
   uncPathForChildProcess,
@@ -56,7 +57,10 @@ async function resolveFreightPython(): Promise<{ cmd: string; args: string[] } |
  *
  * Enable only when intended: set `FREIGHT_ALLOW_PIPELINE=1` in `.env.local`.
  */
-export async function POST() {
+export async function POST(request: Request) {
+  const gate = await guardPortalApi(request);
+  if (!gate.ok) return gate.response;
+
   if (process.env.FREIGHT_ALLOW_PIPELINE !== "1") {
     return NextResponse.json(
       {

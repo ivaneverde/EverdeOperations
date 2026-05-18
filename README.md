@@ -25,6 +25,17 @@ If your GitHub default branch is **`main`**, use: `git branch -M main` then `git
 
 UNC (`PORTAL_DATA_ROOT`) is for **LAN/local**; hosted freight uses **Blob**. Full checklist: `docs/HOSTED_LAUNCH_PLAN.md`. Repo includes **`vercel.json`** (reproducible `npm ci` + build) and **`.github/workflows/ci.yml`** so pushes run lint + build; **`GET /api/health`** is a cheap deploy smoke check.
 
+### Production auth hardening (optional but recommended on Vercel)
+
+Set in Vercel **Environment Variables** (Production):
+
+| Variable | Example / notes |
+|----------|-----------------|
+| `PORTAL_REQUIRE_AUTH` | `1` — locks portal + data APIs to signed-in `@everde.com` users |
+| `PORTAL_SESSION_SECRET` | Random string, **32+ characters** (e.g. `openssl rand -base64 32`) |
+
+Users sign in at **`/auth/sign-in`** (Microsoft). Session is an **httpOnly** cookie; freight iframe and APIs use the same session. **`/api/health`** stays public. Local dev: leave `PORTAL_REQUIRE_AUTH` unset to work without the gate.
+
 ## Getting Started
 
 Run the development server:

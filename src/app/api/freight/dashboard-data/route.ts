@@ -3,6 +3,7 @@ import {
   downloadFreightDashboardJsonFromBlob,
   downloadFreightDashboardJsonFromLocal,
 } from "@/lib/azure/freightDashboardBlob";
+import { guardPortalApi } from "@/lib/auth/guardApiRoute";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,9 @@ export const dynamic = "force-dynamic";
  * Serves `dashboard_data.json` for the freight dashboard (Blob first, then local fallback).
  * @see scripts/freight/claude-handoff/extract_data.py
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const gate = await guardPortalApi(request);
+  if (!gate.ok) return gate.response;
   const fromBlob = await downloadFreightDashboardJsonFromBlob();
   if (fromBlob) {
     return new NextResponse(fromBlob, {

@@ -6,6 +6,7 @@ import { promises as fs } from "fs";
 import { NextResponse } from "next/server";
 import { ensureViewportMeta } from "@/lib/ensureViewportMeta";
 import { replaceInlineFreightDataWithApiFetch } from "@/lib/freightDashboardHtmlPhaseC";
+import { guardPortalApi } from "@/lib/auth/guardApiRoute";
 import { resolveFreightDashboardHtmlPath } from "@/lib/resolveFreightDashboardHtmlPath";
 
 export const dynamic = "force-dynamic";
@@ -127,7 +128,10 @@ function htmlNotFoundBody(message: string, detail: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Freight dashboard</title></head><body style="font-family:system-ui;padding:1.5rem;max-width:44rem"><p><strong>${escapeHtml(message)}</strong></p><p style="color:#555;font-size:14px">${d}</p><p style="color:#555;font-size:14px">Use the <strong>newest</strong> <code>Everde_Freight_Dashboard*.html</code> in <code>public/</code> (repo) or under <code>DataDrops/Freight/</code> on the share, or set <code>FREIGHT_DASHBOARD_HTML</code> in <code>.env.local</code> to a full path. Files must sit next to workbooks in <strong>Freight</strong>, not inside <code>_pipeline</code>.</p><p style="color:#555;font-size:14px">Run <code>python update.py</code> from <code>Freight/_pipeline</code> (or enable <code>FREIGHT_ALLOW_PIPELINE=1</code> and use &quot;Run pipeline&quot;), then reload.</p></body></html>`;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const gate = await guardPortalApi(request);
+  if (!gate.ok) return gate.response;
+
   const { path: filePath, searchedSummary } =
     await resolveFreightDashboardHtmlPath();
   if (!filePath) {

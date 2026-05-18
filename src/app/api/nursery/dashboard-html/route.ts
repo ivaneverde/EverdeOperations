@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import { NextResponse } from "next/server";
 import { ensureViewportMeta } from "@/lib/ensureViewportMeta";
+import { guardPortalApi } from "@/lib/auth/guardApiRoute";
 import { resolveNurseryDashboardHtmlPath } from "@/lib/nurseryDashboardResolve";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,9 @@ function notFoundBody(hint: string): string {
 }
 
 export async function GET(request: Request) {
+  const gate = await guardPortalApi(request);
+  if (!gate.ok) return gate.response;
+
   const url = new URL(request.url);
   const embed = url.searchParams.get("embed") === "1";
   const paneRaw = url.searchParams.get("pane")?.trim().toLowerCase();

@@ -7,10 +7,14 @@ import {
   isSalesManagerSummarySheetSlug,
   SALES_MANAGER_SUMMARY_DEFAULT_CSV_ROOT,
 } from "@/config/salesManagerSummarySheets";
+import { guardPortalApi } from "@/lib/auth/guardApiRoute";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const gate = await guardPortalApi(request);
+  if (!gate.ok) return gate.response;
+
   const { searchParams } = new URL(request.url);
   const sheet = searchParams.get("sheet") ?? "";
   if (!isSalesManagerSummarySheetSlug(sheet)) {
