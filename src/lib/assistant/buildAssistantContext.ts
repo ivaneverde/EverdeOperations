@@ -7,7 +7,8 @@ import {
   downloadSalesPlanDashboardJsonFromBlob,
   downloadSalesPlanDashboardJsonFromLocal,
 } from "@/lib/azure/salesPlanDashboardBlob";
-import { compactJsonForAssistant } from "@/lib/assistant/compactJsonForAssistant";
+import { compactFreightForAssistant } from "@/lib/assistant/compactFreightForAssistant";
+import { compactSalesPlanForAssistant } from "@/lib/assistant/compactSalesPlanForAssistant";
 import {
   contextFocusForPathname,
   maxCharsForDataset,
@@ -77,6 +78,12 @@ export async function buildAssistantContext(
     `Context focus for this page: ${focus} (payloads are compacted to stay within API limits).`,
   ];
 
+  if (focus === "freight" || focus === "both") {
+    notes.push(
+      "For freight: use assistant_facts and top_carriers. Name specific carriers when ranking cost; cite dollar amounts and $/mile from the JSON.",
+    );
+  }
+
   const freightMax = maxCharsForDataset(focus, "freight");
   const salesMax = maxCharsForDataset(focus, "sales-plan");
 
@@ -86,7 +93,7 @@ export async function buildAssistantContext(
       datasets.push({
         name: "freight_dashboard_data",
         bytes: freight.length,
-        excerpt: compactJsonForAssistant(freight, freightMax),
+        excerpt: compactFreightForAssistant(freight, freightMax),
       });
     } else {
       notes.push(
@@ -101,7 +108,7 @@ export async function buildAssistantContext(
       datasets.push({
         name: "sales_plan_data",
         bytes: salesPlan.length,
-        excerpt: compactJsonForAssistant(salesPlan, salesMax),
+        excerpt: compactSalesPlanForAssistant(salesPlan, salesMax),
       });
     } else {
       notes.push(

@@ -20,10 +20,10 @@ export function maxCharsForDataset(
   dataset: "freight" | "sales-plan",
 ): number {
   if (focus === "freight") {
-    return dataset === "freight" ? 18_000 : 0;
+    return dataset === "freight" ? 32_000 : 0;
   }
   if (focus === "sales-plan") {
-    return dataset === "sales-plan" ? 18_000 : 0;
+    return dataset === "sales-plan" ? 20_000 : 0;
   }
-  return dataset === "freight" ? 10_000 : 8_000;
+  return dataset === "freight" ? 14_000 : 10_000;
 }

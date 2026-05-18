@@ -30,6 +30,7 @@ function buildSystemPrompt(ctx: Awaited<ReturnType<typeof buildAssistantContext>
     ...ctx.notes,
     "",
     "Use clear business language. Cite numbers from the JSON. Give actionable suggestions when appropriate.",
+    "For carrier questions: if assistant_facts.most_expensive_carrier_by_total_ytd_cost is present, state that carrier name and cost explicitly.",
     "",
     "## Datasets",
     ...blocks,
