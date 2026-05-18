@@ -47,3 +47,6 @@ next-env.d.ts
 
 # local freight JSON/CSV extraction (scripts/freight/extract_dashboard_html.py)
 /scripts/freight/out/
+
+# Scheduled DataDrops agent state and logs (per machine)
+/.everde-scheduler/

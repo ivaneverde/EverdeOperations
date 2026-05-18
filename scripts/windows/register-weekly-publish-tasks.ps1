@@ -1,74 +1,106 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Register Windows Task Scheduler jobs for weekly freight + sales plan extract/publish.
+  Register Windows Task Scheduler jobs for daily DataDrops checks (Pacific times by default).
 
 .DESCRIPTION
-  Runs npm scripts from the repo on a schedule (default: Tuesday 7:00 AM).
-  Requires: VPN so \\192.168.190.10\... is reachable, .env.local with AZURE_STORAGE_CONNECTION_STRING,
-  Python on PATH (or FREIGHT_PYTHON / SALES_PLAN_PYTHON in .env.local).
+  Schedules three per-user tasks on THIS machine (easy to re-run on a different PC later):
 
-  Run once as the user who should own the jobs (elevated not required for per-user tasks).
+    Everde-SalesPlan-DailyCheck     8:00 AM  — Sales Plan Review\WeeklyDrop -> Azure Blob
+    Everde-Freight-DailyCheck       9:00 AM  — Freight\WeeklyDrop -> update.py + Azure Blob
+    Everde-Nursery-DailyCheck       1:30 PM  — Inventory Metrics xlsb -> HTML + git push
+
+  Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
+  -FreightTime / -NurseryTime adjusted for your timezone.
+
+  Requires: VPN to reach \\192.168.190.10\..., repo .env.local, Node.js, Python (freight/sales plan),
+  git credentials for nursery push. See scripts/windows/WEEKLY_DROP_AGENT.md for IT handoff.
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1
-  powershell -File scripts/windows/register-weekly-publish-tasks.ps1 -DayOfWeek Wednesday -Time "06:30"
+  npm run weekly:register-tasks
+  powershell -File scripts/windows/register-weekly-publish-tasks.ps1 -Unregister
 #>
 param(
-  [ValidateSet("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")]
-  [string]$DayOfWeek = "Tuesday",
-  [string]$Time = "07:00"
+  [string]$SalesPlanTime = "08:00",
+  [string]$FreightTime = "09:00",
+  [string]$NurseryTime = "13:30",
+  [string]$AgentLabel = "",
+  [switch]$Unregister
 )
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$npmCmd = Get-Command npm -ErrorAction SilentlyContinue
-if (-not $npmCmd) {
-  Write-Error "npm not found on PATH. Install Node.js or adjust the task action."
-}
-$npm = $npmCmd.Source
+$ps = (Get-Command powershell.exe).Source
 
-$actionFreight = New-ScheduledTaskAction `
-  -Execute $npm `
-  -Argument "run freight:extract-publish" `
-  -WorkingDirectory $RepoRoot
+$tasks = @(
+  @{
+    Name = "Everde-SalesPlan-DailyCheck"
+    Time = $SalesPlanTime
+    Script = "run-scheduled-sales-plan.ps1"
+    Description = "Daily: if new files in Sales Plan Review WeeklyDrop, extract and publish to Azure Blob."
+  },
+  @{
+    Name = "Everde-Freight-DailyCheck"
+    Time = $FreightTime
+    Script = "run-scheduled-freight.ps1"
+    Description = "Daily: if new freight raw/dashboard in WeeklyDrop, run pipeline and publish to Azure Blob."
+  },
+  @{
+    Name = "Everde-Nursery-DailyCheck"
+    Time = $NurseryTime
+    Script = "run-scheduled-nursery.ps1"
+    Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
+  }
+)
 
-$actionSalesPlan = New-ScheduledTaskAction `
-  -Execute $npm `
-  -Argument "run sales-plan:extract-publish" `
-  -WorkingDirectory $RepoRoot
-
-$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $DayOfWeek -At $Time
 $settings = New-ScheduledTaskSettingsSet `
   -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries `
   -StartWhenAvailable `
-  -ExecutionTimeLimit (New-TimeSpan -Hours 2)
+  -ExecutionTimeLimit (New-TimeSpan -Hours 3)
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
-Register-ScheduledTask `
-  -TaskName "Everde-Freight-Extract-Publish" `
-  -Action $actionFreight `
-  -Trigger $trigger `
-  -Settings $settings `
-  -Principal $principal `
-  -Description "Weekly: Freight WeeklyDrop -> extract_data.py -> Azure Blob" `
-  -Force | Out-Null
+if ($Unregister) {
+  foreach ($t in $tasks) {
+    Unregister-ScheduledTask -TaskName $t.Name -Confirm:$false -ErrorAction SilentlyContinue
+    Write-Host "Removed: $($t.Name)" -ForegroundColor Yellow
+  }
+  exit 0
+}
 
-Register-ScheduledTask `
-  -TaskName "Everde-SalesPlan-Extract-Publish" `
-  -Action $actionSalesPlan `
-  -Trigger $trigger `
-  -Settings $settings `
-  -Principal $principal `
-  -Description "Weekly: Sales Plan WeeklyDrop -> extract_sales_plan.py -> Azure Blob" `
-  -Force | Out-Null
+foreach ($t in $tasks) {
+  $scriptPath = Join-Path $PSScriptRoot $t.Script
+  $desc = $t.Description
+  if ($AgentLabel) { $desc = "[$AgentLabel] $desc" }
 
-Write-Host "Registered (weekly $DayOfWeek $Time):" -ForegroundColor Green
-Write-Host "  Everde-Freight-Extract-Publish" -ForegroundColor Green
-Write-Host "  Everde-SalesPlan-Extract-Publish" -ForegroundColor Green
+  $action = New-ScheduledTaskAction `
+    -Execute $ps `
+    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" `
+    -WorkingDirectory $RepoRoot
+
+  $trigger = New-ScheduledTaskTrigger -Daily -At $t.Time
+
+  Register-ScheduledTask `
+    -TaskName $t.Name `
+    -Action $action `
+    -Trigger $trigger `
+    -Settings $settings `
+    -Principal $principal `
+    -Description $desc `
+    -Force | Out-Null
+
+  Write-Host "Registered: $($t.Name) daily at $($t.Time)" -ForegroundColor Green
+}
+
+Write-Host ""
 Write-Host "Repo: $RepoRoot" -ForegroundColor Cyan
-Write-Host "Ensure VPN is connected at run time. Test manually:" -ForegroundColor Yellow
-Write-Host "  npm run freight:extract-publish" -ForegroundColor Yellow
-Write-Host "  npm run sales-plan:extract-publish" -ForegroundColor Yellow
+Write-Host "Machine: $env:COMPUTERNAME | User: $env:USERNAME" -ForegroundColor Cyan
+Write-Host "Logs: $RepoRoot\.everde-scheduler\logs\" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Test manually:" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-sales-plan.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-freight.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "IT handoff: scripts/windows/WEEKLY_DROP_AGENT.md" -ForegroundColor Yellow

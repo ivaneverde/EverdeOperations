@@ -1,12 +1,5 @@
 /**
  * Regenerate DEMAND pane in nursery-inventory-dashboard.html from Inventory Metrics xlsb.
- *
- * Usage:
- *   node scripts/nursery/refresh-nursery-demand.mjs [xlsb-path] [html-path]
- *
- * Defaults:
- *   xlsb → newest Inventory Metrics*.xlsb under DataDrops/Inventory Metrics/
- *   html → %USERPROFILE%/Documents/nursery-inventory-dashboard.html
  */
 import fs from "fs";
 import path from "path";
@@ -28,6 +21,62 @@ function newestXlsb(dir) {
     })
     .sort((a, b) => b.m - a.m);
   return files[0]?.p || null;
+}
+
+function fmtMoney(n) {
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
+  return `$${Math.round(n)}`;
+}
+
+function fmtPct1(n) {
+  return `${(n * 100).toFixed(2)}%`;
+}
+
+function injectDemandCopy(html, demand) {
+  const endLabel = new Date(`${demand.meta.reportDate}T12:00:00`).toLocaleDateString(
+    "en-US",
+    { month: "short", day: "numeric" },
+  );
+  const sub = `${fmtMoney(demand.meta.totalRevenue)} YTD revenue · ${demand.meta.farmCount} farms · weeks ${demand.meta.weekStart}–${demand.meta.weekEnd} (Mar 1 → ${endLabel}, 2026). Operational report covering grading variance, backorders &amp; credits, demand-window allocation, ready-date pipeline, photo readiness and cycle counts.`;
+  html = html.replace(/<p class="sub">[^<]*<\/p>/, `<p class="sub">${sub}</p>`);
+
+  const systemEu = Object.values(demand.variance).reduce(
+    (s, v) => s + (v.systemEU || 0),
+    0,
+  );
+  const txRev =
+    (demand.farmYTD.GFL?.ytdRevenue || 0) + (demand.farmYTD.MCR?.ytdRevenue || 0);
+  const activeWeeks = demand.weeklyTotals.revenue.filter((v) => v > 0).length;
+  const wkRate =
+    activeWeeks > 0
+      ? demand.weeklyTotals.revenue.reduce((a, b) => a + b, 0) / activeWeeks
+      : 0;
+
+  const calloutFixed = [
+    '    <motion>',
+    '      <motion>',
+    `      <strong>Have:</strong> ${demand.cycleAgg.startQty.toLocaleString("en-US")} graded items on hand across ${demand.meta.farmCount} farms, with ${fmtMoney(systemEu)} of system EU value.`,
+    `      <strong>Sell:</strong> ${fmtMoney(demand.meta.totalRevenue)} YTD revenue over ${activeWeeks} weeks (~${fmtMoney(wkRate)} / wk run-rate). Texas leads at ${fmtMoney(txRev)} YTD.`,
+    `      <strong>Need more of:</strong> ${fmtMoney(demand.meta.totalBO)} of demand <em>backordered</em> (${fmtPct1(demand.meta.boPct)}) plus ${fmtMoney(demand.meta.totalCR)} issued as credits (${fmtPct1(demand.meta.crPct)}) - see reason codes below.`,
+    "    </div>",
+  ]
+    .join("\n")
+    .replace(
+      "    <motion>",
+      '    <div class="callout info">',
+    )
+    .replace(
+      "      <motion>",
+      '      <div class="t">The demand plan in three pieces: <em>have · sell · need more of</em></div>',
+    );
+
+  html = html.replace(
+    /<div class="callout info">[\s\S]*?<\/div>\s*\n\s*<\/section>\s*\n\s*<hr\/>/,
+    `${calloutFixed}\n  </section>\n\n  <hr/>`,
+  );
+
+  return html;
 }
 
 const xlsbPath = process.argv[2] || newestXlsb(metricsDir);
@@ -63,11 +112,11 @@ if (startIdx < 0 || endIdx < 0 || endIdx <= startIdx) {
   process.exit(1);
 }
 
-const newBlock = `// === DEMAND data (parsed from ${baseName}) ===
-const DEMAND = JSON.parse(\`${safe}\`);
-
-`;
-html = html.slice(0, startIdx) + newBlock + html.slice(endIdx);
+html =
+  html.slice(0, startIdx) +
+  `// === DEMAND data (parsed from ${baseName}) ===\nconst DEMAND = JSON.parse(\`${safe}\`);\n\n` +
+  html.slice(endIdx);
+html = injectDemandCopy(html, demand);
 
 const periodNote = `YTD figures cover 2026 fiscal weeks ${demand.meta.weekStart}–${demand.meta.weekEnd}`;
 const endLabel = new Date(`${demand.meta.reportDate}T12:00:00`).toLocaleDateString(
@@ -77,23 +126,16 @@ const endLabel = new Date(`${demand.meta.reportDate}T12:00:00`).toLocaleDateStri
 const footerRe =
   /<p class="small">Source: <code>[^<]+<\/code> · 6 worksheets · parsed [^<]+\. [^<]+\.<\/p>/;
 const footer = `<p class="small">Source: <code>${baseName}</code> · 6 worksheets · parsed ${demand.meta.reportDate}. ${periodNote} (Mar 1 → ${endLabel}). BO%, CR%, and goals are per-farm targets from the workbook; deltas are reported vs. each farm's own goal.</p>`;
-if (!footerRe.test(html)) {
-  console.warn("Footer line not updated (pattern mismatch).");
-} else {
+if (footerRe.test(html)) {
   html = html.replace(footerRe, footer);
 }
 
 fs.writeFileSync(htmlPath, html, "utf8");
 
 const publicCopy = path.join(process.cwd(), "public", "nursery-inventory-dashboard.html");
-try {
-  fs.mkdirSync(path.dirname(publicCopy), { recursive: true });
-  fs.copyFileSync(htmlPath, publicCopy);
-  console.log("Copied to:", publicCopy);
-} catch (e) {
-  console.warn("Could not copy to public/:", e.message);
-}
-
+fs.mkdirSync(path.dirname(publicCopy), { recursive: true });
+fs.copyFileSync(htmlPath, publicCopy);
+console.log("Copied to:", publicCopy);
 console.log("Updated:", htmlPath);
 console.log(
   `  Revenue: $${(demand.meta.totalRevenue / 1e6).toFixed(2)}M | BO: $${(demand.meta.totalBO / 1e3).toFixed(0)}K | weeks ${demand.meta.weekStart}-${demand.meta.weekEnd}`,
