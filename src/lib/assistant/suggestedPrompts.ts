@@ -14,7 +14,11 @@ export function suggestedPromptsForPath(pathname: string): string[] {
       "Summarize channel performance vs plan.",
     ];
   }
-  if (p.includes("production-demand") || p.includes("demand")) {
+  if (
+    p.includes("production-demand") ||
+    p.includes("supply-inventory") ||
+    p.includes("demand")
+  ) {
     return [
       "Which farm has the most backorders YTD?",
       "Which farms are beating their BO+CR goals?",
@@ -29,8 +33,8 @@ export function suggestedPromptsForPath(pathname: string): string[] {
     ];
   }
   return [
-    "What stands out in freight spend this year?",
-    "Which farm is having the most success on production metrics?",
-    "What should we prioritize this week for profitability?",
+    "Across the portal, what are the top 3 issues we should act on this week?",
+    "Which freight carrier is the most expensive, and which farm has the most backorders?",
+    "Summarize sales plan misses and freight cost trends together.",
   ];
 }

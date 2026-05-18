@@ -16,7 +16,7 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **Data / pipeline (planned):** Weekly import (and optional manual upload). Prefer **deterministic** code or existing Python (`Sales Plan Review` builders, etc.); **do not** depend on Claude tokens for runtime dashboard math. Optional LLM only for narratives/on-demand explanations.
 
-**In-portal AI assistant:** Header prompt + side drawer; **OpenAI / Claude toggle** (`POST /api/assistant/chat`, `GET /api/assistant/config`). Keys: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`; models: `OPENAI_ASSISTANT_MODEL` (default `gpt-4o`), `ANTHROPIC_ASSISTANT_MODEL` (default `claude-sonnet-4-20250514`). Context: **freight** + **sales plan** Blob JSON (truncated). **Backlog:** nursery demand + retail JSON to Blob; “all portal” mode; rate limits.
+**In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: **portal catalog** + **freight** + **sales plan** Blob JSON + **nursery DEMAND** (from `public/nursery-inventory-dashboard.html`). Each feed includes `assistant_facts` for rankings. Emphasizes current route; answers cross-section questions when data exists. **Backlog:** retail/supply JSON to Blob; rate limits; optional page-only mode.
 
 **Snapshot 0.5.2 (portal app):** **0.5.1** plus **portal analyst assistant** (OpenAI, Entra-gated API). **Production & Demand Plan** still from `npm run nursery:refresh-demand` → `public/nursery-inventory-dashboard.html`. **Freight** / **Sales Plan** → Blob via weekly scripts; daily Task Scheduler agent unchanged. See `scripts/freight/FREIGHT_DASHBOARD_DATA.md` and `WEEKLY_DROP_AGENT.md`.
 

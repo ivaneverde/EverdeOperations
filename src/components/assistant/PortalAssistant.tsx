@@ -217,7 +217,7 @@ export function PortalAssistant() {
                   <p className="text-xs text-zinc-500">
                     {activeProviderMeta
                       ? `${activeProviderMeta.label} · ${activeProviderMeta.model}`
-                      : "Answers use published freight & sales plan data."}
+                      : "Portal compendium: freight, sales plan, production & demand."}
                     {lastModel && activeProviderMeta?.model !== lastModel
                       ? ` (replied with ${lastModel})`
                       : null}
