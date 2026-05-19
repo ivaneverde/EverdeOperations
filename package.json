@@ -27,6 +27,7 @@
     "retail:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/retail-opportunity/run-extract-and-publish.ps1",
     "retail:full-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/retail-opportunity/run-full-pipeline.ps1",
     "publish:weather-json": "node scripts/weather/publish-dashboard-data.mjs",
+    "weather:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-publish.ps1",
     "weather:bootstrap-json": "node scripts/weather/bootstrap-json-from-html.mjs",
     "nursery:refresh-demand": "node scripts/nursery/refresh-nursery-demand.mjs",
     "weekly:register-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1",
