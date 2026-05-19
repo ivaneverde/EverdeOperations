@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Daily check (default 1:30 PM local): refresh nursery demand HTML when Inventory Metrics xlsb is new,
+  Weekly check (default Monday 1:30 PM local): refresh nursery demand HTML when Inventory Metrics xlsb is new,
   then commit and push public/nursery-inventory-dashboard.html for Vercel.
 
   Until nursery uses Azure Blob (future), this job needs git credentials on the scheduler account.

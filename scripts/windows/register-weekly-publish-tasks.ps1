@@ -8,7 +8,7 @@
 
     Everde-SalesPlan-DailyCheck     8:00 AM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
     Everde-Freight-WeeklyCheck      9:00 AM Mondays — Freight\WeeklyDrop -> update.py + Azure Blob
-    Everde-Nursery-DailyCheck       1:30 PM daily — Inventory Metrics xlsb -> HTML + git push
+    Everde-Nursery-WeeklyCheck      1:30 PM Mondays — Inventory Metrics xlsb -> HTML + git push
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
   -FreightTime / -NurseryTime adjusted for your timezone.
@@ -25,6 +25,7 @@ param(
   [string]$FreightTime = "09:00",
   [string]$FreightDay = "Monday",
   [string]$NurseryTime = "13:30",
+  [string]$NurseryDay = "Monday",
   [string]$AgentLabel = "",
   [switch]$Unregister
 )
@@ -50,11 +51,12 @@ $tasks = @(
     Description = "Weekly (Mondays): if new freight raw/dashboard in WeeklyDrop, run pipeline and publish to Azure Blob."
   },
   @{
-    Name = "Everde-Nursery-DailyCheck"
+    Name = "Everde-Nursery-WeeklyCheck"
     Time = $NurseryTime
     Script = "run-scheduled-nursery.ps1"
-    Schedule = "Daily"
-    Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
+    Schedule = "Weekly"
+    Day = $NurseryDay
+    Description = "Weekly (Mondays): if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
   }
 )
 
@@ -66,7 +68,7 @@ $settings = New-ScheduledTaskSettingsSet `
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
-$legacyTaskNames = @("Everde-Freight-DailyCheck")
+$legacyTaskNames = @("Everde-Freight-DailyCheck", "Everde-Nursery-DailyCheck")
 
 if ($Unregister) {
   foreach ($t in $tasks) {
@@ -112,7 +114,7 @@ foreach ($t in $tasks) {
 
 foreach ($legacy in $legacyTaskNames) {
   Unregister-ScheduledTask -TaskName $legacy -Confirm:$false -ErrorAction SilentlyContinue
-  Write-Host "Removed legacy task: $legacy (replaced by Everde-Freight-WeeklyCheck)" -ForegroundColor Yellow
+  Write-Host "Removed legacy task: $legacy" -ForegroundColor Yellow
 }
 
 Write-Host ""

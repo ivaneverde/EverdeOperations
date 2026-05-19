@@ -8,13 +8,13 @@ This document describes the **on-premises “agent” machine** that watches `Da
 |----------------|-----------|---------|--------|
 | **8:00 AM** | `Everde-SalesPlan-DailyCheck` | `Sales Plan Review\WeeklyDrop\` | Azure Blob `sales_plan_data.json` |
 | **9:00 AM Monday** | `Everde-Freight-WeeklyCheck` | `Freight\WeeklyDrop\` | Pipeline + Azure Blob `dashboard_data.json` (non-interactive; no fuel `[y/N]` prompt) |
-| **1:30 PM** | `Everde-Nursery-DailyCheck` | `Inventory Metrics\*.xlsb` | `public/nursery-inventory-dashboard.html` + **git push** |
+| **1:30 PM Monday** | `Everde-Nursery-WeeklyCheck` | `Inventory Metrics\*.xlsb` | `public/nursery-inventory-dashboard.html` + **git push** |
 
 Times use the **Windows clock** on the agent PC. Set the machine to **Pacific Time**, or adjust times in `register-weekly-publish-tasks.ps1`.
 
 Each job **skips** if no new file since last success (state under `.everde-scheduler/`). Logs: `.everde-scheduler/logs/`.
 
-**Freight** runs only on **Mondays** (weekly drop day). The pipeline uses `update.py --skip-fuel-check` from the scheduler so it never waits at `Proceed with current fuel_data.py values? [y/N]`. Manual runs without that flag still show the prompt when run interactively in a terminal.
+**Freight** and **Production & Demand (Inventory Metrics)** run only on **Mondays** (weekly drop day). Freight uses `update.py --skip-fuel-check` from the scheduler so it never waits at `Proceed with current fuel_data.py values? [y/N]`. Manual runs without that flag still show the prompt when run interactively in a terminal.
 
 ## One-time setup on the agent machine
 
@@ -64,7 +64,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 |--------|-------------|-------|
 | Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` |
 | Freight | `DataDrops\Freight\WeeklyDrop\` | Raw `Everde Freight Data*.xlsb`; dashboard `*.xlsx` appears after pipeline |
-| Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` |
+| Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` (weekly drop, typically Monday) |
 
 ## Moving the agent to another machine later
 
@@ -84,4 +84,4 @@ powershell -File scripts/windows/register-weekly-publish-tasks.ps1 -Unregister
 
 ## Future improvement (backlog)
 
-**Nursery / Inventory Metrics on Azure Blob** (same pattern as freight): weekly job would only upload JSON—no git commit. Until then, the 1:30 PM job refreshes HTML and pushes to GitHub for Vercel.
+**Nursery / Inventory Metrics on Azure Blob** (same pattern as freight): weekly job would only upload JSON—no git commit. Until then, the Monday 1:30 PM job refreshes HTML and pushes to GitHub for Vercel.
