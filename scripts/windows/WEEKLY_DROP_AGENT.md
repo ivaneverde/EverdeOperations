@@ -7,12 +7,14 @@ This document describes the **on-premises “agent” machine** that watches `Da
 | Time (Pacific) | Task name | Watches | Output |
 |----------------|-----------|---------|--------|
 | **8:00 AM** | `Everde-SalesPlan-DailyCheck` | `Sales Plan Review\WeeklyDrop\` | Azure Blob `sales_plan_data.json` |
-| **9:00 AM** | `Everde-Freight-DailyCheck` | `Freight\WeeklyDrop\` | Pipeline + Azure Blob `dashboard_data.json` |
+| **9:00 AM Monday** | `Everde-Freight-WeeklyCheck` | `Freight\WeeklyDrop\` | Pipeline + Azure Blob `dashboard_data.json` (non-interactive; no fuel `[y/N]` prompt) |
 | **1:30 PM** | `Everde-Nursery-DailyCheck` | `Inventory Metrics\*.xlsb` | `public/nursery-inventory-dashboard.html` + **git push** |
 
 Times use the **Windows clock** on the agent PC. Set the machine to **Pacific Time**, or adjust times in `register-weekly-publish-tasks.ps1`.
 
 Each job **skips** if no new file since last success (state under `.everde-scheduler/`). Logs: `.everde-scheduler/logs/`.
+
+**Freight** runs only on **Mondays** (weekly drop day). The pipeline uses `update.py --skip-fuel-check` from the scheduler so it never waits at `Proceed with current fuel_data.py values? [y/N]`. Manual runs without that flag still show the prompt when run interactively in a terminal.
 
 ## One-time setup on the agent machine
 

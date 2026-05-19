@@ -6,10 +6,12 @@
 .EXAMPLE
   npm run freight:update-weekly
   npm run freight:update-weekly -- -SkipFuelCheck
+  npm run freight:update-weekly -- -NonInteractive   # same as -SkipFuelCheck (for schedulers)
 #>
 param(
   [switch]$SkipFuelCheck,
-  [switch]$SkipQualityCheck
+  [switch]$SkipQualityCheck,
+  [switch]$NonInteractive
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,6 +33,8 @@ Write-Host "WeeklyDrop has $count raw .xlsb file(s)." -ForegroundColor Cyan
 
 $python = $env:FREIGHT_PYTHON
 if (-not $python) { $python = "python" }
+
+if ($NonInteractive) { $SkipFuelCheck = $true }
 
 $args = @($updatePy)
 if ($SkipFuelCheck) { $args += "--skip-fuel-check" }

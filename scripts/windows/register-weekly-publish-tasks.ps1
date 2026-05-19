@@ -6,9 +6,9 @@
 .DESCRIPTION
   Schedules three per-user tasks on THIS machine (easy to re-run on a different PC later):
 
-    Everde-SalesPlan-DailyCheck     8:00 AM  — Sales Plan Review\WeeklyDrop -> Azure Blob
-    Everde-Freight-DailyCheck       9:00 AM  — Freight\WeeklyDrop -> update.py + Azure Blob
-    Everde-Nursery-DailyCheck       1:30 PM  — Inventory Metrics xlsb -> HTML + git push
+    Everde-SalesPlan-DailyCheck     8:00 AM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
+    Everde-Freight-WeeklyCheck      9:00 AM Mondays — Freight\WeeklyDrop -> update.py + Azure Blob
+    Everde-Nursery-DailyCheck       1:30 PM daily — Inventory Metrics xlsb -> HTML + git push
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
   -FreightTime / -NurseryTime adjusted for your timezone.
@@ -23,6 +23,7 @@
 param(
   [string]$SalesPlanTime = "08:00",
   [string]$FreightTime = "09:00",
+  [string]$FreightDay = "Monday",
   [string]$NurseryTime = "13:30",
   [string]$AgentLabel = "",
   [switch]$Unregister
@@ -37,18 +38,22 @@ $tasks = @(
     Name = "Everde-SalesPlan-DailyCheck"
     Time = $SalesPlanTime
     Script = "run-scheduled-sales-plan.ps1"
+    Schedule = "Daily"
     Description = "Daily: if new files in Sales Plan Review WeeklyDrop, extract and publish to Azure Blob."
   },
   @{
-    Name = "Everde-Freight-DailyCheck"
+    Name = "Everde-Freight-WeeklyCheck"
     Time = $FreightTime
     Script = "run-scheduled-freight.ps1"
-    Description = "Daily: if new freight raw/dashboard in WeeklyDrop, run pipeline and publish to Azure Blob."
+    Schedule = "Weekly"
+    Day = $FreightDay
+    Description = "Weekly (Mondays): if new freight raw/dashboard in WeeklyDrop, run pipeline and publish to Azure Blob."
   },
   @{
     Name = "Everde-Nursery-DailyCheck"
     Time = $NurseryTime
     Script = "run-scheduled-nursery.ps1"
+    Schedule = "Daily"
     Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
   }
 )
@@ -61,10 +66,16 @@ $settings = New-ScheduledTaskSettingsSet `
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
+$legacyTaskNames = @("Everde-Freight-DailyCheck")
+
 if ($Unregister) {
   foreach ($t in $tasks) {
     Unregister-ScheduledTask -TaskName $t.Name -Confirm:$false -ErrorAction SilentlyContinue
     Write-Host "Removed: $($t.Name)" -ForegroundColor Yellow
+  }
+  foreach ($legacy in $legacyTaskNames) {
+    Unregister-ScheduledTask -TaskName $legacy -Confirm:$false -ErrorAction SilentlyContinue
+    Write-Host "Removed legacy: $legacy" -ForegroundColor Yellow
   }
   exit 0
 }
@@ -79,7 +90,12 @@ foreach ($t in $tasks) {
     -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" `
     -WorkingDirectory $RepoRoot
 
-  $trigger = New-ScheduledTaskTrigger -Daily -At $t.Time
+  if ($t.Schedule -eq "Weekly") {
+    $dow = [System.Enum]::Parse([System.DayOfWeek], $t.Day, $true)
+    $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dow -At $t.Time
+  } else {
+    $trigger = New-ScheduledTaskTrigger -Daily -At $t.Time
+  }
 
   Register-ScheduledTask `
     -TaskName $t.Name `
@@ -90,7 +106,13 @@ foreach ($t in $tasks) {
     -Description $desc `
     -Force | Out-Null
 
-  Write-Host "Registered: $($t.Name) daily at $($t.Time)" -ForegroundColor Green
+  $schedLabel = if ($t.Schedule -eq "Weekly") { "weekly on $($t.Day)" } else { "daily" }
+  Write-Host "Registered: $($t.Name) $schedLabel at $($t.Time)" -ForegroundColor Green
+}
+
+foreach ($legacy in $legacyTaskNames) {
+  Unregister-ScheduledTask -TaskName $legacy -Confirm:$false -ErrorAction SilentlyContinue
+  Write-Host "Removed legacy task: $legacy (replaced by Everde-Freight-WeeklyCheck)" -ForegroundColor Yellow
 }
 
 Write-Host ""

@@ -1,8 +1,9 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Daily check (default 9:00 AM local): rebuild freight dashboard if raw WeeklyDrop file is new,
+  Weekly check (default Monday 9:00 AM local): rebuild freight dashboard if raw WeeklyDrop file is new,
   then publish JSON to Azure Blob when the dashboard workbook changes.
+  Runs update.py with --skip-fuel-check so Task Scheduler never blocks on the fuel_data.py [y/N] prompt.
 #>
 param([switch]$Force)
 
@@ -57,8 +58,8 @@ try {
   Push-Location $RepoRoot
 
   if ($rawNew -and $raw) {
-    Write-Host "New raw freight file: $($raw.Name). Running update.py pipeline..." -ForegroundColor Green
-    & npm run freight:update-weekly
+    Write-Host "New raw freight file: $($raw.Name). Running update.py pipeline (non-interactive)..." -ForegroundColor Green
+    & npm run freight:update-weekly -- -SkipFuelCheck
     if ($LASTEXITCODE -ne 0) {
       Write-Warning "freight:update-weekly exited $LASTEXITCODE (may still publish if dashboard was copied)"
     }
