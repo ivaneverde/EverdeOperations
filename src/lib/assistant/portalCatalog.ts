@@ -16,7 +16,8 @@ export function buildPortalCatalogSummary(): string {
     "",
     ...sections,
     "",
-    "**Retail / Supply Inventory:** workbook paths exist in the portal; structured JSON feeds are not loaded yet unless a dataset block is present below.",
+    "**Retail opportunity:** West Coast retail HTML dashboard (10 tabs) with JSON via `/api/retail/dashboard-data` when published.",
+    "**Weather data:** regional weather HTML dashboard (8 tabs) with JSON via `/api/weather/dashboard-data`; forecasts are embedded in the snapshot.",
   ].join("\n");
 }
 
@@ -34,7 +35,7 @@ function dataAvailabilityForSection(sectionId: string): string {
     return "[Data: nursery_demand_data when loaded.]";
   }
   if (sectionId === "retail-sales-opportunity") {
-    return "[Partial: freight tabs embedded; retail workbooks not in JSON yet.]";
+    return "[Retail + weather HTML embeds; JSON when Blob/local file is published.]";
   }
   return "";
 }

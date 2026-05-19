@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { FreightDashboardEmbed } from "@/components/reports/FreightDashboardEmbed";
+import { RetailDashboardEmbed } from "@/components/reports/RetailDashboardEmbed";
 import { SalesPlanDashboardEmbed } from "@/components/reports/SalesPlanDashboardEmbed";
+import { WeatherDashboardEmbed } from "@/components/reports/WeatherDashboardEmbed";
 import { FreightYtdSourcePage } from "@/components/reports/FreightYtdSourcePage";
 import { ReportPlaceholder } from "@/components/ReportPlaceholder";
-import { SalesManagerSummaryPage } from "@/components/reports/SalesManagerSummaryPage";
 import { ReportShell } from "@/components/ReportShell";
 import { getReport } from "@/config/portal";
 
@@ -27,10 +28,6 @@ export default async function ReportPage(
   const navHref = rep.navHref?.trim();
   if (navHref) redirect(navHref);
 
-  if (sec.id === "retail-sales-opportunity" && rep.slug === "sales-manager-summary") {
-    return <SalesManagerSummaryPage section={sec} report={rep} />;
-  }
-
   if (sec.id === "load-board-freight" && rep.slug === "everde-freight-data-ytd") {
     return <FreightYtdSourcePage section={sec} report={rep} />;
   }
@@ -49,6 +46,34 @@ export default async function ReportPage(
       ? rep.salesPlanHtmlTab.trim()
       : null;
   const isSalesPlanHtmlEmbed = salesPlanTab != null;
+
+  const retailTab =
+    typeof rep.retailHtmlTab === "string" && rep.retailHtmlTab.trim().length > 0
+      ? rep.retailHtmlTab.trim()
+      : null;
+  const isRetailHtmlEmbed = retailTab != null;
+
+  const weatherTab =
+    typeof rep.weatherHtmlTab === "string" && rep.weatherHtmlTab.trim().length > 0
+      ? rep.weatherHtmlTab.trim()
+      : null;
+  const isWeatherHtmlEmbed = weatherTab != null;
+
+  if (isWeatherHtmlEmbed) {
+    return (
+      <ReportShell section={sec} report={rep} embedBody>
+        <WeatherDashboardEmbed weatherHtmlTab={weatherTab} />
+      </ReportShell>
+    );
+  }
+
+  if (isRetailHtmlEmbed) {
+    return (
+      <ReportShell section={sec} report={rep} embedBody>
+        <RetailDashboardEmbed retailHtmlTab={retailTab} />
+      </ReportShell>
+    );
+  }
 
   if (isSalesPlanHtmlEmbed) {
     return (

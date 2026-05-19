@@ -13,6 +13,16 @@ export const DATA_ROOT_UNC =
 const FREIGHT_DASHBOARD_SOURCE =
   "Freight\\WeeklyDrop\\Everde Freight Dashboard YTD 5-18-26 (rebuilt).xlsx";
 
+/**
+ * Weekly retail drop on DataDrops (five pipeline output workbooks).
+ * Legacy deliverables may also live under `West Coast Retail Opportunity\` on JS Files.
+ */
+const RETAIL_DROP_FOLDER = "SalesOpportunity";
+const RETAIL_WEEKLY_SOURCE = `${RETAIL_DROP_FOLDER}\\Sales Manager Summary - Wk14 2026 (Refresh 5.6).xlsx`;
+
+/** Weather dashboard + crosswalk (daily pipeline on share). */
+const WEATHER_DATA_ROOT = "Weather Data";
+
 export type PortalReport = {
   slug: string;
   title: string;
@@ -36,6 +46,16 @@ export type PortalReport = {
    * and calls iframe `activate(tab)` with this dashboard nav title.
    */
   salesPlanHtmlTab?: string;
+  /**
+   * When set, renders the West Coast retail HTML embed (`/api/retail/dashboard-html`)
+   * and calls iframe `activate(tab)` with this nav title.
+   */
+  retailHtmlTab?: string;
+  /**
+   * When set, renders the weather HTML embed (`/api/weather/dashboard-html`)
+   * and calls iframe `activate(tab)` with this nav title.
+   */
+  weatherHtmlTab?: string;
   /** Optional hex color (no #) for a small sidebar dot, matching dashboard tab colors */
   navAccent?: string;
   /**
@@ -164,48 +184,152 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     title: "Retail Sales Opportunity",
     summary:
       "West Coast retail opportunity, variance, and miss analysis with weather-informed context.",
-    shareFolder: "West Coast Retail Opportunity",
+    shareFolder: RETAIL_DROP_FOLDER,
+    sectionNotes:
+      "Drop the five weekly pipeline outputs here (Sales Manager Summary, HD/LOW variance, miss analysis, FOR source). Run npm run retail:extract-publish after each drop.",
     reports: [
       {
-        slug: "for-source-miss-report",
-        title: "FOR Source Miss Report",
-        sourceRelativePath:
-          "West Coast Retail Opportunity\\FOR Source Miss Report - Wk14 2026 (Refresh 5.6).xlsx",
+        slug: "west-coast-retail-dashboard",
+        title: "West Coast Retail Dashboard",
+        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
+        notes:
+          "Primary 10-tab HTML embed. JSON via extract_retail_opp.py → Blob or public/retail_opp_data.json.",
+        hideFromNav: true,
       },
       {
-        slug: "hd-sales-variance-allocation",
-        title: "HD Sales Variance & Allocation",
-        sourceRelativePath:
-          "West Coast Retail Opportunity\\HD Sales Variance & Allocation - Wk14 2026 (Refresh 5.6).xlsx",
+        slug: "retail-exec-summary",
+        title: "Exec Summary",
+        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
+        retailHtmlTab: "Exec Summary",
+        navAccent: "2F5233",
       },
       {
-        slug: "low-sales-variance-allocation",
-        title: "LOW Sales Variance & Allocation",
-        sourceRelativePath:
-          "West Coast Retail Opportunity\\LOW Sales Variance & Allocation - Wk14 2026 (Refresh 5.6).xlsx",
+        slug: "retail-region-comparison",
+        title: "Region Comparison",
+        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
+        retailHtmlTab: "Region Comparison",
+        navAccent: "1F3A5F",
       },
       {
-        slug: "sales-manager-summary",
-        title: "Sales Manager Summary",
-        sourceRelativePath:
-          "West Coast Retail Opportunity\\Sales Manager Summary - Wk14 2026 (Refresh 5.6).xlsx",
-        sheetTabs: [
-          "Change Log",
-          "Methodology",
-          "Reading Guide",
-          "Executive Summary",
-          "Region Comparison",
-          "Top 30 by Ship-Now Opp",
-          "Top 30 Items Behind Plan",
-          "Top 20 Stores",
-          "Combined Suggested Orders (P2)",
-        ],
+        slug: "retail-top-ship-now",
+        title: "Top 30 Ship-Now",
+        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
+        retailHtmlTab: "Top 30 Ship-Now",
+        navAccent: "2F5233",
       },
       {
-        slug: "item-level-miss-analysis",
+        slug: "retail-top-behind-plan",
+        title: "Top 30 Behind Plan",
+        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
+        retailHtmlTab: "Top 30 Behind Plan",
+        navAccent: "C0392B",
+      },
+      {
+        slug: "retail-top-stores",
+        title: "Top 20 Stores",
+        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
+        retailHtmlTab: "Top 20 Stores",
+        navAccent: "C49B3F",
+      },
+      {
+        slug: "retail-hd-detail",
+        title: "HD Detail",
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\HD Sales Variance & Allocation - Wk14 2026 (Refresh 5.6).xlsx`,
+        retailHtmlTab: "HD Detail",
+        navAccent: "C49B3F",
+      },
+      {
+        slug: "retail-lowes-detail",
+        title: "Lowes Detail",
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\LOW Sales Variance & Allocation - Wk14 2026 (Refresh 5.6).xlsx`,
+        retailHtmlTab: "Lowes Detail",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "retail-for-source-miss",
+        title: "FOR Source Miss",
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\FOR Source Miss Report - Wk14 2026 (Refresh 5.6).xlsx`,
+        retailHtmlTab: "FOR Source Miss",
+        navAccent: "5B4F8A",
+      },
+      {
+        slug: "retail-miss-analysis",
         title: "Item-Level Miss Analysis",
-        sourceRelativePath:
-          "West Coast Retail Opportunity\\Wk13 Item-Level Miss Analysis (Refresh 5.6).xlsx",
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\Wk13 Item-Level Miss Analysis (Refresh 5.6).xlsx`,
+        retailHtmlTab: "Wk13 Miss Analysis",
+        navAccent: "404040",
+      },
+      {
+        slug: "retail-sales-weather",
+        title: "Sales × Weather",
+        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
+        retailHtmlTab: "Sales × Weather",
+        navAccent: "5B4F8A",
+        notes: "Uses sales–weather crosswalk from the Weather Data pipeline.",
+      },
+      {
+        slug: "weather-region-overview",
+        title: "Weather — Region Overview",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "Region Overview",
+        navAccent: "2F5233",
+        notes: "Live Open-Meteo forecast in browser; crosswalk JSON from daily pipeline.",
+      },
+      {
+        slug: "weather-7-day-forecast",
+        title: "Weather — 7-Day Forecast",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "7-Day Forecast",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "weather-nca",
+        title: "Weather — N. California",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "N. California",
+        navAccent: "2F5233",
+      },
+      {
+        slug: "weather-sca",
+        title: "Weather — S. California",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "S. California",
+        navAccent: "C49B3F",
+      },
+      {
+        slug: "weather-ntx",
+        title: "Weather — N. Texas",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "N. Texas",
+        navAccent: "1F3A5F",
+      },
+      {
+        slug: "weather-stx",
+        title: "Weather — S. Texas",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "S. Texas",
+        navAccent: "5B4F8A",
+      },
+      {
+        slug: "weather-florida",
+        title: "Weather — Florida",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "Florida",
+        navAccent: "C0392B",
+      },
+      {
+        slug: "weather-colorado",
+        title: "Weather — Colorado",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\Sales Data`,
+        weatherHtmlTab: "Colorado",
+        navAccent: "404040",
+      },
+      {
+        slug: "weather-sales-crosswalk",
+        title: "Weather — Sales × Weather",
+        sourceRelativePath: `${WEATHER_DATA_ROOT}\\shared`,
+        weatherHtmlTab: "Sales × Weather",
+        navAccent: "5B4F8A",
       },
       {
         slug: "freight-top-opportunities",

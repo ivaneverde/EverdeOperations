@@ -8,6 +8,7 @@
 
     Everde-SalesPlan-DailyCheck     8:00 AM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
     Everde-Freight-WeeklyCheck      9:00 AM Mondays — Freight\WeeklyDrop -> update.py + Azure Blob
+    Everde-Retail-WeeklyCheck      10:00 AM Mondays — SalesOpportunity (5 xlsx) -> Azure Blob
     Everde-Nursery-WeeklyCheck      1:30 PM Mondays — Inventory Metrics xlsb -> HTML + git push
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
@@ -24,6 +25,8 @@ param(
   [string]$SalesPlanTime = "08:00",
   [string]$FreightTime = "09:00",
   [string]$FreightDay = "Monday",
+  [string]$RetailTime = "10:00",
+  [string]$RetailDay = "Monday",
   [string]$NurseryTime = "13:30",
   [string]$NurseryDay = "Monday",
   [string]$AgentLabel = "",
@@ -49,6 +52,14 @@ $tasks = @(
     Schedule = "Weekly"
     Day = $FreightDay
     Description = "Weekly (Mondays): if new freight raw/dashboard in WeeklyDrop, run pipeline and publish to Azure Blob."
+  },
+  @{
+    Name = "Everde-Retail-WeeklyCheck"
+    Time = $RetailTime
+    Script = "run-scheduled-retail-build.ps1"
+    Schedule = "Weekly"
+    Day = $RetailDay
+    Description = "Weekly (Mondays): build 5 retail workbooks from share sources when feeds change, then extract and publish to Azure Blob."
   },
   @{
     Name = "Everde-Nursery-WeeklyCheck"
@@ -125,6 +136,7 @@ Write-Host ""
 Write-Host "Test manually:" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-sales-plan.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-freight.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-retail-build.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "IT handoff: scripts/windows/WEEKLY_DROP_AGENT.md" -ForegroundColor Yellow
