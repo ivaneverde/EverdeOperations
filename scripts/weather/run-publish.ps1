@@ -26,7 +26,7 @@ function Import-DotEnvLocal {
 Import-DotEnvLocal $EnvLocal
 
 if (-not (Test-Path -LiteralPath $json)) {
-  throw "Missing $json — run npm run weather:bootstrap-json first"
+  throw "Missing $json - run npm run weather:bootstrap-json first"
 }
 
 Push-Location $RepoRoot

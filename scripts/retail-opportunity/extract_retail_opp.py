@@ -260,6 +260,125 @@ def extract_exec_summary(xl):
     return headline, key_numbers, region_crosstab, action_buckets
 
 
+def _sum_col(df, col):
+    if col not in df.columns:
+        return 0.0
+    return float(pd.to_numeric(df[col], errors='coerce').fillna(0).sum())
+
+
+def build_action_buckets_from_region_comparison(xl_sms) -> dict:
+    """Dashboard HTML expects key_numbers.action_buckets with B1–B4 objects."""
+    empty = {
+        'B1_ship_now': {
+            'units': 0, 'retail': 0, 'wholesale': 0,
+            'desc': 'Pull from already-released A+B inventory',
+        },
+        'B2_qc_release': {
+            'units': 0, 'retail': 0, 'wholesale': 0,
+            'desc': 'QC-pending needs release',
+        },
+        'B3_crossreg': {
+            'units': None, 'retail': None, 'wholesale': None,
+            'desc': 'Pull from another region',
+        },
+        'B4_plan_at_risk': {
+            'units': 0, 'retail': 0, 'wholesale': None,
+            'desc': 'No available supply path',
+        },
+    }
+    if 'Region Comparison' not in xl_sms.sheet_names:
+        return empty
+
+    df = xl_sms.parse('Region Comparison', header=0)
+    b1u = _sum_col(df, 'B1_Units')
+    b1r = _sum_col(df, 'B1_$_retail')
+    b2u = _sum_col(df, 'B2_Units')
+    b3u = _sum_col(df, 'B3_Units')
+    b4u = _sum_col(df, 'B4_Units')
+    unit_to_retail = (b1r / b1u) if b1u else 0.0
+    b2r = b2u * unit_to_retail
+    b4r = _sum_col(df, 'Net_Need_$_retail')  # fallback; refined below
+
+    if 'B4_Units' in df.columns and 'Net_Need_$_retail' in df.columns:
+        nn = pd.to_numeric(df['Net_Need_Units'], errors='coerce').fillna(0).replace(0, np.nan)
+        nr = pd.to_numeric(df['Net_Need_$_retail'], errors='coerce').fillna(0)
+        b4 = pd.to_numeric(df['B4_Units'], errors='coerce').fillna(0)
+        b4r = float((b4 * (nr / nn)).fillna(0).sum())
+
+    return {
+        'B1_ship_now': {
+            'units': round(b1u), 'retail': round(b1r), 'wholesale': None,
+            'desc': empty['B1_ship_now']['desc'],
+        },
+        'B2_qc_release': {
+            'units': round(b2u), 'retail': round(b2r), 'wholesale': None,
+            'desc': empty['B2_qc_release']['desc'],
+        },
+        'B3_crossreg': empty['B3_crossreg'],
+        'B4_plan_at_risk': {
+            'units': round(b4u), 'retail': round(b4r), 'wholesale': None,
+            'desc': empty['B4_plan_at_risk']['desc'],
+        },
+    }
+
+
+def build_region_crosstab_for_dashboard(xl_sms) -> dict:
+    """Dashboard HTML reads key_numbers.region_crosstab (retail $ by market)."""
+    out = {
+        'HD_NCA': 0, 'HD_SCA': 0, 'Lowes_NCA': 0, 'Lowes_SCA': 0,
+        'Total_NCA': 0, 'Total_SCA': 0, 'Grand_Total': 0,
+    }
+    if 'Region Comparison' not in xl_sms.sheet_names:
+        return out
+
+    df = xl_sms.parse('Region Comparison', header=0)
+    if 'Customer' not in df.columns or 'Market' not in df.columns:
+        return out
+    val_col = 'Net_Need_$_retail' if 'Net_Need_$_retail' in df.columns else None
+    if not val_col:
+        return out
+
+    for _, row in df.iterrows():
+        cust = str(row.get('Customer', '')).strip()
+        mkt = str(row.get('Market', '')).strip()
+        v = float(pd.to_numeric(row.get(val_col), errors='coerce') or 0)
+        if cust == 'HD' and mkt == 'N.CA':
+            out['HD_NCA'] += v
+        elif cust == 'HD' and mkt == 'S.CA':
+            out['HD_SCA'] += v
+        elif cust in ('Lowes', "Lowe's") and mkt == 'N.CA':
+            out['Lowes_NCA'] += v
+        elif cust in ('Lowes', "Lowe's") and mkt == 'S.CA':
+            out['Lowes_SCA'] += v
+
+    out['Total_NCA'] = out['HD_NCA'] + out['Lowes_NCA']
+    out['Total_SCA'] = out['HD_SCA'] + out['Lowes_SCA']
+    out['Grand_Total'] = out['Total_NCA'] + out['Total_SCA']
+    for k in out:
+        out[k] = round(out[k])
+    return out
+
+
+def finalize_key_numbers_for_dashboard(key_numbers: dict, xl_sms, week_num: int, refresh_date: str) -> dict:
+    """Shape key_numbers for Everde_West_Coast_Retail_Opportunity_Dashboard.html."""
+    kn = dict(key_numbers)
+    for cust in ('hd', 'lowes', 'combined'):
+        if cust not in kn:
+            continue
+        row = dict(kn[cust])
+        if 'plan_thru_wk14' not in row and 'plan_thru_wk' in row:
+            row['plan_thru_wk14'] = row['plan_thru_wk']
+        if 'actual_thru_wk13' not in row and 'actual_thru_wk' in row:
+            row['actual_thru_wk13'] = row['actual_thru_wk']
+        kn[cust] = row
+
+    kn['action_buckets'] = build_action_buckets_from_region_comparison(xl_sms)
+    kn['region_crosstab'] = build_region_crosstab_for_dashboard(xl_sms)
+    kn['week'] = week_num
+    kn['refresh'] = refresh_date
+    return kn
+
+
 # ─────────────────────────────────────────────────────
 # TOP 30 TABLES — slim key columns
 # ─────────────────────────────────────────────────────
@@ -428,9 +547,11 @@ def extract(files, output_path):
 
         headline, key_numbers, crosstab, buckets = extract_exec_summary(xl_sms)
         result['headline']        = headline
-        result['key_numbers']     = key_numbers
+        result['key_numbers']     = finalize_key_numbers_for_dashboard(
+            key_numbers, xl_sms, week_num, refresh_date)
         result['region_crosstab'] = crosstab
         result['action_buckets']  = buckets
+        print(f"  Action buckets (dashboard): B1={result['key_numbers']['action_buckets']['B1_ship_now']['units']:,} units")
 
         # Top 30 Ship Now
         if 'Top 30 by Ship-Now Opp' in xl_sms.sheet_names:

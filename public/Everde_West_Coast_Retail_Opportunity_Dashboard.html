@@ -322,11 +322,11 @@ function renderExec(){
   </div>`).join('');
 
   // Bucket visual bar
-  const bk = k.action_buckets;
-  const b1u = bk.B1_ship_now.units, b2u = bk.B2_qc_release.units;
-  const b4u = bk.B4_plan_at_risk.units;
-  const total = c.net_need_units;
-  const b1r = bk.B1_ship_now.retail, b2r = bk.B2_qc_release.retail, b4r = bk.B4_plan_at_risk.retail;
+  const bk = k.action_buckets || {};
+  const b1 = bk.B1_ship_now || {units:0,retail:0}, b2 = bk.B2_qc_release || {units:0,retail:0}, b4 = bk.B4_plan_at_risk || {units:0,retail:0};
+  const b1u = b1.units||0, b2u = b2.units||0, b4u = b4.units||0;
+  const total = c.net_need_units || 1;
+  const b1r = b1.retail||0, b2r = b2.retail||0, b4r = b4.retail||0;
   const b3r = c.net_need_retail - b1r - b2r - b4r;
   const b3u = c.net_need_units - b1u - b2u - b4u;
   document.getElementById('bucket-visual').innerHTML = `
@@ -352,7 +352,7 @@ function renderExec(){
      {t:'HD Running Bigger Miss Than Lowes',
       b:`HD: ${fmt.n(h.plan_var_units)} units behind plan ($${(h.plan_var_retail/1e6).toFixed(1)}M retail). Lowes: only ${fmt.n(l.plan_var_units)} units behind ($${(l.plan_var_retail/1e6).toFixed(1)}M). However Lowes has ${fmt.n(l.net_need_units)} units net need vs HD's ${fmt.n(h.net_need_units)} — Lowes catch-up and forward demand is driving a larger net need relative to plan variance.`},
      {t:'N.CA Leads Net Need in Both Retailers',
-      b:`HD N.CA: $${(k.region_crosstab.HD_NCA/1e6).toFixed(1)}M vs S.CA: $${(k.region_crosstab.HD_SCA/1e6).toFixed(1)}M. Lowes N.CA: $${(k.region_crosstab.Lowes_NCA/1e6).toFixed(1)}M vs S.CA: $${(k.region_crosstab.Lowes_SCA/1e6).toFixed(1)}M. Total N.CA need ($${(k.region_crosstab.Total_NCA/1e6).toFixed(1)}M) exceeds S.CA ($${(k.region_crosstab.Total_SCA/1e6).toFixed(1)}M).`},
+      b:(()=>{const xt=k.region_crosstab||{};return `HD N.CA: $${((xt.HD_NCA||0)/1e6).toFixed(1)}M vs S.CA: $${((xt.HD_SCA||0)/1e6).toFixed(1)}M. Lowes N.CA: $${((xt.Lowes_NCA||0)/1e6).toFixed(1)}M vs S.CA: $${((xt.Lowes_SCA||0)/1e6).toFixed(1)}M. Total N.CA need ($${((xt.Total_NCA||0)/1e6).toFixed(1)}M) vs S.CA ($${((xt.Total_SCA||0)/1e6).toFixed(1)}M).`;})()},
      {t:'ACER #005 is the Largest Single SKU Group Opportunity',
       b:`Appears 4× in Top 30 Ship-Now across HD N.CA, HD S.CA, Lowes N.CA, Lowes S.CA. Combined ship-now opp exceeds $900K retail. 101-item assortment (Lowes) and 21-item assortment (HD) both flagged Supply OK (A+B covers) — action available immediately.`},
      {t:'LAGERSTROEMIA, GARDENIA, BUXUS in Top 15 by Ship-Now $',
@@ -391,13 +391,13 @@ function renderExec(){
   </tbody></table>`;
 
   // 2x2 crosstab
-  const xt = k.region_crosstab;
+  const xt = k.region_crosstab || {};
   document.getElementById('crosstab-table').innerHTML = `<table><thead><tr>
     <th class="lft">Customer</th><th>N.CA Net Need $</th><th>S.CA Net Need $</th><th>Total $</th>
   </tr></thead><tbody>
-    <tr><td>${dot(RETAILER_COLOR.HD)}HD</td><td>${fmt.M(xt.HD_NCA)}</td><td>${fmt.M(xt.HD_SCA)}</td><td class="td-gold">${fmt.M(xt.HD_NCA+xt.HD_SCA)}</td></tr>
-    <tr><td>${dot(RETAILER_COLOR.Lowes)}Lowes</td><td>${fmt.M(xt.Lowes_NCA)}</td><td>${fmt.M(xt.Lowes_SCA)}</td><td class="td-gold">${fmt.M(xt.Lowes_NCA+xt.Lowes_SCA)}</td></tr>
-    <tr style="background:rgba(196,155,63,.06);font-weight:600"><td>TOTAL</td><td>${fmt.M(xt.Total_NCA)}</td><td>${fmt.M(xt.Total_SCA)}</td><td class="td-gold">${fmt.M(xt.Grand_Total)}</td></tr>
+    <tr><td>${dot(RETAILER_COLOR.HD)}HD</td><td>${fmt.M(xt.HD_NCA||0)}</td><td>${fmt.M(xt.HD_SCA||0)}</td><td class="td-gold">${fmt.M((xt.HD_NCA||0)+(xt.HD_SCA||0))}</td></tr>
+    <tr><td>${dot(RETAILER_COLOR.Lowes)}Lowes</td><td>${fmt.M(xt.Lowes_NCA||0)}</td><td>${fmt.M(xt.Lowes_SCA||0)}</td><td class="td-gold">${fmt.M((xt.Lowes_NCA||0)+(xt.Lowes_SCA||0))}</td></tr>
+    <tr style="background:rgba(196,155,63,.06);font-weight:600"><td>TOTAL</td><td>${fmt.M(xt.Total_NCA||0)}</td><td>${fmt.M(xt.Total_SCA||0)}</td><td class="td-gold">${fmt.M(xt.Grand_Total||0)}</td></tr>
   </tbody></table>`;
 }
 renderExec();

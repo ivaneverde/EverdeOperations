@@ -5,6 +5,7 @@ import {
   downloadRetailDashboardJsonFromLocal,
 } from "@/lib/azure/retailDashboardBlob";
 import { extractInlineConstJson } from "@/lib/embed/extractInlineConstJson";
+import { normalizeRetailDashboardJson } from "@/lib/retail/normalizeRetailDashboardJson";
 import { resolveRetailDashboardHtmlPath } from "@/lib/resolveRetailDashboardHtmlPath";
 
 export type RetailJsonSource = "azure-blob" | "local-file" | "html-embed";
@@ -13,11 +14,13 @@ export async function loadRetailDashboardJson(): Promise<{
   json: string;
   source: RetailJsonSource;
 } | null> {
+  const normalize = (json: string) => normalizeRetailDashboardJson(json);
+
   const fromBlob = await downloadRetailDashboardJsonFromBlob();
-  if (fromBlob) return { json: fromBlob, source: "azure-blob" };
+  if (fromBlob) return { json: normalize(fromBlob), source: "azure-blob" };
 
   const fromLocal = await downloadRetailDashboardJsonFromLocal();
-  if (fromLocal) return { json: fromLocal, source: "local-file" };
+  if (fromLocal) return { json: normalize(fromLocal), source: "local-file" };
 
   const resolved = await resolveRetailDashboardHtmlPath();
   const htmlCandidates = [
@@ -36,7 +39,7 @@ export async function loadRetailDashboardJson(): Promise<{
     try {
       const html = await fs.readFile(htmlPath, "utf8");
       const json = extractInlineConstJson(html, "D");
-      if (json) return { json, source: "html-embed" };
+      if (json) return { json: normalize(json), source: "html-embed" };
     } catch {
       /* try next */
     }

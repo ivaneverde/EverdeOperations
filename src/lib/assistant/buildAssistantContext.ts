@@ -6,13 +6,17 @@ import {
 import { loadSalesPlanDashboardJson } from "@/lib/salesPlan/loadSalesPlanDashboardJson";
 import { compactFreightForAssistant } from "@/lib/assistant/compactFreightForAssistant";
 import { compactNurseryForAssistant } from "@/lib/assistant/compactNurseryForAssistant";
+import { compactRetailForAssistant } from "@/lib/assistant/compactRetailForAssistant";
 import { compactSalesPlanForAssistant } from "@/lib/assistant/compactSalesPlanForAssistant";
+import { compactWeatherForAssistant } from "@/lib/assistant/compactWeatherForAssistant";
 import {
   contextFocusForPathname,
   maxCharsForDataset,
   PORTAL_CATALOG_MAX_CHARS,
 } from "@/lib/assistant/contextBudget";
 import { loadNurseryDemandJson } from "@/lib/assistant/loadNurseryDemandJson";
+import { loadRetailDashboardJson } from "@/lib/retail/loadRetailDashboardJson";
+import { loadWeatherDashboardJson } from "@/lib/weather/loadWeatherDashboardJson";
 import { buildPortalCatalogSummary } from "@/lib/assistant/portalCatalog";
 import { truncateForContext } from "@/lib/assistant/truncateForContext";
 
@@ -73,7 +77,7 @@ export async function buildAssistantContext(
   const notes = [
     "You are the Everde AI Operations compendium analyst across all portal sections.",
     "Answer from the portal catalog and JSON datasets below. Cite specific numbers, names, farms, carriers, and key items.",
-    "If a section has no JSON dataset yet (e.g. retail workbooks), say what is missing and use related datasets when relevant.",
+    "Retail and weather JSON are included when published to Blob or available locally.",
     `User is viewing: ${routeLabel}. Emphasize that section when applicable, but you may draw on any loaded dataset for cross-functional questions.`,
     `Context emphasis: ${focus} (all published feeds are included; payloads are compacted for API limits).`,
     "Each dataset may include assistant_facts — prefer those for rankings and headlines, then supporting detail in the same block.",
@@ -123,6 +127,34 @@ export async function buildAssistantContext(
   } else {
     notes.push(
       "Production & Demand (nursery DEMAND) not available — refresh public/nursery-inventory-dashboard.html or publish demand JSON to Blob.",
+    );
+  }
+
+  const retailMax = maxCharsForDataset(focus, "retail");
+  const retail = await loadRetailDashboardJson();
+  if (retail) {
+    datasets.push({
+      name: "retail_opp_data",
+      bytes: retail.json.length,
+      excerpt: compactRetailForAssistant(retail.json, retailMax),
+    });
+  } else {
+    notes.push(
+      "Retail opportunity JSON not available — run npm run retail:extract-publish on VPN.",
+    );
+  }
+
+  const weatherMax = maxCharsForDataset(focus, "weather");
+  const weather = await loadWeatherDashboardJson();
+  if (weather) {
+    datasets.push({
+      name: "weather_dashboard_data",
+      bytes: weather.json.length,
+      excerpt: compactWeatherForAssistant(weather.json, weatherMax),
+    });
+  } else {
+    notes.push(
+      "Weather dashboard JSON not available — run npm run weather:publish.",
     );
   }
 

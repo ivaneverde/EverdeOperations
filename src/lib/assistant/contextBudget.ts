@@ -1,7 +1,9 @@
 export type AssistantDatasetId =
   | "freight"
   | "sales_plan"
-  | "nursery_demand";
+  | "nursery_demand"
+  | "retail"
+  | "weather";
 
 export type AssistantContextFocus = AssistantDatasetId | "retail" | "portal";
 
@@ -22,6 +24,7 @@ export function contextFocusForPathname(pathname: string): AssistantContextFocus
     return "freight";
   }
   if (p.includes("retail")) return "retail";
+  if (p.includes("weather")) return "weather";
   return "portal";
 }
 
@@ -33,13 +36,20 @@ export function maxCharsForDataset(
   const isPrimary =
     focus === dataset ||
     (focus === "portal" && dataset === "freight") ||
-    (focus === "retail" && dataset === "freight");
+    (focus === "retail" && dataset === "retail") ||
+    (focus === "weather" && dataset === "weather");
 
   if (dataset === "freight") {
     return isPrimary ? 26_000 : 14_000;
   }
   if (dataset === "sales_plan") {
     return isPrimary ? 20_000 : 12_000;
+  }
+  if (dataset === "retail") {
+    return isPrimary ? 18_000 : 10_000;
+  }
+  if (dataset === "weather") {
+    return isPrimary ? 12_000 : 6_000;
   }
   return isPrimary ? 16_000 : 10_000;
 }

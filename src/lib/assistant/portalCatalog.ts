@@ -16,8 +16,8 @@ export function buildPortalCatalogSummary(): string {
     "",
     ...sections,
     "",
-    "**Retail opportunity:** West Coast retail HTML dashboard (10 tabs) with JSON via `/api/retail/dashboard-data` when published.",
-    "**Weather data:** regional weather HTML dashboard (8 tabs) with JSON via `/api/weather/dashboard-data`; forecasts are embedded in the snapshot.",
+    "**Retail opportunity:** West Coast retail HTML dashboard (10 tabs); JSON via `/api/retail/dashboard-data` (Blob). KPIs, action buckets B1–B4, top 30 ship-now.",
+    "**Weather data:** regional weather HTML dashboard (9 tabs); JSON via `/api/weather/dashboard-data` (Blob snapshot). Refresh via share scripts or future API fetch.",
   ].join("\n");
 }
 
@@ -35,7 +35,7 @@ function dataAvailabilityForSection(sectionId: string): string {
     return "[Data: nursery_demand_data when loaded.]";
   }
   if (sectionId === "retail-sales-opportunity") {
-    return "[Retail + weather HTML embeds; JSON when Blob/local file is published.]";
+    return "[Retail + weather: assistant loads retail_opp_data + weather_dashboard_data when published.]";
   }
   return "";
 }
