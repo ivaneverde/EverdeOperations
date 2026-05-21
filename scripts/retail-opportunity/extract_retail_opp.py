@@ -130,12 +130,50 @@ def safe(v):
     return v
 
 
-def parse_tab(xl, tab, header_row=3, max_rows=300):
+def sheet_to_records(xl, tab, max_rows=300):
+    """Parse tabs written by build_retail_workbooks.py (header row 0)."""
+    try:
+        df = xl.parse(tab, header=0)
+    except Exception as e:
+        print(f"  WARNING: could not parse tab '{tab}': {e}")
+        return []
+    if df is None or len(df) == 0:
+        return []
+    df = df.dropna(how='all')
+    rows = []
+    for _, row in df.head(max_rows).iterrows():
+        d = {str(c).strip(): safe(row[c]) for c in df.columns}
+        if sum(1 for v in d.values() if v is not None) >= 2:
+            rows.append(d)
+    return rows
+
+
+def parse_tab(xl, tab, header_row=None, max_rows=300):
     """
-    Parse a workbook tab where row `header_row` (0-indexed) contains
-    column names and data starts at header_row+1.
-    Standard pattern across all 5 West Coast Retail workbooks.
+    Parse a workbook tab. Builder output uses header=0; legacy Claude tabs
+    may use a title block with headers on row 3.
     """
+    if header_row is None:
+        try:
+            peek = xl.parse(tab, header=None, nrows=6)
+            row0 = [str(v).strip() for v in peek.iloc[0].tolist()
+                    if str(v) != 'nan' and v is not None]
+            if any(h in row0 for h in ('Customer', 'Cust_Mkt', 'Market', 'Description')):
+                return sheet_to_records(xl, tab, max_rows)
+            for i in range(min(6, len(peek))):
+                row = [str(v).strip() for v in peek.iloc[i].tolist()
+                       if str(v) != 'nan' and v is not None]
+                if any(h in row for h in ('Customer', 'Cust_Mkt', 'Market', 'Description')):
+                    header_row = i
+                    break
+        except Exception:
+            pass
+        if header_row is None:
+            header_row = 3
+
+    if header_row == 0:
+        return sheet_to_records(xl, tab, max_rows)
+
     try:
         df = xl.parse(tab, header=None)
     except Exception as e:
@@ -161,6 +199,69 @@ def parse_tab(xl, tab, header_row=3, max_rows=300):
         if len(rows) >= max_rows:
             break
     return rows
+
+
+def alias_ship_now_row(r):
+    """Map builder column names to dashboard HTML field names."""
+    out = dict(r)
+    if out.get('LY_Wk14_Units') is None and out.get('LY_Wk_Units') is not None:
+        out['LY_Wk14_Units'] = out['LY_Wk_Units']
+    return out
+
+
+def alias_behind_row(r):
+    out = dict(r)
+    if out.get('Plan_Var_$_HDretail') is None and out.get('Plan_Var_$_retail') is not None:
+        out['Plan_Var_$_HDretail'] = out['Plan_Var_$_retail']
+    if out.get('Group_LY_Sell_Thru_pct') is None and out.get('Group_TY_Sell_Thru_pct') is not None:
+        out['Group_LY_Sell_Thru_pct'] = out.get('Group_LY_Sell_Thru_pct')
+    return out
+
+
+def build_top20_from_store_workbooks(files):
+    """Fallback when Sales Manager Summary Top 20 Stores sheet is empty."""
+    frames = []
+    for key, cust in [('hd', 'HD'), ('low', 'Lowes')]:
+        path = files.get(key)
+        if not path or not Path(path).exists():
+            continue
+        xl = pd.ExcelFile(path)
+        for tab in xl.sheet_names:
+            if 'Stores' not in tab:
+                continue
+            df = xl.parse(tab, header=0)
+            if len(df) == 0 or 'store' not in df.columns:
+                continue
+            df = df.copy()
+            df['Customer'] = cust
+            if 'Market' not in df.columns and 'market' in df.columns:
+                df['Market'] = df['market']
+            df['Net_Need'] = (
+                pd.to_numeric(df.get('ly_sales_units', 0), errors='coerce').fillna(0)
+                - pd.to_numeric(df.get('curr_inv_units', 0), errors='coerce').fillna(0)
+                - pd.to_numeric(df.get('on_order_units', 0), errors='coerce').fillna(0)
+            ).clip(lower=0)
+            frames.append(df)
+    if not frames:
+        return []
+    all_s = pd.concat(frames, ignore_index=True)
+    grp = all_s.groupby(['Customer', 'Market', 'store', 'store_name'], as_index=False).agg(
+        TY_Sales=('ytd_sales_units', 'sum'),
+        LY_Sales=('ly_sales_units', 'sum'),
+        Curr_Inv=('curr_inv_units', 'sum'),
+        On_Order=('on_order_units', 'sum'),
+        Net_Need=('Net_Need', 'sum'),
+        Curr_Inv_Retail=('curr_inv_retail', 'sum'),
+        Sales_Retail_YTD=('ytd_sales_dlr', 'sum'),
+        SKUs_carried=('group', 'count'),
+    )
+    grp = grp.rename(columns={'store': 'Store Nbr', 'store_name': 'Store Name'})
+    grp = grp.sort_values('Net_Need', ascending=False).head(20)
+    return [safe_row(r) for r in grp.to_dict('records')]
+
+
+def safe_row(r):
+    return {k: safe(v) for k, v in r.items()}
 
 
 def detect_week_from_filename(files):
@@ -422,11 +523,11 @@ def extract_retailer_detail(xl, retailer_prefix):
         stores_tab = f"{retailer_prefix} {market} Stores"
 
         if exec_tab in tabs:
-            result[f'exec_{mkt_key}'] = parse_tab(xl, exec_tab, max_rows=50)
+            result[f'exec_{mkt_key}'] = parse_tab(xl, exec_tab, header_row=0, max_rows=50)
         if items_tab in tabs:
-            result[f'items_{mkt_key}'] = parse_tab(xl, items_tab, max_rows=150)
+            result[f'items_{mkt_key}'] = parse_tab(xl, items_tab, header_row=0, max_rows=150)
         if stores_tab in tabs:
-            result[f'stores_{mkt_key}'] = parse_tab(xl, stores_tab, max_rows=100)
+            result[f'stores_{mkt_key}'] = parse_tab(xl, stores_tab, header_row=0, max_rows=100)
 
     return result
 
@@ -555,25 +656,30 @@ def extract(files, output_path):
 
         # Top 30 Ship Now
         if 'Top 30 by Ship-Now Opp' in xl_sms.sheet_names:
-            rows = parse_tab(xl_sms, 'Top 30 by Ship-Now Opp', max_rows=35)
+            rows = [alias_ship_now_row(r) for r in
+                    parse_tab(xl_sms, 'Top 30 by Ship-Now Opp', header_row=0, max_rows=35)]
             result['top30_ship_now'] = slim(rows, SHIP_NOW_KEEP)
             print(f"  Top 30 Ship-Now: {len(result['top30_ship_now'])} rows")
 
         # Top 30 Behind Plan
         if 'Top 30 Items Behind Plan' in xl_sms.sheet_names:
-            rows = parse_tab(xl_sms, 'Top 30 Items Behind Plan', max_rows=35)
+            rows = [alias_behind_row(r) for r in
+                    parse_tab(xl_sms, 'Top 30 Items Behind Plan', header_row=0, max_rows=35)]
             result['top30_behind_plan'] = slim(rows, BEHIND_KEEP)
             print(f"  Top 30 Behind Plan: {len(result['top30_behind_plan'])} rows")
 
         # Top 20 Stores
         if 'Top 20 Stores' in xl_sms.sheet_names:
-            result['top20_stores'] = parse_tab(xl_sms, 'Top 20 Stores', max_rows=25)
-            print(f"  Top 20 Stores: {len(result['top20_stores'])} rows")
+            result['top20_stores'] = parse_tab(
+                xl_sms, 'Top 20 Stores', header_row=0, max_rows=25)
+        if not result['top20_stores']:
+            result['top20_stores'] = build_top20_from_store_workbooks(files)
+        print(f"  Top 20 Stores: {len(result['top20_stores'])} rows")
 
         # Region Comparison
         if 'Region Comparison' in xl_sms.sheet_names:
             result['region_comparison'] = parse_tab(
-                xl_sms, 'Region Comparison', max_rows=10)
+                xl_sms, 'Region Comparison', header_row=0, max_rows=10)
 
     # ── HD DETAIL ─────────────────────────────────────────────
     if files.get('hd'):

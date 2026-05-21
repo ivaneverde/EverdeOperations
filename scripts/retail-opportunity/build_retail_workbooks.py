@@ -941,7 +941,7 @@ def build_top20_stores(hd_store_detail: pd.DataFrame,
     hd_d['Customer'] = 'HD'
     low_d = low_store_detail.copy()
     low_d['Customer'] = 'Lowes'
-    frames = [f for f in [hd_d, low_d] if len(f) > 0 and 'market' in f.columns]
+    frames = [f for f in [hd_d, low_d] if len(f) > 0 and 'Market' in f.columns]
     if not frames:
         return pd.DataFrame()
     all_stores = pd.concat(frames, ignore_index=True)
