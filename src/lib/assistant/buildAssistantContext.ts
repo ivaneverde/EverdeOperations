@@ -9,6 +9,7 @@ import { compactNurseryForAssistant } from "@/lib/assistant/compactNurseryForAss
 import { compactRetailForAssistant } from "@/lib/assistant/compactRetailForAssistant";
 import { compactSalesPlanForAssistant } from "@/lib/assistant/compactSalesPlanForAssistant";
 import { compactWeatherForAssistant } from "@/lib/assistant/compactWeatherForAssistant";
+import { openAiCompendiumMode } from "@/lib/assistant/assistantConfig";
 import type { AssistantProvider } from "@/lib/assistant/types";
 import {
   catalogMaxChars,
@@ -77,15 +78,16 @@ export async function buildAssistantContext(
   const provider = input.provider ?? "anthropic";
   const focus = contextFocusForPathname(input.pathname);
   const datasets: AssistantDataContext["datasets"] = [];
-  const openAiMode = provider === "openai";
+  const openAiCompendium =
+    provider === "openai" && openAiCompendiumMode();
   const notes = [
     "You are the Everde AI Operations compendium analyst across all portal sections.",
     "Answer from the portal catalog and JSON datasets below. Cite specific numbers, names, farms, carriers, and key items.",
     "Retail and weather JSON are included when published to Blob or available locally.",
     `User is viewing: ${routeLabel}. Emphasize that section when applicable, but you may draw on any loaded dataset for cross-functional questions.`,
-    openAiMode
-      ? `Context emphasis: ${focus} (OpenAI mode — primary section data + compact headlines; use Claude toggle for full cross-portal compendium).`
-      : `Context emphasis: ${focus} (all published feeds are included; payloads are compacted for API limits).`,
+    openAiCompendium || provider === "anthropic"
+      ? `Context emphasis: ${focus} (compendium — freight, sales plan, nursery, retail, and weather when published; payloads compacted for API limits).`
+      : `Context emphasis: ${focus} (OpenAI focused mode — primary section + headlines only; set OPENAI_ASSISTANT_COMPENDIUM=1 for full compendium).`,
     "Each dataset may include assistant_facts — prefer those for rankings and headlines, then supporting detail in the same block.",
   ];
 

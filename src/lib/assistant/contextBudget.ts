@@ -1,3 +1,4 @@
+import { openAiCompendiumMode } from "@/lib/assistant/assistantConfig";
 import type { AssistantProvider } from "@/lib/assistant/types";
 
 export type AssistantDatasetId =
@@ -9,10 +10,10 @@ export type AssistantDatasetId =
 
 export type AssistantContextFocus = AssistantDatasetId | "retail" | "portal";
 
-/** OpenAI org TPM limits are much tighter than Claude; keep system context small. */
-export const OPENAI_CATALOG_MAX_CHARS = 3_500;
-export const OPENAI_MAX_CHAT_TURNS = 6;
-export const OPENAI_MAX_TURN_CHARS = 3_500;
+/** OpenAI page-focused mode (Tier 1 / OPENAI_ASSISTANT_COMPENDIUM=0). */
+export const OPENAI_FOCUSED_CATALOG_MAX_CHARS = 3_500;
+export const OPENAI_FOCUSED_MAX_CHAT_TURNS = 6;
+export const OPENAI_FOCUSED_MAX_TURN_CHARS = 3_500;
 
 export function contextFocusForPathname(pathname: string): AssistantContextFocus {
   const p = pathname.toLowerCase();
@@ -55,8 +56,8 @@ function anthropicBudget(
   return isPrimary ? 16_000 : 10_000;
 }
 
-/** OpenAI: page-focused context only (avoids TPM rate limits on gpt-4o). */
-function openAiBudget(
+/** OpenAI page-focused (legacy Tier 1 guard). */
+function openAiFocusedBudget(
   focus: AssistantContextFocus,
   dataset: AssistantDatasetId,
   isPrimary: boolean,
@@ -78,7 +79,7 @@ function openAiBudget(
   return 10_000;
 }
 
-/** Per-dataset character budget (Claude: full compendium; OpenAI: focused to avoid rate limits). */
+/** Per-dataset character budget. OpenAI compendium mode matches Claude (Tier 2+). */
 export function maxCharsForDataset(
   focus: AssistantContextFocus,
   dataset: AssistantDatasetId,
@@ -91,15 +92,33 @@ export function maxCharsForDataset(
     (focus === "weather" && dataset === "weather");
 
   if (provider === "openai") {
-    return openAiBudget(focus, dataset, isPrimary);
+    if (openAiCompendiumMode()) {
+      return anthropicBudget(focus, dataset, isPrimary);
+    }
+    return openAiFocusedBudget(focus, dataset, isPrimary);
   }
   return anthropicBudget(focus, dataset, isPrimary);
 }
 
 export function catalogMaxChars(provider: AssistantProvider): number {
-  return provider === "openai"
-    ? OPENAI_CATALOG_MAX_CHARS
-    : PORTAL_CATALOG_MAX_CHARS;
+  if (provider === "openai" && !openAiCompendiumMode()) {
+    return OPENAI_FOCUSED_CATALOG_MAX_CHARS;
+  }
+  return PORTAL_CATALOG_MAX_CHARS;
+}
+
+export function maxChatTurns(provider: AssistantProvider): number {
+  if (provider === "openai" && !openAiCompendiumMode()) {
+    return OPENAI_FOCUSED_MAX_CHAT_TURNS;
+  }
+  return 12;
+}
+
+export function maxTurnChars(provider: AssistantProvider): number {
+  if (provider === "openai" && !openAiCompendiumMode()) {
+    return OPENAI_FOCUSED_MAX_TURN_CHARS;
+  }
+  return 8_000;
 }
 
 export const PORTAL_CATALOG_MAX_CHARS = 6_000;

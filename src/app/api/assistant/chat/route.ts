@@ -4,10 +4,7 @@ import {
   isPortalAssistantEnabled,
   parseAssistantProvider,
 } from "@/lib/assistant/assistantConfig";
-import {
-  OPENAI_MAX_CHAT_TURNS,
-  OPENAI_MAX_TURN_CHARS,
-} from "@/lib/assistant/contextBudget";
+import { maxChatTurns, maxTurnChars } from "@/lib/assistant/contextBudget";
 import { buildAssistantContext } from "@/lib/assistant/buildAssistantContext";
 import { runAssistantCompletion } from "@/lib/assistant/runAssistant";
 import type { AssistantChatTurn } from "@/lib/assistant/types";
@@ -86,16 +83,12 @@ export async function POST(request: Request) {
     provider,
   });
 
-  const maxTurns = provider === "openai" ? OPENAI_MAX_CHAT_TURNS : 12;
-  const maxTurnChars =
-    provider === "openai" ? OPENAI_MAX_TURN_CHARS : 8_000;
-
   const turns = messages
     .filter((m) => m.role === "user" || m.role === "assistant")
-    .slice(-maxTurns)
+    .slice(-maxChatTurns(provider))
     .map((m) => ({
       role: m.role,
-      content: m.content.slice(0, maxTurnChars),
+      content: m.content.slice(0, maxTurnChars(provider)),
     }));
 
   try {

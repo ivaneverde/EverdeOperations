@@ -57,3 +57,13 @@ export function modelLabelForProvider(provider: AssistantProvider): string {
     ? openAiAssistantModel()
     : anthropicAssistantModel();
 }
+
+/**
+ * When true (default), OpenAI receives the same multi-dataset compendium as Claude
+ * on every page. Set OPENAI_ASSISTANT_COMPENDIUM=0 for page-focused context (Tier 1 TPM).
+ */
+export function openAiCompendiumMode(): boolean {
+  const env = process.env.OPENAI_ASSISTANT_COMPENDIUM?.trim().toLowerCase();
+  if (env === "0" || env === "false" || env === "focused") return false;
+  return true;
+}

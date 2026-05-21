@@ -4,6 +4,7 @@ import {
   isPortalAssistantEnabled,
   listConfiguredProviders,
   modelLabelForProvider,
+  openAiCompendiumMode,
 } from "@/lib/assistant/assistantConfig";
 import { providerDisplayName } from "@/lib/assistant/runAssistant";
 import { guardPortalApi } from "@/lib/auth/guardApiRoute";
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     enabled: isPortalAssistantEnabled(),
     defaultProvider,
+    openAiCompendium: openAiCompendiumMode(),
     providers: providers.map((id: AssistantProvider) => ({
       id,
       label: providerDisplayName(id),
