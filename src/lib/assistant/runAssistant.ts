@@ -39,7 +39,12 @@ async function runOpenAi(
     const errText = await res.text();
     if (errText.includes("rate_limit")) {
       throw new Error(
-        "OpenAI rate limit reached (large dashboard context). Wait about a minute and try again.",
+        "OpenAI rate limit (tokens per minute). The portal now sends a smaller context for OpenAI — wait 30–60 seconds and retry, or switch to Claude for full cross-portal data.",
+      );
+    }
+    if (errText.includes("context_length")) {
+      throw new Error(
+        "OpenAI context too large for this model. Switch to Claude or ask a shorter follow-up on the current page only.",
       );
     }
     throw new Error(`OpenAI request failed: ${errText.slice(0, 500)}`);

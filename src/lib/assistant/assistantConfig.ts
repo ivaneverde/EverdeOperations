@@ -22,8 +22,9 @@ export function defaultAssistantProvider(): AssistantProvider {
   const env = process.env.PORTAL_ASSISTANT_PROVIDER?.trim().toLowerCase();
   if (env === "anthropic" && isProviderConfigured("anthropic")) return "anthropic";
   if (env === "openai" && isProviderConfigured("openai")) return "openai";
-  if (isProviderConfigured("openai")) return "openai";
+  // Prefer Claude when both keys exist — larger context, fewer TPM rate limits.
   if (isProviderConfigured("anthropic")) return "anthropic";
+  if (isProviderConfigured("openai")) return "openai";
   return "openai";
 }
 

@@ -9,10 +9,11 @@ import { compactNurseryForAssistant } from "@/lib/assistant/compactNurseryForAss
 import { compactRetailForAssistant } from "@/lib/assistant/compactRetailForAssistant";
 import { compactSalesPlanForAssistant } from "@/lib/assistant/compactSalesPlanForAssistant";
 import { compactWeatherForAssistant } from "@/lib/assistant/compactWeatherForAssistant";
+import type { AssistantProvider } from "@/lib/assistant/types";
 import {
+  catalogMaxChars,
   contextFocusForPathname,
   maxCharsForDataset,
-  PORTAL_CATALOG_MAX_CHARS,
 } from "@/lib/assistant/contextBudget";
 import { loadNurseryDemandJson } from "@/lib/assistant/loadNurseryDemandJson";
 import { loadRetailDashboardJson } from "@/lib/retail/loadRetailDashboardJson";
@@ -24,6 +25,7 @@ export type AssistantRouteContext = {
   pathname: string;
   sectionId?: string;
   reportSlug?: string;
+  provider?: AssistantProvider;
 };
 
 export type AssistantDataContext = {
@@ -72,91 +74,89 @@ export async function buildAssistantContext(
     }
   }
 
+  const provider = input.provider ?? "anthropic";
   const focus = contextFocusForPathname(input.pathname);
   const datasets: AssistantDataContext["datasets"] = [];
+  const openAiMode = provider === "openai";
   const notes = [
     "You are the Everde AI Operations compendium analyst across all portal sections.",
     "Answer from the portal catalog and JSON datasets below. Cite specific numbers, names, farms, carriers, and key items.",
     "Retail and weather JSON are included when published to Blob or available locally.",
     `User is viewing: ${routeLabel}. Emphasize that section when applicable, but you may draw on any loaded dataset for cross-functional questions.`,
-    `Context emphasis: ${focus} (all published feeds are included; payloads are compacted for API limits).`,
+    openAiMode
+      ? `Context emphasis: ${focus} (OpenAI mode — primary section data + compact headlines; use Claude toggle for full cross-portal compendium).`
+      : `Context emphasis: ${focus} (all published feeds are included; payloads are compacted for API limits).`,
     "Each dataset may include assistant_facts — prefer those for rankings and headlines, then supporting detail in the same block.",
   ];
+
+  const pushDataset = (
+    name: string,
+    raw: string | null,
+    compact: (raw: string, max: number) => string,
+    dataset: Parameters<typeof maxCharsForDataset>[1],
+    missingNote: string,
+  ) => {
+    const max = maxCharsForDataset(focus, dataset, provider);
+    if (max <= 0) return;
+    if (!raw) {
+      notes.push(missingNote);
+      return;
+    }
+    datasets.push({
+      name,
+      bytes: raw.length,
+      excerpt: compact(raw, max),
+    });
+  };
 
   const catalog = buildPortalCatalogSummary();
   datasets.push({
     name: "portal_catalog",
     bytes: catalog.length,
-    excerpt: truncateForContext(catalog, PORTAL_CATALOG_MAX_CHARS),
+    excerpt: truncateForContext(catalog, catalogMaxChars(provider)),
   });
 
-  const freightMax = maxCharsForDataset(focus, "freight");
-  const freight = await loadFreightJson();
-  if (freight) {
-    datasets.push({
-      name: "freight_dashboard_data",
-      bytes: freight.length,
-      excerpt: compactFreightForAssistant(freight, freightMax),
-    });
-  } else {
-    notes.push("Freight dashboard_data.json not available.");
-  }
+  pushDataset(
+    "freight_dashboard_data",
+    await loadFreightJson(),
+    compactFreightForAssistant,
+    "freight",
+    "Freight dashboard_data.json not available.",
+  );
 
-  const salesMax = maxCharsForDataset(focus, "sales_plan");
-  const salesPlan = await loadSalesPlanJson();
-  if (salesPlan) {
-    datasets.push({
-      name: "sales_plan_data",
-      bytes: salesPlan.length,
-      excerpt: compactSalesPlanForAssistant(salesPlan, salesMax),
-    });
-  } else {
-    notes.push(
-      "Sales plan JSON not available (Blob, public/sales_plan_data.json, or HTML embed).",
-    );
-  }
+  pushDataset(
+    "sales_plan_data",
+    await loadSalesPlanJson(),
+    compactSalesPlanForAssistant,
+    "sales_plan",
+    "Sales plan JSON not available (Blob, public/sales_plan_data.json, or HTML embed).",
+  );
 
-  const nurseryMax = maxCharsForDataset(focus, "nursery_demand");
-  const nursery = await loadNurseryDemandJson();
-  if (nursery) {
-    datasets.push({
-      name: "nursery_demand_data",
-      bytes: nursery.length,
-      excerpt: compactNurseryForAssistant(nursery, nurseryMax),
-    });
-  } else {
-    notes.push(
-      "Production & Demand (nursery DEMAND) not available — refresh public/nursery-inventory-dashboard.html or publish demand JSON to Blob.",
-    );
-  }
+  pushDataset(
+    "nursery_demand_data",
+    await loadNurseryDemandJson(),
+    compactNurseryForAssistant,
+    "nursery_demand",
+    "Production & Demand (nursery DEMAND) not available — refresh public/nursery-inventory-dashboard.html or publish demand JSON to Blob.",
+  );
 
-  const retailMax = maxCharsForDataset(focus, "retail");
   const retail = await loadRetailDashboardJson();
-  if (retail) {
-    datasets.push({
-      name: "retail_opp_data",
-      bytes: retail.json.length,
-      excerpt: compactRetailForAssistant(retail.json, retailMax),
-    });
-  } else {
-    notes.push(
-      "Retail opportunity JSON not available — run npm run retail:extract-publish on VPN.",
-    );
-  }
+  pushDataset(
+    "retail_opp_data",
+    retail?.json ?? null,
+    compactRetailForAssistant,
+    "retail",
+    "Retail opportunity JSON not available — run npm run retail:extract-publish on VPN.",
+  );
 
-  const weatherMax = maxCharsForDataset(focus, "weather");
   const weather = await loadWeatherDashboardJson();
-  if (weather) {
-    datasets.push({
-      name: "weather_dashboard_data",
-      bytes: weather.json.length,
-      excerpt: compactWeatherForAssistant(weather.json, weatherMax),
-    });
-  } else {
-    notes.push(
-      "Weather dashboard JSON not available — run npm run weather:publish.",
-    );
-  }
+  pushDataset(
+    "weather_dashboard_data",
+    weather?.json ?? null,
+    compactWeatherForAssistant,
+    "weather",
+    "Weather dashboard JSON not available — run npm run weather:publish.",
+  );
 
   return { routeLabel, datasets, notes };
 }

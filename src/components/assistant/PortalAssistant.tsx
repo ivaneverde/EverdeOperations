@@ -33,7 +33,7 @@ export function PortalAssistant() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
-  const [provider, setProvider] = useState<AssistantProvider>("openai");
+  const [provider, setProvider] = useState<AssistantProvider>("anthropic");
   const [lastModel, setLastModel] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
