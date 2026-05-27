@@ -1,6 +1,6 @@
 {
   "name": "everde-ai-operations",
-  "version": "0.5.11",
+  "version": "0.5.12",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
@@ -20,6 +20,7 @@
     "freight:update-weekly": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/run-update-weekly.ps1",
     "publish:sales-plan-json": "node scripts/sales-plan-review/publish-dashboard-data.mjs",
     "sales-plan:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-extract-and-publish.ps1",
+    "sales-plan:or-extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-or-extract-and-publish.ps1",
     "sales-plan:bootstrap-json": "node scripts/sales-plan-review/bootstrap-json-from-html.mjs",
     "publish:retail-json": "node scripts/retail-opportunity/publish-dashboard-data.mjs",
     "retail:bootstrap-json": "node scripts/retail-opportunity/bootstrap-json-from-html.mjs",
@@ -28,6 +29,8 @@
     "retail:full-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/retail-opportunity/run-full-pipeline.ps1",
     "publish:weather-json": "node scripts/weather/publish-dashboard-data.mjs",
     "weather:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-publish.ps1",
+    "weather:share-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-share-pipeline.ps1",
+    "weather:full-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-share-pipeline.ps1 -FullPipeline",
     "weather:bootstrap-json": "node scripts/weather/bootstrap-json-from-html.mjs",
     "nursery:refresh-demand": "node scripts/nursery/refresh-nursery-demand.mjs",
     "weekly:register-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1",
