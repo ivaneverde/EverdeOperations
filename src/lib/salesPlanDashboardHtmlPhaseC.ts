@@ -77,3 +77,47 @@ export function replaceInlineSalesPlanDataWithApiFetch(html: string): string {
   out = stripInitialRenderExec(out);
   return out;
 }
+
+/** Point OR dashboard fetch at the portal API (Claude HTML uses /data/...). */
+export function patchOrSalesPlanHtmlForPortal(html: string): string {
+  let out = html.replace(
+    "fetch('/data/or-sales-plan-data.json')",
+    "fetch('/api/sales-plan/or/dashboard-data',{credentials:'same-origin'})",
+  );
+  out = out.replace(
+    '/data/or-sales-plan-data.json',
+    '/api/sales-plan/or/dashboard-data',
+  );
+  return out;
+}
+
+const OR_ACTIVATE_BRIDGE = `<script data-everde-portal="sales-plan-or-activate-bridge">
+(function(){
+  var M={
+    "Exec Summary":"exec",
+    "YTD Performance":"ytd",
+    "Miss by KI":"miss-ki",
+    "Miss by Customer":"miss-cust",
+    "Plan by KI":"plan-ki",
+    "Excess at Farm":"excess",
+    "Historical Lift":"hist",
+    "Channel Summary":"channel"
+  };
+  window.activate=function(name){
+    var id=M[name]||M[String(name||"").trim()]||"exec";
+    if(typeof showTab==="function")showTab(id);
+  };
+})();</script>`;
+
+export function injectOrSalesPlanPortalEmbeds(html: string): string {
+  const withFetch = patchOrSalesPlanHtmlForPortal(html);
+  const bodyClose = /<\/body\s*>/i.exec(withFetch);
+  if (bodyClose && bodyClose.index >= 0) {
+    return (
+      withFetch.slice(0, bodyClose.index) +
+      OR_ACTIVATE_BRIDGE +
+      withFetch.slice(bodyClose.index)
+    );
+  }
+  return withFetch + OR_ACTIVATE_BRIDGE;
+}

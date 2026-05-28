@@ -8,6 +8,8 @@ This document describes the **on-premises “agent” machine** that watches `Da
 |----------------|-----------|---------|--------|
 | **8:00 AM** | `Everde-SalesPlan-DailyCheck` | `Sales Plan Review\WeeklyDrop\` | Azure Blob `sales_plan_data.json` |
 | **9:00 AM Monday** | `Everde-Freight-WeeklyCheck` | `Freight\WeeklyDrop\` | Pipeline + Azure Blob `dashboard_data.json` (non-interactive; no fuel `[y/N]` prompt) |
+| **9:30 AM** | `Everde-Weather-DailyCheck` | `JS Files\Weather Data\scripts\` (Open-Meteo fetch) | Blob `weather_dashboard_data.json` |
+| **10:00 AM Monday** | `Everde-Retail-WeeklyCheck` | Share retail feeds → `SalesOpportunity\` | Blob `retail_opp_data.json` |
 | **1:30 PM Monday** | `Everde-Nursery-WeeklyCheck` | `Inventory Metrics\*.xlsb` | `public/nursery-inventory-dashboard.html` + **git push** |
 
 Times use the **Windows clock** on the agent PC. Set the machine to **Pacific Time**, or adjust times in `register-weekly-publish-tasks.ps1`.
@@ -24,7 +26,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 
 2. **Install**
    - Node.js 20+ (`node`, `npm` on PATH)
-   - Python 3.x on PATH (or set `FREIGHT_PYTHON` / `SALES_PLAN_PYTHON` in `.env.local`)
+   - Python 3.x on PATH (or set `FREIGHT_PYTHON` / `SALES_PLAN_PYTHON` / `WEATHER_PYTHON` in `.env.local`)
    - Git for Windows (for nursery auto-push)
 
 3. **VPN / network**
@@ -34,7 +36,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 4. **Secrets** — copy `.env.example` → `.env.local` in repo root (never commit). Minimum:
    - `AZURE_STORAGE_CONNECTION_STRING`
    - `AZURE_FREIGHT_BLOB_CONTAINER` (if non-default)
-   - Optional: `PORTAL_DATA_ROOT`, `FREIGHT_WEEKLY_DROP`, `SALES_PLAN_WEEKLY_DROP`
+   - Optional: `PORTAL_DATA_ROOT`, `FREIGHT_WEEKLY_DROP`, `SALES_PLAN_WEEKLY_DROP`, `WEATHER_DATA_ROOT`
 
 5. **Git push (nursery job only)**
    - Configure credentials for `git push` (HTTPS PAT or SSH key) for the user that owns the scheduled tasks
@@ -55,6 +57,8 @@ Each job **skips** if no new file since last success (state under `.everde-sched
    ```powershell
    powershell -File scripts/windows/run-scheduled-sales-plan.ps1 -Force
    powershell -File scripts/windows/run-scheduled-freight.ps1 -Force
+   powershell -File scripts/windows/run-scheduled-weather.ps1 -Force
+   powershell -File scripts/windows/run-scheduled-retail-build.ps1 -Force
    powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force
    ```
 
@@ -74,7 +78,9 @@ Each job **skips** if no new file since last success (state under `.everde-sched
    ```
 2. On the **new** machine: repeat **One-time setup** above.
 3. Copy `.everde-scheduler\` from the old repo clone if you want to avoid re-processing the same files (optional).
-4. Ensure only **one** machine runs the three tasks (avoid duplicate Blob uploads / git pushes).
+4. Ensure only **one** machine runs the scheduled tasks (avoid duplicate Blob uploads / git pushes).
+
+See **VM / new PC handoff:** `scripts/windows/VM_AGENT_HANDOFF.md` (Aaron-friendly checklist + optional `.bat` launcher).
 
 ## Unregister tasks
 

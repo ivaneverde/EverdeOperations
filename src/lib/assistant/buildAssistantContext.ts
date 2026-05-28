@@ -134,6 +134,17 @@ export async function buildAssistantContext(
     "Sales plan JSON not available (Blob, public/sales_plan_data.json, or HTML embed).",
   );
 
+  if (input.pathname.includes("or-forward-looking")) {
+    const orPlan = await loadSalesPlanDashboardJson("or");
+    pushDataset(
+      "or_sales_plan_data",
+      orPlan?.json ?? null,
+      compactSalesPlanForAssistant,
+      "sales_plan",
+      "Oregon sales plan JSON not available — run npm run sales-plan:or-extract-publish.",
+    );
+  }
+
   pushDataset(
     "nursery_demand_data",
     await loadNurseryDemandJson(),

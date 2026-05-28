@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import type { SalesPlanRegion } from "@/lib/salesPlan/regionConfig";
+import { SALES_PLAN_REGION_CONFIG } from "@/lib/salesPlan/regionConfig";
 
 function tryActivateIframe(win: Window | null | undefined, tab: string) {
   if (!win) return;
@@ -16,15 +18,18 @@ function tryActivateIframe(win: Window | null | undefined, tab: string) {
 export type SalesPlanDashboardEmbedProps = {
   /** Portal tab label passed to `activate(name)` (matches dashboard nav titles). */
   salesPlanHtmlTab?: string | null;
+  /** NOR CAL (default) or Oregon. */
+  region?: SalesPlanRegion;
 };
 
 /**
- * Embeds `Everde_NOR_CAL_Sales_Plan_Dashboard.html` via
- * `GET /api/sales-plan/dashboard-html` (metrics from `/api/sales-plan/dashboard-data`).
+ * Embeds Everde sales plan HTML via region-specific dashboard-html / dashboard-data APIs.
  */
 export function SalesPlanDashboardEmbed({
   salesPlanHtmlTab = null,
+  region = "nor-cal",
 }: SalesPlanDashboardEmbedProps) {
+  const cfg = SALES_PLAN_REGION_CONFIG[region];
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const tab = (salesPlanHtmlTab ?? "Exec Summary").trim() || "Exec Summary";
   const [iframeKey, setIframeKey] = useState(0);
@@ -52,9 +57,13 @@ export function SalesPlanDashboardEmbed({
         <iframe
           ref={iframeRef}
           key={iframeKey}
-          title="Everde NOR CAL Sales Plan Dashboard"
+          title={
+            region === "or"
+              ? "Everde Oregon Sales Plan Dashboard"
+              : "Everde NOR CAL Sales Plan Dashboard"
+          }
           className="h-full min-h-0 w-full max-w-full flex-1 border-0"
-          src="/api/sales-plan/dashboard-html"
+          src={cfg.htmlApiPath}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           onLoad={onIframeLoad}
         />

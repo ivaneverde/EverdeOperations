@@ -7,10 +7,14 @@ export function salesPlanBlobContainer(): string {
   );
 }
 
-/** Blob path for live NOR CAL sales plan JSON. */
-export function salesPlanDashboardJsonBlobPath(): string {
-  return (
-    process.env.AZURE_SALES_PLAN_DASHBOARD_JSON_BLOB?.trim() ||
-    "sales-plan/latest/sales_plan_data.json"
-  );
+import type { SalesPlanRegion } from "@/lib/salesPlan/regionConfig";
+import { SALES_PLAN_REGION_CONFIG } from "@/lib/salesPlan/regionConfig";
+
+/** Blob path for live sales plan JSON (NOR CAL or Oregon). */
+export function salesPlanDashboardJsonBlobPath(
+  region: SalesPlanRegion = "nor-cal",
+): string {
+  const cfg = SALES_PLAN_REGION_CONFIG[region];
+  const fromEnv = process.env[cfg.blobEnvKey as keyof NodeJS.ProcessEnv]?.trim();
+  return fromEnv || cfg.defaultBlobPath;
 }

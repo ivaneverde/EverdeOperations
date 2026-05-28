@@ -1,8 +1,8 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { DATA_ROOT_UNC } from "@/config/portal";
-
-const HTML_BASENAME = "Everde_NOR_CAL_Sales_Plan_Dashboard.html";
+import type { SalesPlanRegion } from "@/lib/salesPlan/regionConfig";
+import { SALES_PLAN_REGION_CONFIG } from "@/lib/salesPlan/regionConfig";
 
 async function newestByMtime(paths: string[]): Promise<string | null> {
   let best: { path: string; mtime: number } | null = null;
@@ -32,25 +32,31 @@ async function globNewestInDir(dir: string, pattern: RegExp): Promise<string | n
 }
 
 /**
- * Resolve NOR CAL sales plan dashboard HTML: env pin, then public/, then DataDrops.
+ * Resolve sales plan dashboard HTML: env pin, then public/, then DataDrops.
  */
-export async function resolveSalesPlanDashboardHtmlPath(): Promise<{
+export async function resolveSalesPlanDashboardHtmlPath(
+  region: SalesPlanRegion = "nor-cal",
+): Promise<{
   path: string | null;
   searchedSummary: string;
 }> {
+  const cfg = SALES_PLAN_REGION_CONFIG[region];
   const searched: string[] = [];
 
-  const pinned = process.env.SALES_PLAN_DASHBOARD_HTML?.trim();
-  if (pinned) {
+  const pinnedEnv =
+    region === "or"
+      ? process.env.OR_SALES_PLAN_DASHBOARD_HTML?.trim()
+      : process.env.SALES_PLAN_DASHBOARD_HTML?.trim();
+  if (pinnedEnv) {
     try {
-      await fs.access(pinned);
-      return { path: pinned, searchedSummary: `SALES_PLAN_DASHBOARD_HTML=${pinned}` };
+      await fs.access(pinnedEnv);
+      return { path: pinnedEnv, searchedSummary: `pinned=${pinnedEnv}` };
     } catch {
-      searched.push(`SALES_PLAN_DASHBOARD_HTML (missing): ${pinned}`);
+      searched.push(`pinned HTML (missing): ${pinnedEnv}`);
     }
   }
 
-  const publicPath = path.join(process.cwd(), "public", HTML_BASENAME);
+  const publicPath = path.join(process.cwd(), "public", cfg.htmlBasename);
   searched.push(publicPath);
   try {
     await fs.access(publicPath);
@@ -69,8 +75,8 @@ export async function resolveSalesPlanDashboardHtmlPath(): Promise<{
   ];
 
   for (const dir of shareDirs) {
-    searched.push(`${dir}\\${HTML_BASENAME}`);
-    const fromShare = await globNewestInDir(dir, /^Everde_NOR_CAL_Sales_Plan_Dashboard.*\.html$/i);
+    searched.push(`${dir}\\${cfg.htmlBasename}`);
+    const fromShare = await globNewestInDir(dir, cfg.shareHtmlPattern);
     if (fromShare) {
       return { path: fromShare, searchedSummary: searched.join("; ") };
     }

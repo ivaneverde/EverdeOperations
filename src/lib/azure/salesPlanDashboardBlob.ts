@@ -5,6 +5,8 @@ import {
   salesPlanBlobContainer,
   salesPlanDashboardJsonBlobPath,
 } from "@/lib/azure/salesPlanBlobPaths";
+import type { SalesPlanRegion } from "@/lib/salesPlan/regionConfig";
+import { SALES_PLAN_REGION_CONFIG } from "@/lib/salesPlan/regionConfig";
 
 async function streamToString(
   stream: NodeJS.ReadableStream | undefined,
@@ -17,13 +19,13 @@ async function streamToString(
   return Buffer.concat(chunks).toString("utf8");
 }
 
-export async function downloadSalesPlanDashboardJsonFromBlob(): Promise<
-  string | null
-> {
+export async function downloadSalesPlanDashboardJsonFromBlob(
+  region: SalesPlanRegion = "nor-cal",
+): Promise<string | null> {
   const svc = getBlobServiceClient();
   if (!svc) return null;
   const container = salesPlanBlobContainer();
-  const blobPath = salesPlanDashboardJsonBlobPath();
+  const blobPath = salesPlanDashboardJsonBlobPath(region);
   const client = svc.getContainerClient(container).getBlockBlobClient(blobPath);
   try {
     const res = await client.download(0);
@@ -33,13 +35,15 @@ export async function downloadSalesPlanDashboardJsonFromBlob(): Promise<
   }
 }
 
-export async function downloadSalesPlanDashboardJsonFromLocal(): Promise<
-  string | null
-> {
-  const explicit = process.env.PUBLIC_SALES_PLAN_DASHBOARD_JSON?.trim();
+export async function downloadSalesPlanDashboardJsonFromLocal(
+  region: SalesPlanRegion = "nor-cal",
+): Promise<string | null> {
+  const cfg = SALES_PLAN_REGION_CONFIG[region];
+  const explicit = process.env[cfg.localJsonEnvKey as keyof NodeJS.ProcessEnv]
+    ?.trim();
   const candidates = [
     explicit,
-    path.join(process.cwd(), "public", "sales_plan_data.json"),
+    path.join(process.cwd(), "public", cfg.localJsonBasename),
   ].filter(Boolean) as string[];
   for (const p of candidates) {
     try {

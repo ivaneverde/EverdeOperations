@@ -11,14 +11,14 @@ export const DATA_ROOT_UNC =
 
 /** Workbook shown as Source for freight HTML tab mirrors (published weekly dashboard). */
 const FREIGHT_DASHBOARD_SOURCE =
-  "Freight\\WeeklyDrop\\Everde Freight Dashboard YTD 5-18-26 (rebuilt).xlsx";
+  "Freight\\WeeklyDrop\\Everde Freight Dashboard YTD 5-27-26 (rebuilt).xlsx";
 
 /**
  * Weekly retail drop on DataDrops (five pipeline output workbooks).
  * Legacy deliverables may also live under `West Coast Retail Opportunity\` on JS Files.
  */
 const RETAIL_DROP_FOLDER = "SalesOpportunity";
-const RETAIL_WEEKLY_SOURCE = `${RETAIL_DROP_FOLDER}\\Sales Manager Summary - Wk14 2026 (Refresh 5.6).xlsx`;
+const RETAIL_WEEKLY_SOURCE = `${RETAIL_DROP_FOLDER}\\Sales Manager Summary - Wk21 2026.xlsx`;
 
 /** Weather dashboard + crosswalk (daily pipeline on share). */
 const WEATHER_DATA_ROOT = "Weather Data";
@@ -234,28 +234,28 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       {
         slug: "retail-hd-detail",
         title: "HD Detail",
-        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\HD Sales Variance & Allocation - Wk14 2026 (Refresh 5.6).xlsx`,
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\HD Sales Variance & Allocation - Wk21 2026.xlsx`,
         retailHtmlTab: "HD Detail",
         navAccent: "C49B3F",
       },
       {
         slug: "retail-lowes-detail",
         title: "Lowes Detail",
-        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\LOW Sales Variance & Allocation - Wk14 2026 (Refresh 5.6).xlsx`,
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\LOW Sales Variance & Allocation - Wk21 2026.xlsx`,
         retailHtmlTab: "Lowes Detail",
         navAccent: "1F3A5F",
       },
       {
         slug: "retail-for-source-miss",
         title: "FOR Source Miss",
-        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\FOR Source Miss Report - Wk14 2026 (Refresh 5.6).xlsx`,
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\FOR Source Miss Report - Wk21 2026.xlsx`,
         retailHtmlTab: "FOR Source Miss",
         navAccent: "5B4F8A",
       },
       {
         slug: "retail-miss-analysis",
         title: "Item-Level Miss Analysis",
-        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\Wk13 Item-Level Miss Analysis (Refresh 5.6).xlsx`,
+        sourceRelativePath: `${RETAIL_DROP_FOLDER}\\Wk20 Item-Level Miss Analysis - Wk21 2026.xlsx`,
         retailHtmlTab: "Wk13 Miss Analysis",
         navAccent: "404040",
       },
@@ -425,8 +425,10 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "or-forward-looking-ytd",
         title: "OR Forward Looking YTD Miss vs Inventory",
         sourceRelativePath:
-          "Sales Plan Review\\OR Forward Looking YTD Miss vs Inventory 051126.xlsx",
-        notes: "OR region workbook — portal embed coming after NOR CAL rollout.",
+          "Sales Plan Review\\OR_Forward_Looking_YTD_Miss_vs_Inventory_052126.xlsx",
+        navAccent: "2F5233",
+        notes:
+          "Oregon workbook not on share yet — shows rollout status until build_or_workbook_patched.py + extract --region OR.",
       },
     ],
   },
@@ -568,6 +570,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       {
         slug: "3p-top5-lanes-carrier-analysis",
         title: "3P Top 5 Lanes — Carrier Cost Analysis",
+        hideFromNav: true,
         sourceRelativePath: "Freight\\3P_Top5_Lanes_Carrier_Analysis_2026-05-04.xlsx",
         sheetTabs: [
           "How to Read",
@@ -581,6 +584,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       {
         slug: "everde-freight-data-ytd",
         title: "Everde Freight Data (YTD)",
+        hideFromNav: true,
         sourceRelativePath:
           "Everde Freight Data YTD 5-09-26 with MAR-26 Rates with adj 26 BUD YE COSTS.xlsb",
         notes:
@@ -589,12 +593,14 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       {
         slug: "pricing-file-total-adjustments",
         title: "Pricing File — Total Adjustments",
+        hideFromNav: true,
         sourceRelativePath:
           "Freight\\Pricing File - Total Adjustments rev.05052026.xlsx",
       },
       {
         slug: "legacy-html-dashboard",
         title: "Legacy HTML Dashboard (reference)",
+        hideFromNav: true,
         sourceRelativePath: "Freight\\Everde_Freight_Dashboard_2026-05-04.html",
         notes:
           "Prior HTML export; useful for visual parity while rebuilding charts in React.",
@@ -624,7 +630,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     sectionOnly: true,
     nurseryPane: "demand",
     sectionSourceRelativePath:
-      "Inventory Metrics\\Inventory Metrics 05 18 26.xlsb",
+      "Inventory Metrics\\Inventory Metrics 05 26 26.xlsb",
     sectionNotes:
       "Drop the latest Inventory Metrics workbook in Inventory Metrics (run npm run nursery:refresh-demand after each drop).",
     reports: [],

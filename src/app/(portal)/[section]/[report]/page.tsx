@@ -2,11 +2,13 @@ import { notFound, redirect } from "next/navigation";
 import { FreightDashboardEmbed } from "@/components/reports/FreightDashboardEmbed";
 import { RetailDashboardEmbed } from "@/components/reports/RetailDashboardEmbed";
 import { SalesPlanDashboardEmbed } from "@/components/reports/SalesPlanDashboardEmbed";
+import { SalesPlanOrPending } from "@/components/reports/SalesPlanOrPending";
 import { WeatherDashboardEmbed } from "@/components/reports/WeatherDashboardEmbed";
 import { FreightYtdSourcePage } from "@/components/reports/FreightYtdSourcePage";
 import { ReportPlaceholder } from "@/components/ReportPlaceholder";
 import { ReportShell } from "@/components/ReportShell";
 import { getReport } from "@/config/portal";
+import { salesPlanRegionFromSlug } from "@/lib/salesPlan/regionConfig";
 
 export default async function ReportPage(
   props: PageProps<"/[section]/[report]">,
@@ -40,12 +42,15 @@ export default async function ReportPage(
     sec.id === "load-board-freight" && rep.slug === "everde-freight-dashboard";
   const isFreightHtmlEmbed = isPrimaryFreightDashboard || freightTab != null;
 
+  const salesPlanRegion = salesPlanRegionFromSlug(rep.slug);
   const salesPlanTab =
     typeof rep.salesPlanHtmlTab === "string" &&
     rep.salesPlanHtmlTab.trim().length > 0
       ? rep.salesPlanHtmlTab.trim()
       : null;
   const isSalesPlanHtmlEmbed = salesPlanTab != null;
+  const isSalesPlanOrPending =
+    sec.id === "sales-plan-review" && salesPlanRegion === "or";
 
   const retailTab =
     typeof rep.retailHtmlTab === "string" && rep.retailHtmlTab.trim().length > 0
@@ -75,10 +80,21 @@ export default async function ReportPage(
     );
   }
 
+  if (isSalesPlanOrPending) {
+    return (
+      <ReportShell section={sec} report={rep}>
+        <SalesPlanOrPending report={rep} />
+      </ReportShell>
+    );
+  }
+
   if (isSalesPlanHtmlEmbed) {
     return (
       <ReportShell section={sec} report={rep} embedBody>
-        <SalesPlanDashboardEmbed salesPlanHtmlTab={salesPlanTab} />
+        <SalesPlanDashboardEmbed
+          salesPlanHtmlTab={salesPlanTab}
+          region={salesPlanRegion}
+        />
       </ReportShell>
     );
   }

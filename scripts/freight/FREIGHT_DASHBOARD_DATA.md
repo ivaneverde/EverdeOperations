@@ -39,8 +39,9 @@ If Excel was saved **without full recalculation**, formula cells on **visible** 
 
 When precomputing numbers for the HTML `dashboard-data` JSON:
 
-- **Current:** Year **2026**, month **YTD (Jan–Apr)**, region **All**
-- **Compare:** Year **2025**, month **YTD (Jan–Apr)**
+- **Current:** Year **2026**, month **YTD** (all months present in `_history` for 2026 — e.g. Jan–May), region **All**
+- **Compare:** Year **2025**, same YTD month keys as 2026
+- **Portal labels:** `extract_data.py` writes `meta.ytd_subtitle` and `meta.sidebar_badge`; the HTML cover line is updated at runtime from Blob JSON (not hardcoded).
 
 ## Metric rules
 

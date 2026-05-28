@@ -26,12 +26,12 @@ export default function PortalHomePage() {
             className="mt-5 max-w-3xl border-t border-white/20 pt-4 text-xs leading-relaxed text-zinc-300"
             role="note"
           >
+            Live dashboards refresh from weekly DataDrops pipelines into secure
+            cloud storage. Sign in with your{" "}
             <span className="font-semibold text-[var(--everde-gold)]">
-              Phase note:
+              @everde.com
             </span>{" "}
-            Local development only for fast design and testing. Later this will
-            move to an online portal for broad access on phones, tablets, and
-            desktop browsers.
+            account; use a desktop or tablet for the best experience.
           </p>
         </header>
         <div className="grid gap-5 md:grid-cols-2">

@@ -13,10 +13,12 @@ Dependencies:
 """
 
 import math
+import re
 import sys
 import json
 import numpy as np
 import pandas as pd
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -31,6 +33,17 @@ MONTH_KEYS = [
     '01-JAN', '02-FEB', '03-MAR', '04-APR', '05-MAY', '06-JUN',
     '07-JUL', '08-AUG', '09-SEP', '10-OCT', '11-NOV', '12-DEC'
 ]
+MONTH_KEY_TO_LABEL = {
+    '01-JAN': 'January', '02-FEB': 'February', '03-MAR': 'March',
+    '04-APR': 'April', '05-MAY': 'May', '06-JUN': 'June',
+    '07-JUL': 'July', '08-AUG': 'August', '09-SEP': 'September',
+    '10-OCT': 'October', '11-NOV': 'November', '12-DEC': 'December',
+}
+MONTH_KEY_TO_SHORT = {
+    '01-JAN': 'Jan', '02-FEB': 'Feb', '03-MAR': 'Mar', '04-APR': 'Apr',
+    '05-MAY': 'May', '06-JUN': 'Jun', '07-JUL': 'Jul', '08-AUG': 'Aug',
+    '09-SEP': 'Sep', '10-OCT': 'Oct', '11-NOV': 'Nov', '12-DEC': 'Dec',
+}
 REGION_SITES = {
     'N. CA': ['WIN', 'BRA'],
     'S. CA': ['STE', 'FAL', 'PIR', 'MLC', 'ESC', 'PAU', 'HUN'],
@@ -121,6 +134,54 @@ def kpi_row(df, year, months=None):
     }
 
 
+def parse_workbook_as_of(path: Path):
+    """Parse M-D-YY from filenames like ``Everde Freight Dashboard YTD 5-27-26.xlsx``."""
+    m = re.search(r'(\d{1,2})-(\d{1,2})-(\d{2,4})', path.name)
+    if not m:
+        return None, None
+    mo, day, yr = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    if yr < 100:
+        yr += 2000
+    try:
+        dt = datetime(yr, mo, day)
+    except ValueError:
+        return None, None
+    return dt.strftime('%Y-%m-%d'), f'{dt.strftime("%B")} {day}, {yr}'
+
+
+def build_freight_meta(all_years, ytd_months, file_path, all_sites):
+    """Labels for HTML cover/sidebar; derived from detected YTD months and workbook name."""
+    years = [int(y) for y in all_years] if all_years else list(YEARS)
+    years_str = f'{min(years)}-{max(years)}' if years else '2022-2026'
+    current_year = max(years) if years else 2026
+
+    months = ytd_months or YTD_MONTHS
+    last_mk = months[-1]
+    first_mk = months[0]
+    last_short = MONTH_KEY_TO_SHORT.get(last_mk, last_mk)
+    through_label = f'{MONTH_KEY_TO_LABEL.get(last_mk, last_short)} {current_year}'
+
+    as_of_iso, as_of_label = parse_workbook_as_of(Path(file_path))
+    subtitle = f'5-Year History ({years_str}) · YTD through {through_label}'
+    if as_of_label:
+        subtitle += f' · Updated {as_of_label}'
+
+    return {
+        'years': [str(y) for y in years],
+        'ytd_months': months,
+        'ytd_through_label': through_label,
+        'years_range': years_str,
+        'ytd_subtitle': subtitle,
+        'sidebar_badge': f'YTD {last_short.upper()} {current_year}',
+        'source_workbook': Path(file_path).name,
+        'workbook_as_of': as_of_iso,
+        'workbook_as_of_label': as_of_label,
+        'extracted_at': datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
+        'regions': REGIONS,
+        'sites': all_sites,
+    }
+
+
 def load_file(path):
     """Load XLSB or XLSX and return ExcelFile object."""
     p = Path(path)
@@ -137,7 +198,7 @@ def load_file(path):
 # MAIN EXTRACTOR
 # ─────────────────────────────────────────────
 
-def extract(file_path, output_path=None):
+def extract(file_path, output_path=None, meta_source_path=None):
     print(f"Loading: {file_path}", flush=True)
     print("Opening workbook (large .xlsb can take several minutes)…", flush=True)
     xl = load_file(file_path)
@@ -495,13 +556,9 @@ def extract(file_path, output_path=None):
     # ASSEMBLE & OUTPUT
     # ══════════════════════════════════════════
     result = {
-        # Meta
-        'meta': {
-            'years':      [str(y) for y in all_years],
-            'ytd_months': ytd_months,
-            'regions':    REGIONS,
-            'sites':      all_sites,
-        },
+        # Meta (cover subtitle + sidebar badge in portal HTML read these fields)
+        'meta': build_freight_meta(
+            all_years, ytd_months, meta_source_path or file_path, all_sites),
         # Core metrics
         'company_kpis':   company_kpis,
         'region_kpis':    region_kpis,
@@ -558,4 +615,5 @@ if __name__ == '__main__':
 
     input_file  = sys.argv[1]
     output_file = sys.argv[2] if len(sys.argv) > 2 else None
-    extract(input_file, output_file)
+    meta_source = sys.argv[3] if len(sys.argv) > 3 else None
+    extract(input_file, output_file, meta_source)

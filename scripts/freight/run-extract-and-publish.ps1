@@ -115,7 +115,7 @@ $handoff = Join-Path $PSScriptRoot "claude-handoff"
 Push-Location $handoff
 try {
   Write-Host "Running extract_data.py..." -ForegroundColor Cyan
-  & $python -u extract_data.py $localCopy $outJson
+  & $python -u extract_data.py $localCopy $outJson $inputFile
   if ($LASTEXITCODE -ne 0) {
     Write-Error "extract_data.py exited with code $LASTEXITCODE"
     exit $LASTEXITCODE
