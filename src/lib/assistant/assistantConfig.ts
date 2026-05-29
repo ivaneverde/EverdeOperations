@@ -67,3 +67,14 @@ export function openAiCompendiumMode(): boolean {
   if (env === "0" || env === "false" || env === "focused") return false;
   return true;
 }
+
+/**
+ * When true (default), Claude gets freight + sales plan + nursery + retail + weather
+ * on every request (~20k–50k input tokens). Set ANTHROPIC_ASSISTANT_COMPENDIUM=0 for
+ * page-focused context so back-to-back questions hit Anthropic TPM limits less often.
+ */
+export function anthropicCompendiumMode(): boolean {
+  const env = process.env.ANTHROPIC_ASSISTANT_COMPENDIUM?.trim().toLowerCase();
+  if (env === "0" || env === "false" || env === "focused") return false;
+  return true;
+}

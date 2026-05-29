@@ -87,6 +87,11 @@ async function runAnthropic(
 
   if (!res.ok) {
     const errText = await res.text();
+    if (errText.includes("rate_limit") || res.status === 429) {
+      throw new Error(
+        "Claude rate limit (tokens per minute on your Anthropic account). Wait 30–60 seconds and retry, ask shorter follow-ups, or set ANTHROPIC_ASSISTANT_COMPENDIUM=0 on Vercel for smaller context per message. Higher TPM requires a higher tier at console.anthropic.com.",
+      );
+    }
     if (errText.includes("not_found_error")) {
       throw new Error(
         "Claude model not found. Set ANTHROPIC_ASSISTANT_MODEL to a valid ID (e.g. claude-sonnet-4-6) in Vercel and redeploy.",

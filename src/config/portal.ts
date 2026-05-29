@@ -11,7 +11,7 @@ export const DATA_ROOT_UNC =
 
 /** Workbook shown as Source for freight HTML tab mirrors (published weekly dashboard). */
 const FREIGHT_DASHBOARD_SOURCE =
-  "Freight\\WeeklyDrop\\Everde Freight Dashboard YTD 5-27-26 (rebuilt).xlsx";
+  "DataDrops\\Everde_Freight_Dashboard_2026-05-28.xlsx";
 
 /**
  * Weekly retail drop on DataDrops (five pipeline output workbooks).

@@ -523,6 +523,9 @@ svg text { font-family: var(--mono); }
       <div class="nav-item" data-tab="thirdparty" onclick="showTab('thirdparty')">
         <span class="icon">🤝</span> 3rd Party
       </div>
+      <div class="nav-item" data-tab="internal-freight" onclick="showTab('internal-freight')">
+        <span class="icon">🏭</span> Internal Freight
+      </div>
       <div class="nav-item" data-tab="variance" onclick="showTab('variance')">
         <span class="icon">📉</span> Variance Drivers
       </div>
@@ -706,6 +709,15 @@ svg text { font-family: var(--mono); }
         <div class="subtitle">5-yr 3P trend · Region compare · Top carriers · Top lanes</div>
       </div>
       <div id="thirdparty-content"></div>
+    </div>
+
+    <!-- INTERNAL FREIGHT ANALYSIS -->
+    <div id="tab-internal-freight" class="page">
+      <div class="page-header">
+        <h1>Internal Freight Analysis</h1>
+        <div class="subtitle">5-yr internal trend · by region · top lanes</div>
+      </div>
+      <div id="internal-content"></div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════
@@ -1953,6 +1965,7 @@ const renderers = {
   'site-region': renderSiteRegion,
   trailer: renderTrailer,
   thirdparty: renderThirdParty,
+  'internal-freight': function(){ if(typeof renderInternalFreight==='function')renderInternalFreight(); },
   variance: renderVariance,
   pivot: renderPivot,
   opportunities: renderOpportunities,
@@ -1983,5 +1996,6 @@ window.addEventListener('resize', () => {
 });
 
 </script>
+<script src="/freight-gap-enhancements.js"></script>
 </body>
 </html>

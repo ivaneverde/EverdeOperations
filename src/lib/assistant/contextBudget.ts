@@ -1,4 +1,7 @@
-import { openAiCompendiumMode } from "@/lib/assistant/assistantConfig";
+import {
+  anthropicCompendiumMode,
+  openAiCompendiumMode,
+} from "@/lib/assistant/assistantConfig";
 import type { AssistantProvider } from "@/lib/assistant/types";
 
 export type AssistantDatasetId =
@@ -97,25 +100,33 @@ export function maxCharsForDataset(
     }
     return openAiFocusedBudget(focus, dataset, isPrimary);
   }
-  return anthropicBudget(focus, dataset, isPrimary);
+  if (anthropicCompendiumMode()) {
+    return anthropicBudget(focus, dataset, isPrimary);
+  }
+  return openAiFocusedBudget(focus, dataset, isPrimary);
+}
+
+function usesFocusedContext(provider: AssistantProvider): boolean {
+  if (provider === "openai") return !openAiCompendiumMode();
+  return !anthropicCompendiumMode();
 }
 
 export function catalogMaxChars(provider: AssistantProvider): number {
-  if (provider === "openai" && !openAiCompendiumMode()) {
+  if (usesFocusedContext(provider)) {
     return OPENAI_FOCUSED_CATALOG_MAX_CHARS;
   }
   return PORTAL_CATALOG_MAX_CHARS;
 }
 
 export function maxChatTurns(provider: AssistantProvider): number {
-  if (provider === "openai" && !openAiCompendiumMode()) {
+  if (usesFocusedContext(provider)) {
     return OPENAI_FOCUSED_MAX_CHAT_TURNS;
   }
   return 12;
 }
 
 export function maxTurnChars(provider: AssistantProvider): number {
-  if (provider === "openai" && !openAiCompendiumMode()) {
+  if (usesFocusedContext(provider)) {
     return OPENAI_FOCUSED_MAX_TURN_CHARS;
   }
   return 8_000;

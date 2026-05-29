@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CeoBriefingPanel } from "@/components/portal/CeoBriefingPanel";
 import {
   getSectionDisplayNumber,
   isSectionOnly,
@@ -34,6 +35,7 @@ export default function PortalHomePage() {
             account; use a desktop or tablet for the best experience.
           </p>
         </header>
+        <CeoBriefingPanel />
         <div className="grid gap-5 md:grid-cols-2">
           {PORTAL_SECTIONS.map((section) => {
             const only = isSectionOnly(section);

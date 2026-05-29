@@ -73,6 +73,7 @@ export function replaceInlineFreightDataWithApiFetch(html: string): string {
       D=data;
       if(typeof renderCover==='function')renderCover();
       else if(typeof updateFreightDateLabels==='function')updateFreightDateLabels();
+      if(typeof window.__freightGapInstall==='function')window.__freightGapInstall();
       window.__everdeFreightDataReady=true;
       var q=window.__everdeFreightActivateQueue;
       if(q&&q.length){while(q.length){try{(q.shift())();}catch(e){console.error(e);}}}

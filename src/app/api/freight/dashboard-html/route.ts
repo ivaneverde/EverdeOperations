@@ -69,7 +69,7 @@ const PORTAL_FREIGHT_ACTIVATE_BRIDGE = `<script data-everde-portal="activate-bri
     "Site & Region Analysis":"site-region",
     "Trailer & Trip Analysis":"trailer",
     "3rd Party Analysis":"thirdparty",
-    "Internal Freight Analysis":"trailer",
+    "Internal Freight Analysis":"internal-freight",
     "Variance Drivers":"variance",
     "Pivot Playground":"pivot",
     "Top Opportunities":"opportunities",
@@ -84,6 +84,8 @@ const PORTAL_FREIGHT_ACTIVATE_BRIDGE = `<script data-everde-portal="activate-bri
   window.activate=function(name){
     var run=function(){
       var id=M[name]||M[String(name||"").trim()]||"cover";
+      if(String(name||"").indexOf("Last Week")>=0)window.__freightOppView="last-week";
+      else if(id==="opportunities")window.__freightOppView="all";
       if(typeof showTab==="function")showTab(id);
     };
     if(window.__everdeFreightDataReady){ run(); return; }
