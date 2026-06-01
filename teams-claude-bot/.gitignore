@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+ClaudeTeamsBot.zip
+teams-app-manifest/color.png
+teams-app-manifest/outline.png
+.env.local
+*.log
+.DS_Store

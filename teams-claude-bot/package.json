@@ -1,0 +1,35 @@
+{
+  "name": "everde-teams-claude-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Microsoft Teams bot powered by Anthropic Claude API",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "verify-env": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-env.ps1",
+    "start:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1",
+    "teams:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-teams-package.ps1"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0",
+    "botbuilder": "^4.23.2",
+    "dotenv": "^16.5.0",
+    "restify": "^11.1.0",
+    "winston": "^3.17.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.28"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "@types/restify": "^8.5.12",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
