@@ -122,7 +122,11 @@ export class TeamsClaudeBot extends ActivityHandler {
           ),
         );
 
-        const reply = await this.claude.completeWithContent(history, blocks);
+        const reply = await this.claude.completeWithContent(
+          history,
+          blocks,
+          text,
+        );
 
         this.store.append(conversationId, {
           role: "user",

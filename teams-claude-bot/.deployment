@@ -1,2 +1,2 @@
 [config]
-command = echo "dist-only deploy — no build"
+command = bash deploy.sh

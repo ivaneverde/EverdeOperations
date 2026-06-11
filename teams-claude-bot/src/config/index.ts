@@ -21,6 +21,26 @@ const envSchema = z.object({
     .max(32 * 1024 * 1024)
     .default(20 * 1024 * 1024),
   ATTACHMENT_MAX_EXCEL_ROWS: z.coerce.number().int().positive().max(5000).default(500),
+  AZURE_STORAGE_CONNECTION_STRING: z.string().optional(),
+  AZURE_FREIGHT_BLOB_CONTAINER: z.string().optional(),
+  AZURE_FREIGHT_DASHBOARD_JSON_BLOB: z.string().optional(),
+  AZURE_SALES_PLAN_DASHBOARD_JSON_BLOB: z.string().optional(),
+  AZURE_RETAIL_DASHBOARD_JSON_BLOB: z.string().optional(),
+  AZURE_WEATHER_DASHBOARD_JSON_BLOB: z.string().optional(),
+  AZURE_NURSERY_DEMAND_JSON_BLOB: z.string().optional(),
+  ENABLE_WEB_SEARCH: z
+    .preprocess(
+      (v) => (v === undefined || v === "" ? "1" : String(v)),
+      z
+        .enum(["0", "1", "true", "false"])
+        .transform((v) => v !== "0" && v !== "false"),
+    ),
+  WEB_SEARCH_MAX_USES: z.coerce.number().int().positive().max(10).default(3),
+  EVERDE_SNAPSHOT_CACHE_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5 * 60 * 1000),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
@@ -55,6 +75,15 @@ File analysis:
 - Cite specific numbers and trends from spreadsheets; state clearly when only a sample of rows was visible.
 - .xlsb is not supported — suggest saving as .xlsx or PDF.
 
+Everde data (always in context):
+- You receive an **Everde data snapshot** each turn (freight, sales plan, retail, weather when published). **Prefer this for all internal Everde metrics** — cite specific numbers from the snapshot or Everde tools.
+- Use **get_freight_dashboard**, **get_sales_plan_dashboard**, and other Everde tools for deeper drill-down when the snapshot is not enough.
+- Do not invent company metrics, policies, or financial figures. If Blob data is missing, say so clearly.
+
+Web search (on demand only):
+- **Web search is only enabled when the user needs live public/external facts** (weather, news, current events, public benchmarks). Do not use web search for freight, sales plan, nursery, or retail questions — use Everde data instead.
+- When web search is unavailable for a turn, explain that live web lookup was not triggered and offer Everde data or ask the user to rephrase with "search the web" if they need external info.
+
 Everde context:
-- This Teams app was built for Everde internal use; Ivan Sunderland led the integration. IT (Aaron) approves the app in Teams Admin Center.
+- This Teams app was built for Everde internal use; **created by Ivan Sunderland**. IT (Aaron) approves the app in Teams Admin Center.
 - Do not invent company metrics, policies, or financial figures. If unsure, say so.`;

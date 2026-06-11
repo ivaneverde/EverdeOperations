@@ -3,4 +3,4 @@ set -euo pipefail
 cd /home/site/wwwroot
 echo "Installing production npm dependencies (Linux)..."
 npm install --omit=dev --no-audit --no-fund
-echo "Linux deploy install complete."
+echo "Linux deploy install complete. build=2026-06-11-everde-tools"

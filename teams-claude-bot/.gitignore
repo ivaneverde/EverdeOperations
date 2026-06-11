@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 ClaudeTeamsBot.zip
+deploy*.zip
 teams-app-manifest/color.png
 teams-app-manifest/outline.png
 .env.local
