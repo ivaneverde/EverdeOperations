@@ -1,8 +1,8 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Weekly check (default Monday 9:00 AM local): rebuild freight dashboard if raw WeeklyDrop file is new,
-  then publish JSON to Azure Blob when the dashboard workbook changes.
+  Daily check (default 9:00 AM local): sync newest raw from Juanita's Load Board share into WeeklyDrop,
+  rebuild freight dashboard if raw changed, then publish JSON to Azure Blob when the dashboard workbook changes.
   Runs update.py with --skip-fuel-check so Task Scheduler never blocks on the fuel_data.py [y/N] prompt.
 #>
 param([switch]$Force)
@@ -19,6 +19,13 @@ $logFile = Join-Path $logDir ("freight-{0:yyyyMMdd-HHmmss}.log" -f (Get-Date))
 Start-Transcript -Path $logFile -Append | Out-Null
 
 try {
+  Write-Host "Syncing freight raw from Load Board share..." -ForegroundColor Cyan
+  $syncScript = Join-Path $RepoRoot "scripts\freight\sync-freight-from-source.ps1"
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $syncScript
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning "freight sync-from-source exited $LASTEXITCODE (continuing with WeeklyDrop contents)"
+  }
+
   $dataRoot = Get-DataDropsRoot
   $weeklyDrop = if ($env:FREIGHT_WEEKLY_DROP) {
     ($env:FREIGHT_WEEKLY_DROP.Trim() -replace "/", "\").TrimEnd("\")

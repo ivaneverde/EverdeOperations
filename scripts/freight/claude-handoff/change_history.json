@@ -1,0 +1,74 @@
+[
+  {
+    "date": "2026-06-11",
+    "type": "DATA",
+    "summary": "Weekly data refresh — YTD through 6-JUN-2026 (6-6-26 raw file)",
+    "detail": "Pipeline rebuilt dashboard from Everde Freight Data YTD 6-6-26 with MAR-26 Rates with updated 26 BUD YE COSTS.xlsb. Portal JSON republished to Azure Blob."
+  },
+  {
+    "date": "2026-06-11",
+    "type": "FEATURE",
+    "summary": "Region dashboard filters — Week + Sales Director on all five regions",
+    "detail": "Portal region tabs now filter KPI cards and site breakdown by week and sales director using region_drill data from Master Data."
+  },
+  {
+    "date": "2026-06-02",
+    "type": "DATA",
+    "summary": "Weekly data refresh — YTD through 5-31-2026",
+    "detail": "Pipeline run on 5-31-26 raw drop; dashboard and portal JSON updated."
+  },
+  {
+    "date": "2026-05-29",
+    "type": "FEATURE",
+    "summary": "Portal gap analysis shipped (v0.5.14) — Top Opps Last Week, Internal Freight, Sales Performance",
+    "detail": "Jonathan May 28 workbook gaps: Top Opportunities filters and site context columns, Last Week view, Internal Freight Analysis tab, Sales Performance tab, BUD $/Mile in Reference."
+  },
+  {
+    "date": "2026-05-20",
+    "type": "FEATURE",
+    "summary": "Build Health + Change Log tabs added as canonical pipeline steps 28-29",
+    "detail": "Build Health tab shows data extent, source file, current BUD_MILE rates, verify gate, and headline KPIs. Change Log tab surfaces change_history.json newest-first."
+  },
+  {
+    "date": "2026-05-20",
+    "type": "FEATURE",
+    "summary": "Exec Summary narrative now dynamic from pipeline key findings",
+    "detail": "Exec Summary rebuild step writes current-year findings instead of static copy."
+  },
+  {
+    "date": "2026-05-20",
+    "type": "FEATURE",
+    "summary": "Top Opportunities — Last Week tab + Internal Freight Analysis",
+    "detail": "Separate Last Week ship-window view with KPI banner; Internal Freight Analysis with 5-year trend and lane tables."
+  },
+  {
+    "date": "2026-05-20",
+    "type": "FIX",
+    "summary": "Pre-publish verify gate added",
+    "detail": "Pipeline step 28 validates static tables and headline KPIs before dashboard publish."
+  },
+  {
+    "date": "2026-05-20",
+    "type": "FIX",
+    "summary": "Static Top 15 tables were silently stale through several refreshes",
+    "detail": "Jonathan caught that N. CA / S. CA Top 15 sections were showing inflated miles from prior builds. Steps 19 + 24 + 25 now auto-rebuild static tables each run."
+  },
+  {
+    "date": "2026-05-20",
+    "type": "FIX",
+    "summary": "Reference tab rates updated",
+    "detail": "BUD $/Mile display synced with IT rate table used in cost calculations."
+  },
+  {
+    "date": "2026-05-20",
+    "type": "DATA",
+    "summary": "2026 BUD_MILE rate update from IT",
+    "detail": "WIN $7.56 (was $9.87), BRA $7.56 (was $2.54), FAL $7.66, STE $7.66, PIR $3.64, GFL $5.00, MCR $3.70, BNL $1.08."
+  },
+  {
+    "date": "2026-05-18",
+    "type": "DATA",
+    "summary": "Weekly data refresh — through 5-16-2026",
+    "detail": "YTD raw file 5-09-26 series; pipeline rebuild and dashboard publish."
+  }
+]

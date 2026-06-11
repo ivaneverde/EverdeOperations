@@ -7,7 +7,7 @@
   Schedules three per-user tasks on THIS machine (easy to re-run on a different PC later):
 
     Everde-SalesPlan-DailyCheck     8:00 AM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
-    Everde-Freight-WeeklyCheck      9:00 AM Mondays — Freight\WeeklyDrop -> update.py + Azure Blob
+    Everde-Freight-DailyCheck       9:00 AM daily — sync Juanita Load Board share -> WeeklyDrop -> Azure Blob
     Everde-Retail-WeeklyCheck      10:00 AM Mondays — SalesOpportunity (5 xlsx) -> Azure Blob
     Everde-Weather-DailyCheck       9:30 AM daily — Weather Data share scripts -> Blob JSON
     Everde-Nursery-WeeklyCheck      1:30 PM Mondays — Inventory Metrics xlsb -> HTML + git push
@@ -25,7 +25,6 @@
 param(
   [string]$SalesPlanTime = "08:00",
   [string]$FreightTime = "09:00",
-  [string]$FreightDay = "Monday",
   [string]$RetailTime = "10:00",
   [string]$RetailDay = "Monday",
   [string]$WeatherTime = "09:30",
@@ -48,12 +47,11 @@ $tasks = @(
     Description = "Daily: if new files in Sales Plan Review WeeklyDrop, extract and publish to Azure Blob."
   },
   @{
-    Name = "Everde-Freight-WeeklyCheck"
+    Name = "Everde-Freight-DailyCheck"
     Time = $FreightTime
     Script = "run-scheduled-freight.ps1"
-    Schedule = "Weekly"
-    Day = $FreightDay
-    Description = "Weekly (Mondays): if new freight raw/dashboard in WeeklyDrop, run pipeline and publish to Azure Blob."
+    Schedule = "Daily"
+    Description = "Daily: sync newest Everde Freight Data from Load Board share to WeeklyDrop; run pipeline and publish to Azure Blob when changed."
   },
   @{
     Name = "Everde-Retail-WeeklyCheck"
@@ -88,7 +86,7 @@ $settings = New-ScheduledTaskSettingsSet `
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
-$legacyTaskNames = @("Everde-Freight-DailyCheck", "Everde-Nursery-DailyCheck")
+$legacyTaskNames = @("Everde-Freight-WeeklyCheck", "Everde-Nursery-DailyCheck")
 
 if ($Unregister) {
   foreach ($t in $tasks) {

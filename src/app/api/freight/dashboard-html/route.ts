@@ -78,7 +78,9 @@ const PORTAL_FREIGHT_ACTIVATE_BRIDGE = `<script data-everde-portal="activate-bri
     "Lane Recovery":"lane",
     "Fuel Cost":"fuel",
     "Pricing Adjustments":"variance",
-    "Reference":"masterdata"
+    "Reference":"masterdata",
+    "Build Health":"build-health",
+    "Change Log":"change-log"
   };
   window.__everdeFreightActivateQueue=window.__everdeFreightActivateQueue||[];
   window.activate=function(name){

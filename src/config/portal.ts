@@ -568,6 +568,22 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         navAccent: "BFBFBF",
       },
       {
+        slug: "freight-tab-build-health",
+        title: "Build Health",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Build Health",
+        navAccent: "556070",
+        notes: "Pipeline audit: source file, verify gate, BUD rates, headline KPIs.",
+      },
+      {
+        slug: "freight-tab-change-log",
+        title: "Change Log",
+        sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,
+        freightHtmlTab: "Change Log",
+        navAccent: "556070",
+        notes: "Newest-first history from change_history.json.",
+      },
+      {
         slug: "3p-top5-lanes-carrier-analysis",
         title: "3P Top 5 Lanes — Carrier Cost Analysis",
         hideFromNav: true,
