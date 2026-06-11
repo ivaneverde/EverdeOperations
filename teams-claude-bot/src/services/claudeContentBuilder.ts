@@ -167,8 +167,8 @@ export function buildClaudeContentFromFiles(
   const prompt =
     userPrompt.trim() ||
     (files.length === 1
-      ? `Analyze the attached file "${files[0].fileName}". Summarize key points, answer likely executive questions, and call out metrics or risks when present.`
-      : "Analyze the attached files. Summarize, compare if relevant, and highlight actionable insights.");
+      ? `Analyze the attached file "${files[0].fileName}". Summarize key points for an Everde executive audience, cite specific numbers, call out risks or anomalies, and end with 1–2 follow-up questions the user might want to explore next.`
+      : "Analyze the attached files. Summarize, compare if relevant, highlight actionable insights, and end with 1–2 follow-up questions.");
 
   blocks.push({ type: "text", text: prompt });
 

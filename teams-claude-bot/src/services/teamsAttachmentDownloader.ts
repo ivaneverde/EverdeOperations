@@ -74,7 +74,26 @@ function isSkippableAttachment(attachment: Attachment): boolean {
   const ct = (attachment.contentType ?? "").toLowerCase();
   if (ct.includes("text/html")) return true;
   if (ct.includes("application/vnd.microsoft.card")) return true;
+  if (ct.includes("application/vnd.microsoft.team")) return true;
+  if (ct === "application/octet-stream" && !attachment.name && !parseTeamsFileInfo(attachment)) {
+    return true;
+  }
   return false;
+}
+
+/** True when the activity includes a user-uploaded file (not Teams rich-text chrome). */
+export function activityHasUserFileAttachment(attachments: Attachment[]): boolean {
+  return attachments.some((attachment) => {
+    if (isSkippableAttachment(attachment)) return false;
+    if (parseTeamsFileInfo(attachment)?.downloadUrl) return true;
+    const name = attachment.name?.trim();
+    if (name && attachment.contentUrl) return true;
+    const ct = (attachment.contentType ?? "").toLowerCase();
+    if (attachment.contentUrl && (ct.includes("pdf") || ct.includes("image/"))) {
+      return true;
+    }
+    return false;
+  });
 }
 
 async function fetchBinary(

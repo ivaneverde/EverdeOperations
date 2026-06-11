@@ -8,7 +8,10 @@ import { getConfig } from "../config/index.js";
 import { buildClaudeContentFromFiles } from "../services/claudeContentBuilder.js";
 import { ClaudeService } from "../services/claudeService.js";
 import { ConversationStore } from "../services/conversationStore.js";
-import { downloadMessageAttachments } from "../services/teamsAttachmentDownloader.js";
+import {
+  activityHasUserFileAttachment,
+  downloadMessageAttachments,
+} from "../services/teamsAttachmentDownloader.js";
 import { handleFileConsentInvoke } from "./fileConsentHandler.js";
 import { logger } from "../utils/logger.js";
 
@@ -72,9 +75,10 @@ export class TeamsClaudeBot extends ActivityHandler {
   private async handleMessage(context: TurnContext): Promise<void> {
     const raw = TurnContext.removeRecipientMention(context.activity);
     const text = (raw ?? context.activity.text ?? "").trim();
-    const hasAttachments = (context.activity.attachments?.length ?? 0) > 0;
+    const attachments = context.activity.attachments ?? [];
+    const expectsUserFile = activityHasUserFileAttachment(attachments);
 
-    if (!text && !hasAttachments) {
+    if (!text && !expectsUserFile) {
       await context.sendActivity(
         "Send a message, or attach a file (PDF, Excel, image) with your question.",
       );
@@ -102,15 +106,12 @@ export class TeamsClaudeBot extends ActivityHandler {
     try {
       const history = this.store.get(conversationId);
 
-      if (hasAttachments) {
-        const files = await downloadMessageAttachments(context);
-        if (files.length === 0) {
-          await context.sendActivity(
-            "I could not read that attachment. Try uploading the file again using the paperclip, or use PDF / .xlsx / image formats.",
-          );
-          return;
-        }
+      const files =
+        expectsUserFile || attachments.length > 0
+          ? await downloadMessageAttachments(context)
+          : [];
 
+      if (files.length > 0) {
         const { blocks, summaryForHistory } = buildClaudeContentFromFiles(
           files,
           text,
@@ -131,6 +132,13 @@ export class TeamsClaudeBot extends ActivityHandler {
         this.store.append(conversationId, { role: "assistant", content: reply });
 
         await context.sendActivity(MessageFactory.text(reply));
+        return;
+      }
+
+      if (!text) {
+        await context.sendActivity(
+          "I could not read that attachment. Try uploading again with the paperclip (PDF, .xlsx, or image). For `.xlsb`, save as `.xlsx` first.",
+        );
         return;
       }
 
