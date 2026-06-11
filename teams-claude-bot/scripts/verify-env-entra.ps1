@@ -1,4 +1,4 @@
-# Validates .env before running the bot locally or deploying.
+# Step 1 only - validates Entra / Bot Framework vars (not Anthropic).
 param(
   [string]$EnvFile = (Join-Path (Join-Path $PSScriptRoot "..") ".env")
 )
@@ -7,11 +7,11 @@ $ErrorActionPreference = "Stop"
 $required = @(
   "MicrosoftAppId",
   "MicrosoftAppPassword",
-  "ANTHROPIC_API_KEY"
+  "MicrosoftAppTenantId"
 )
 
 if (-not (Test-Path $EnvFile)) {
-  Write-Error "Missing $EnvFile - copy .env.example to .env and fill values."
+  Write-Error "Missing $EnvFile - run: copy .env.example .env"
 }
 
 $lines = Get-Content $EnvFile | Where-Object { $_ -match "^\s*[^#]" }
@@ -33,8 +33,9 @@ if ($missing.Count -gt 0) {
   Write-Error ("Missing or empty: " + ($missing -join ", "))
 }
 
-Write-Host "Environment OK ($EnvFile)" -ForegroundColor Green
-$appIdPreview = $keys["MicrosoftAppId"].Substring(0, [Math]::Min(8, $keys["MicrosoftAppId"].Length))
-Write-Host "  MicrosoftAppId: $appIdPreview..."
-$modelDisplay = if ($keys["CLAUDE_MODEL"]) { $keys["CLAUDE_MODEL"] } else { "default" }
-Write-Host "  CLAUDE_MODEL:   $modelDisplay"
+Write-Host "Step 1 (Entra) environment OK" -ForegroundColor Green
+$idPreview = $keys["MicrosoftAppId"].Substring(0, [Math]::Min(8, $keys["MicrosoftAppId"].Length))
+$tenantPreview = $keys["MicrosoftAppTenantId"].Substring(0, [Math]::Min(8, $keys["MicrosoftAppTenantId"].Length))
+Write-Host "  MicrosoftAppId:       $idPreview..."
+Write-Host "  MicrosoftAppTenantId: $tenantPreview..."
+Write-Host "  MicrosoftAppPassword: (set)"

@@ -10,9 +10,13 @@ if (-not (Test-Path "node_modules")) {
   npm install
 }
 
+npm run build | Out-Null
+
 Write-Host ""
-Write-Host "Starting bot — expose with: ngrok http 3978" -ForegroundColor Cyan
-Write-Host "Set Azure Bot messaging endpoint to: https://<ngrok-host>/api/messages"
+Write-Host "Starting bot on http://localhost:3978" -ForegroundColor Cyan
+Write-Host "In another terminal run: ngrok http 3978" -ForegroundColor Cyan
+Write-Host "Azure Bot messaging endpoint example:" -ForegroundColor Cyan
+Write-Host '  https://YOUR-NGROK-SUBDOMAIN.ngrok-free.app/api/messages'
 Write-Host ""
 
 npm run dev

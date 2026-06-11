@@ -18,7 +18,7 @@
     -MicrosoftAppTenantId "<everde-tenant-guid>"
 #>
 param(
-  [string]$ResourceGroup = "rg-everde-teams-claude",
+  [string]$ResourceGroup = "everdeportal",
   [string]$Location = "westus2",
   [string]$AppName = "everde-teams-claude-bot",
   [Parameter(Mandatory)]
@@ -28,7 +28,9 @@ param(
   [Parameter(Mandatory)]
   [string]$AnthropicApiKey,
   [string]$MicrosoftAppTenantId = "",
-  [string]$ClaudeModel = "claude-sonnet-4-20250514"
+  [string]$ClaudeModel = "claude-sonnet-4-6",
+  [ValidateSet("F1", "B1", "S1")]
+  [string]$Sku = "F1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,18 +48,20 @@ if ($rgExists -eq "false") {
 }
 
 $planName = "$AppName-plan"
+Write-Host "App Service plan SKU: $Sku (use -Sku B1 after quota increase for production)" -ForegroundColor Cyan
 az appservice plan create `
   --name $planName `
   --resource-group $ResourceGroup `
   --location $Location `
-  --sku B1 `
+  --sku $Sku `
   --is-linux | Out-Null
 
+# NODE:20-lts is not available on Linux App Service; use 22-lts (see: az webapp list-runtimes --os-type linux)
 az webapp create `
   --name $AppName `
   --resource-group $ResourceGroup `
   --plan $planName `
-  --runtime "NODE:20-lts" | Out-Null
+  --runtime "NODE:22-lts" | Out-Null
 
 $settings = @{
   MicrosoftAppId                 = $MicrosoftAppId
@@ -66,7 +70,9 @@ $settings = @{
   ANTHROPIC_API_KEY                = $AnthropicApiKey
   CLAUDE_MODEL                     = $ClaudeModel
   WEBSITE_NODE_DEFAULT_VERSION     = "~20"
-  SCM_DO_BUILD_DURING_DEPLOYMENT   = "true"
+  SCM_DO_BUILD_DURING_DEPLOYMENT   = "false"
+  PORT                             = "8080"
+  WEBSITES_PORT                    = "8080"
 }
 if ($MicrosoftAppTenantId) {
   $settings.MicrosoftAppTenantId = $MicrosoftAppTenantId

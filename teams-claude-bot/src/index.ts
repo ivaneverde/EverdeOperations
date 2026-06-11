@@ -2,7 +2,7 @@ import {
   CloudAdapter,
   ConfigurationBotFrameworkAuthentication,
 } from "botbuilder";
-import restify from "restify";
+import express, { type Request, type Response } from "express";
 import { TeamsClaudeBot } from "./bot/teamsClaudeBot.js";
 import { getConfig } from "./config/index.js";
 import { logger } from "./utils/logger.js";
@@ -23,21 +23,41 @@ async function main(): Promise<void> {
   };
 
   const bot = new TeamsClaudeBot();
-  const server = restify.createServer();
+  const app = express();
 
-  server.use(restify.plugins.bodyParser());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-  server.get("/health", (_req, res, next) => {
-    res.send(200, { status: "ok" });
-    return next();
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok", build: "2026-06-11-plaintext-fix" });
   });
 
-  server.post("/api/messages", async (req, res) => {
-    await adapter.process(req, res, (context) => bot.run(context));
+  app.post("/api/messages", async (req: Request, res: Response) => {
+    try {
+      await adapter.process(req, res, (context) => bot.run(context));
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? { message: error.message, stack: error.stack }
+          : { error };
+      logger.error("api.messages.failed", detail);
+      console.error("api.messages.failed", detail);
+      if (!res.headersSent) {
+        res.status(500).send();
+      }
+    }
   });
 
-  const port = config.PORT;
-  server.listen(port, () => {
+  process.on("unhandledRejection", (reason) => {
+    logger.error("unhandledRejection", { reason });
+  });
+
+  process.on("uncaughtException", (error) => {
+    logger.error("uncaughtException", { error });
+  });
+
+  const port = Number(process.env.PORT) || config.PORT;
+  app.listen(port, "0.0.0.0", () => {
     logger.info("server.started", {
       port,
       endpoint: `http://localhost:${port}/api/messages`,

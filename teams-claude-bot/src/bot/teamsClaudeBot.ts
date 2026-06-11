@@ -14,6 +14,7 @@ import {
 } from "../services/teamsAttachmentDownloader.js";
 import { handleFileConsentInvoke } from "./fileConsentHandler.js";
 import { logger } from "../utils/logger.js";
+import { getTeamsMessageText } from "../utils/teamsMessageText.js";
 
 const HELP_TEXT = `**Claude in Teams**
 
@@ -73,8 +74,7 @@ export class TeamsClaudeBot extends ActivityHandler {
   }
 
   private async handleMessage(context: TurnContext): Promise<void> {
-    const raw = TurnContext.removeRecipientMention(context.activity);
-    const text = (raw ?? context.activity.text ?? "").trim();
+    const text = getTeamsMessageText(context.activity);
     const attachments = context.activity.attachments ?? [];
     const expectsUserFile = activityHasUserFileAttachment(attachments);
 
@@ -106,10 +106,9 @@ export class TeamsClaudeBot extends ActivityHandler {
     try {
       const history = this.store.get(conversationId);
 
-      const files =
-        expectsUserFile || attachments.length > 0
-          ? await downloadMessageAttachments(context)
-          : [];
+      const files = expectsUserFile
+        ? await downloadMessageAttachments(context)
+        : [];
 
       if (files.length > 0) {
         const { blocks, summaryForHistory } = buildClaudeContentFromFiles(
@@ -135,9 +134,16 @@ export class TeamsClaudeBot extends ActivityHandler {
         return;
       }
 
-      if (!text) {
+      if (!text && expectsUserFile) {
         await context.sendActivity(
           "I could not read that attachment. Try uploading again with the paperclip (PDF, .xlsx, or image). For `.xlsb`, save as `.xlsx` first.",
+        );
+        return;
+      }
+
+      if (!text) {
+        await context.sendActivity(
+          "Send a message, or attach a file (PDF, Excel, image) with your question.",
         );
         return;
       }

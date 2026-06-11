@@ -7,4 +7,4 @@
 3. Zip **only** `manifest.json`, `color.png`, `outline.png` (flat zip, no subfolder).
 4. Upload via Teams Admin Center or **Manage your apps** → Upload for pilot users.
 
-After Azure Bot messaging endpoint is live, install the app and search for **Claude** in Teams.
+After Azure Bot messaging endpoint is live, install the app and search for **Claude Everde** in Teams.
