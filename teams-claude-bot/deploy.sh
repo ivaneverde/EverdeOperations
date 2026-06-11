@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd /home/site/wwwroot
+# Prevent Oryx or leftover src from recompiling stale code over prebuilt dist/.
+rm -rf src
 echo "Installing production npm dependencies (Linux)..."
 npm install --omit=dev --no-audit --no-fund
-echo "Linux deploy install complete. build=2026-06-11-everde-tools"
+echo "Deployed dist build tag:"
+grep -o 'build: "[^"]*"' dist/index.js || true
+echo "Linux deploy install complete."

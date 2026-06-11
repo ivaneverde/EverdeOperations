@@ -21,21 +21,25 @@ Optional path overrides — see `teams-claude-bot/.env.example`.
 
 ## Deploy (reliable on B1)
 
+**Recommended:** run-from-package via Blob (avoids stale `wwwroot` / Oryx overwriting `dist/`).
+
 ```powershell
 cd teams-claude-bot
-.\scripts\build-deploy-slim-zip.ps1
-az webapp config appsettings set -g everdeportal -n everde-claude-teams-bot --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
-az webapp deployment source config-zip -g everdeportal -n everde-claude-teams-bot --src .\deploy-slim.zip --timeout 1800
+npm ci --omit=dev
+npm run build
+# Build deploy-full.zip (dist + package.json + package-lock.json + node_modules) — see scripts/build-deploy-zip.ps1
+# Upload to everdeblob / everde-teams-bot / deploy-full.zip
+# Set WEBSITE_RUN_FROM_PACKAGE to blob URL + SAS, then restart the app.
 ```
 
 Verify: `https://everde-claude-teams-bot.azurewebsites.net/health` → `"build":"2026-06-11-everde-tools"`
 
-Quick code-only push (if `node_modules` already on server):
+**Legacy zip deploy** (slim zip + `deploy.sh`) — can leave stale `src/` on the server; prefer run-from-package above.
 
 ```powershell
-.\scripts\build-dist-only-zip.ps1
-az webapp config appsettings set -g everdeportal -n everde-claude-teams-bot --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false
-az webapp deploy -g everdeportal -n everde-claude-teams-bot --src-path .\deploy-dist-only.zip --type zip --restart true
+.\scripts\build-deploy-slim-zip.ps1
+az webapp config appsettings set -g everdeportal -n everde-claude-teams-bot --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+az webapp deployment source config-zip -g everdeportal -n everde-claude-teams-bot --src .\deploy-slim.zip --timeout 1800
 ```
 
 ## Teams test prompts
