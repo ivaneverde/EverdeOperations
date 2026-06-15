@@ -74,6 +74,16 @@ export function compactRetailJson(raw: string, maxChars: number): string {
     payload.action_buckets = p.key_numbers
       ? (p.key_numbers as Record<string, unknown>).action_buckets
       : undefined;
+    const stores =
+      Array.isArray(p.all_stores) && p.all_stores.length > 0
+        ? p.all_stores
+        : p.top20_stores;
+    payload.all_stores = slimArray(stores, 200);
+    if (payload.meta && typeof payload.meta === "object") {
+      (payload.meta as Record<string, unknown>).all_stores_count =
+        (p.meta as { all_stores_count?: number } | undefined)?.all_stores_count ??
+        (Array.isArray(stores) ? stores.length : 0);
+    }
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {
     return truncateText(raw, maxChars);

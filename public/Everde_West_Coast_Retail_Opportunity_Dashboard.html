@@ -98,7 +98,7 @@ tbody td:first-child,tbody td.lft{text-align:left;font-family:var(--body);font-w
     <div class="sb-lbl">Opportunities</div>
     <div class="nav-item" data-tab="shipnow" onclick="showTab('shipnow')"><span class="icon">🚚</span>Top 30 Ship-Now</div>
     <div class="nav-item" data-tab="behind" onclick="showTab('behind')"><span class="icon">📉</span>Top 30 Behind Plan</div>
-    <div class="nav-item" data-tab="stores" onclick="showTab('stores')"><span class="icon">🏪</span>Top 20 Stores</div>
+    <div class="nav-item" data-tab="stores" onclick="showTab('stores')"><span class="icon">🏪</span>All Stores</div>
   </div>
   <div class="sb-sec">
     <div class="sb-lbl">Retailer Detail</div>
@@ -184,9 +184,25 @@ tbody td:first-child,tbody td.lft{text-align:left;font-family:var(--body);font-w
   <div id="behind-content"></div>
 </div>
 
-<!-- TOP 20 STORES -->
+<!-- ALL STORES -->
 <div id="tab-stores" class="page">
-  <div class="ph"><h1>Top 20 Stores by Net Need</h1><div class="sub">Combined HD + Lowes · sorted by Net Need $ retail desc.</div></div>
+  <div class="ph"><h1 id="stores-page-title">All Stores</h1><div class="sub" id="stores-page-sub">Combined HD + Lowes · sorted by Net Need desc.</div></div>
+  <div class="filter-bar">
+    <label>Search</label>
+    <input id="stores-search" type="search" placeholder="Store # or name…" oninput="renderStores()" style="min-width:220px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)">
+    <label>Retailer</label>
+    <select id="stores-retailer" onchange="renderStores()">
+      <option value="">All</option>
+      <option value="HD">HD</option>
+      <option value="Lowes">Lowes</option>
+    </select>
+    <label>Market</label>
+    <select id="stores-market" onchange="renderStores()">
+      <option value="">All</option>
+      <option value="N.CA">N.CA</option>
+      <option value="S.CA">S.CA</option>
+    </select>
+  </div>
   <div id="stores-content"></div>
 </div>
 
@@ -520,9 +536,34 @@ function renderBehind(){
   document.getElementById('behind-content').innerHTML = html;
 }
 
-// ═══════════ TOP 20 STORES ═══════════
+// ═══════════ ALL STORES ═══════════
+function storesDataset(){
+  const all = Array.isArray(D.all_stores) ? D.all_stores : null;
+  if(all && all.length) return all;
+  return Array.isArray(D.top20_stores) ? D.top20_stores : [];
+}
 function renderStores(){
-  const data = D.top20_stores;
+  const raw = storesDataset();
+  const q = (document.getElementById('stores-search')?.value || '').trim().toLowerCase();
+  const retailer = document.getElementById('stores-retailer')?.value || '';
+  const market = document.getElementById('stores-market')?.value || '';
+  const data = raw.filter(r=>{
+    if(retailer && r.Customer !== retailer) return false;
+    if(market && r.Market !== market) return false;
+    if(!q) return true;
+    const nbr = String(r['Store Nbr'] ?? '').toLowerCase();
+    const name = String(r['Store Name'] ?? '').toLowerCase();
+    return nbr.includes(q) || name.includes(q);
+  });
+  const total = raw.length;
+  const titleEl = document.getElementById('stores-page-title');
+  const subEl = document.getElementById('stores-page-sub');
+  if(titleEl) titleEl.textContent = total > 20 ? `All Stores (${total})` : 'Top Stores by Net Need';
+  if(subEl) subEl.textContent = `Showing ${data.length} of ${total} · HD + Lowes · sorted by Net Need desc.`;
+  if(!data.length){
+    document.getElementById('stores-content').innerHTML='<div style="color:var(--text-muted);padding:20px">No stores match your filters.</div>';
+    return;
+  }
   let html = `<div class="tw"><table><thead><tr>
     <th class="lft">Retailer</th><th class="lft">Market</th><th>Store #</th>
     <th class="lft">Store Name</th><th>SKUs</th>

@@ -226,9 +226,9 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       },
       {
         slug: "retail-top-stores",
-        title: "Top 20 Stores",
+        title: "All Stores",
         sourceRelativePath: RETAIL_WEEKLY_SOURCE,
-        retailHtmlTab: "Top 20 Stores",
+        retailHtmlTab: "All Stores",
         navAccent: "C49B3F",
       },
       {

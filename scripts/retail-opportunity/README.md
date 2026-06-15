@@ -64,7 +64,7 @@ Logs: `.everde-scheduler\logs\retail-build-*.log`
 | File | Role |
 |------|------|
 | `build_retail_workbooks.py` | Generates the 5 weekly workbooks from source feeds |
-| `extract_retail_opp.py` | Reads 5 workbooks → `retail_opp_data.json` |
+| `extract_retail_opp.py` | Reads 5 workbooks → `retail_opp_data.json` (`all_stores` = full HD + Lowe's list; `top20_stores` = summary slice) |
 | `run-build-workbooks.ps1` | PowerShell wrapper for build |
 | `run-extract-and-publish.ps1` | Extract + Azure publish |
 | `run-full-pipeline.ps1` | Build then extract/publish |

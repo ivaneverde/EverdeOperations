@@ -26,19 +26,35 @@ export function compactRetailForAssistant(raw: string, maxChars: number): string
         }
       : undefined;
 
+    const stores =
+      Array.isArray(parsed.all_stores) && parsed.all_stores.length > 0
+        ? parsed.all_stores
+        : parsed.top20_stores;
+    const storeCount =
+      typeof (parsed.meta as { all_stores_count?: number } | null)
+        ?.all_stores_count === "number"
+        ? (parsed.meta as { all_stores_count: number }).all_stores_count
+        : Array.isArray(stores)
+          ? stores.length
+          : 0;
+
     if (maxChars <= 9_000 && facts) {
       const slim = {
         assistant_facts: facts,
-        meta,
+        meta: { ...(meta as object), all_stores_count: storeCount },
         top30_ship_now: slimRows(parsed.top30_ship_now, 6),
         top20_stores: slimRows(parsed.top20_stores, 5),
+        all_stores: slimRows(stores, 80),
       };
       const json = JSON.stringify(slim);
       if (json.length <= maxChars) return json;
     }
 
     const payload: Record<string, unknown> = {
-      meta,
+      meta: {
+        ...(typeof meta === "object" && meta !== null ? meta : {}),
+        all_stores_count: storeCount,
+      },
       key_numbers: {
         combined: kn.combined ?? null,
         hd: kn.hd ?? null,
@@ -49,6 +65,7 @@ export function compactRetailForAssistant(raw: string, maxChars: number): string
       top30_ship_now: slimRows(parsed.top30_ship_now, 12),
       top30_behind_plan: slimRows(parsed.top30_behind_plan, 10),
       top20_stores: slimRows(parsed.top20_stores, 10),
+      all_stores: slimRows(stores, 200),
       miss_analysis: parsed.miss_analysis
         ? { summary: (parsed.miss_analysis as Record<string, unknown>).summary }
         : null,
@@ -62,6 +79,7 @@ export function compactRetailForAssistant(raw: string, maxChars: number): string
     if (json.length <= maxChars) return json;
 
     delete payload.top30_behind_plan;
+    delete payload.all_stores;
     delete payload.top20_stores;
     json = JSON.stringify(payload);
     if (json.length <= maxChars) return json;

@@ -1027,7 +1027,7 @@ def write_all_workbooks(result, hd_store_detail, low_store_detail,
         top30_bp.to_excel(w, sheet_name='Top 30 Items Behind Plan', index=False)
         top20_st.to_excel(w, sheet_name='Top 20 Stores', index=False)
         pd.DataFrame().to_excel(w, sheet_name='Combined Suggested Orders (P2)', index=False)
-    log(f"  ✓ {path.name}")
+    log(f"  OK {path.name}")
 
     # ── 2. HD VARIANCE & ALLOCATION ──
     path = out / f"HD Sales Variance & Allocation - {label}.xlsx"
@@ -1049,7 +1049,7 @@ def write_all_workbooks(result, hd_store_detail, low_store_detail,
             exec_mkt.to_excel(w, sheet_name=f'Exec Summary - {mkt}', index=False)
             items.to_excel(w, sheet_name=f'HD {mkt} Items', index=False)
             stores.to_excel(w, sheet_name=f'HD {mkt} Stores', index=False)
-    log(f"  ✓ {path.name}")
+    log(f"  OK {path.name}")
 
     # ── 3. LOW VARIANCE & ALLOCATION ──
     path = out / f"LOW Sales Variance & Allocation - {label}.xlsx"
@@ -1068,8 +1068,8 @@ def write_all_workbooks(result, hd_store_detail, low_store_detail,
                 week_num)
             exec_mkt.to_excel(w, sheet_name=f'Exec Summary - {mkt}', index=False)
             items.to_excel(w, sheet_name=f'Lowes {mkt} Items', index=False)
-            items.to_excel(w, sheet_name=f'Lowes {mkt} Stores', index=False)
-    log(f"  ✓ {path.name}")
+            stores.to_excel(w, sheet_name=f'Lowes {mkt} Stores', index=False)
+    log(f"  OK {path.name}")
 
     # ── 4. ITEM-LEVEL MISS ANALYSIS ──
     path = out / f"Wk{week_num-1} Item-Level Miss Analysis - {label}.xlsx"
@@ -1107,7 +1107,7 @@ def write_all_workbooks(result, hd_store_detail, low_store_detail,
             'Plan_Var_Qty').to_excel(w, sheet_name='Over-Shipped', index=False)
         result[result['Plan_thru_user_Wk'] == 0].to_excel(
             w, sheet_name='Not in Forecast', index=False)
-    log(f"  ✓ {path.name}")
+    log(f"  OK {path.name}")
 
     # ── 5. FOR SOURCE MISS ──
     path = out / f"FOR Source Miss Report - {label}.xlsx"
@@ -1119,7 +1119,7 @@ def write_all_workbooks(result, hd_store_detail, low_store_detail,
             mkt_label = mkt.replace('_', '.')
             sheet_name = f"{cust} {mkt_label} FOR-Source"
             df.to_excel(w, sheet_name=sheet_name, index=False)
-    log(f"  ✓ {path.name}")
+    log(f"  OK {path.name}")
 
     return out
 

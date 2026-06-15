@@ -141,7 +141,8 @@ def sheet_to_records(xl, tab, max_rows=300):
         return []
     df = df.dropna(how='all')
     rows = []
-    for _, row in df.head(max_rows).iterrows():
+    chunk = df if max_rows is None else df.head(max_rows)
+    for _, row in chunk.iterrows():
         d = {str(c).strip(): safe(row[c]) for c in df.columns}
         if sum(1 for v in d.values() if v is not None) >= 2:
             rows.append(d)
@@ -196,7 +197,7 @@ def parse_tab(xl, tab, header_row=None, max_rows=300):
             continue
         d = {cols[k]: vals[k] for k in range(min(len(cols), len(vals)))}
         rows.append(d)
-        if len(rows) >= max_rows:
+        if max_rows is not None and len(rows) >= max_rows:
             break
     return rows
 
@@ -216,48 +217,6 @@ def alias_behind_row(r):
     if out.get('Group_LY_Sell_Thru_pct') is None and out.get('Group_TY_Sell_Thru_pct') is not None:
         out['Group_LY_Sell_Thru_pct'] = out.get('Group_LY_Sell_Thru_pct')
     return out
-
-
-def build_top20_from_store_workbooks(files):
-    """Fallback when Sales Manager Summary Top 20 Stores sheet is empty."""
-    frames = []
-    for key, cust in [('hd', 'HD'), ('low', 'Lowes')]:
-        path = files.get(key)
-        if not path or not Path(path).exists():
-            continue
-        xl = pd.ExcelFile(path)
-        for tab in xl.sheet_names:
-            if 'Stores' not in tab:
-                continue
-            df = xl.parse(tab, header=0)
-            if len(df) == 0 or 'store' not in df.columns:
-                continue
-            df = df.copy()
-            df['Customer'] = cust
-            if 'Market' not in df.columns and 'market' in df.columns:
-                df['Market'] = df['market']
-            df['Net_Need'] = (
-                pd.to_numeric(df.get('ly_sales_units', 0), errors='coerce').fillna(0)
-                - pd.to_numeric(df.get('curr_inv_units', 0), errors='coerce').fillna(0)
-                - pd.to_numeric(df.get('on_order_units', 0), errors='coerce').fillna(0)
-            ).clip(lower=0)
-            frames.append(df)
-    if not frames:
-        return []
-    all_s = pd.concat(frames, ignore_index=True)
-    grp = all_s.groupby(['Customer', 'Market', 'store', 'store_name'], as_index=False).agg(
-        TY_Sales=('ytd_sales_units', 'sum'),
-        LY_Sales=('ly_sales_units', 'sum'),
-        Curr_Inv=('curr_inv_units', 'sum'),
-        On_Order=('on_order_units', 'sum'),
-        Net_Need=('Net_Need', 'sum'),
-        Curr_Inv_Retail=('curr_inv_retail', 'sum'),
-        Sales_Retail_YTD=('ytd_sales_dlr', 'sum'),
-        SKUs_carried=('group', 'count'),
-    )
-    grp = grp.rename(columns={'store': 'Store Nbr', 'store_name': 'Store Name'})
-    grp = grp.sort_values('Net_Need', ascending=False).head(20)
-    return [safe_row(r) for r in grp.to_dict('records')]
 
 
 def safe_row(r):
@@ -507,6 +466,83 @@ def slim(rows, keep_cols):
     return [{k: r.get(k) for k in keep_cols if k in r} for r in rows]
 
 
+STORE_KEEP = [
+    'Customer', 'Market', 'Store Nbr', 'Store Name', 'SKUs_carried',
+    'LY_Wk14_Units', 'TY_Sales', 'LY_Sales', 'Curr_Inv', 'On_Order',
+    'Net_Need', 'Curr_Inv_Retail', 'Sales_Retail_YTD',
+]
+
+
+def _load_store_detail_frames(files):
+    """Read every *Stores* tab from HD and Lowe's variance workbooks."""
+    frames = []
+    for key, cust in [('hd', 'HD'), ('low', 'Lowes')]:
+        path = files.get(key)
+        if not path or not Path(path).exists():
+            continue
+        xl = pd.ExcelFile(path)
+        for tab in xl.sheet_names:
+            if 'Stores' not in tab:
+                continue
+            df = xl.parse(tab, header=0)
+            if len(df) == 0 or 'store' not in df.columns:
+                continue
+            df = df.copy()
+            df['Customer'] = cust
+            if 'Market' not in df.columns and 'market' in df.columns:
+                df['Market'] = df['market']
+            ly = pd.to_numeric(df.get('ly_sales_units', 0), errors='coerce').fillna(0)
+            inv = pd.to_numeric(df.get('curr_inv_units', 0), errors='coerce').fillna(0)
+            oo = pd.to_numeric(df.get('on_order_units', 0), errors='coerce').fillna(0)
+            df['Net_Need'] = (ly - inv - oo).clip(lower=0)
+            frames.append(df)
+    return frames
+
+
+def build_all_stores_from_workbooks(files):
+    """
+    Aggregate store-level rows from HD / Lowe's detail workbooks (all stores).
+    Returns dashboard-shaped records sorted by Net_Need desc.
+    """
+    frames = _load_store_detail_frames(files)
+    if not frames:
+        return []
+
+    all_s = pd.concat(frames, ignore_index=True)
+    grp = all_s.groupby(['Customer', 'Market', 'store', 'store_name'], as_index=False).agg(
+        TY_Sales=('ytd_sales_units', 'sum'),
+        LY_Sales=('ly_sales_units', 'sum'),
+        Curr_Inv=('curr_inv_units', 'sum'),
+        On_Order=('on_order_units', 'sum'),
+        Net_Need=('Net_Need', 'sum'),
+        Curr_Inv_Retail=('curr_inv_retail', 'sum'),
+        Sales_Retail_YTD=('ytd_sales_dlr', 'sum'),
+        SKUs_carried=('group', 'count'),
+    )
+    grp = grp.rename(columns={'store': 'Store Nbr', 'store_name': 'Store Name'})
+    grp['LY_Wk14_Units'] = grp['LY_Sales']
+    grp = grp.sort_values('Net_Need', ascending=False)
+
+    rows = [safe_row(r) for r in grp.to_dict('records')]
+    return slim(rows, STORE_KEEP)
+
+
+def normalize_sms_store_rows(rows):
+    """Normalize Sales Manager Summary Top 20 Stores sheet to dashboard field names."""
+    out = []
+    for r in rows:
+        row = dict(r)
+        if row.get('LY_Wk14_Units') is None and row.get('LY_Sales') is not None:
+            row['LY_Wk14_Units'] = row['LY_Sales']
+        out.append(safe_row(row))
+    return slim(out, STORE_KEEP)
+
+
+def build_top20_from_store_workbooks(files):
+    """Top 20 slice of all_stores (backward-compatible summary)."""
+    return build_all_stores_from_workbooks(files)[:20]
+
+
 # ─────────────────────────────────────────────────────
 # RETAILER DETAIL EXTRACTION
 # ─────────────────────────────────────────────────────
@@ -527,7 +563,8 @@ def extract_retailer_detail(xl, retailer_prefix):
         if items_tab in tabs:
             result[f'items_{mkt_key}'] = parse_tab(xl, items_tab, header_row=0, max_rows=150)
         if stores_tab in tabs:
-            result[f'stores_{mkt_key}'] = parse_tab(xl, stores_tab, header_row=0, max_rows=100)
+            result[f'stores_{mkt_key}'] = parse_tab(
+                xl, stores_tab, header_row=0, max_rows=None)
 
     return result
 
@@ -636,6 +673,7 @@ def extract(files, output_path):
         'top30_ship_now':   [],
         'top30_behind_plan':[],
         'top20_stores':     [],
+        'all_stores':       [],
         'hd':               {},
         'lowes':            {},
         'miss_analysis':    {},
@@ -668,14 +706,6 @@ def extract(files, output_path):
             result['top30_behind_plan'] = slim(rows, BEHIND_KEEP)
             print(f"  Top 30 Behind Plan: {len(result['top30_behind_plan'])} rows")
 
-        # Top 20 Stores
-        if 'Top 20 Stores' in xl_sms.sheet_names:
-            result['top20_stores'] = parse_tab(
-                xl_sms, 'Top 20 Stores', header_row=0, max_rows=25)
-        if not result['top20_stores']:
-            result['top20_stores'] = build_top20_from_store_workbooks(files)
-        print(f"  Top 20 Stores: {len(result['top20_stores'])} rows")
-
         # Region Comparison
         if 'Region Comparison' in xl_sms.sheet_names:
             result['region_comparison'] = parse_tab(
@@ -696,6 +726,18 @@ def extract(files, output_path):
         result['lowes'] = extract_retailer_detail(xl_low, 'Lowes')
         for k, v in result['lowes'].items():
             print(f"  Lowes {k}: {len(v)} rows")
+
+    # ── ALL STORES (HD + Lowe's, full list) ───────────────────
+    result['all_stores'] = build_all_stores_from_workbooks(files)
+    if not result['all_stores'] and files.get('sms'):
+        xl_sms = pd.ExcelFile(files['sms'])
+        if 'Top 20 Stores' in xl_sms.sheet_names:
+            sms_rows = parse_tab(xl_sms, 'Top 20 Stores', header_row=0, max_rows=25)
+            result['all_stores'] = normalize_sms_store_rows(sms_rows)
+    result['top20_stores'] = result['all_stores'][:20]
+    result['meta']['all_stores_count'] = len(result['all_stores'])
+    print(f"\nAll stores: {len(result['all_stores'])} rows")
+    print(f"  Top 20 Stores (summary): {len(result['top20_stores'])} rows")
 
     # ── MISS ANALYSIS ─────────────────────────────────────────
     if files.get('miss'):

@@ -36,6 +36,7 @@ const PORTAL_RETAIL_ACTIVATE_BRIDGE = `<script data-everde-portal="retail-activa
     "Top 30 Ship-Now":"shipnow",
     "Top 30 Behind Plan":"behind",
     "Top 20 Stores":"stores",
+    "All Stores":"stores",
     "HD Detail":"hd",
     "Lowes Detail":"lowes",
     "FOR Source Miss":"for-source",
