@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Everde OR Sales Plan — Forward Looking YTD Miss vs Inventory</title>
+<style>
+:root{
+  --bg:#0d1117;--sidebar:#11161e;--green:#2F5233;--gold:#C49B3F;
+  --red:#C0392B;--navy:#1F3A5F;--grey:#404040;--purple:#5B4F8A;
+  --text:#e6edf3;--text-dim:#8b949e;--border:#21262d;
+  --card:#161b22;--card2:#1c2128;--hover:#2d333b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.logo-band{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.logo-band .region-badge{background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:.08em}
+.logo-band h1{font-size:13px;font-weight:700;margin-top:6px;line-height:1.3;color:var(--text)}
+.logo-band .sub{font-size:10px;color:var(--text-dim);margin-top:2px}
+nav{flex:1;overflow-y:auto;padding:10px 0}
+.nav-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);padding:12px 16px 4px}
+nav a{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:var(--text-dim);text-decoration:none;cursor:pointer;transition:background .15s,color .15s}
+nav a:hover{background:var(--hover);color:var(--text)}
+nav a.active{background:var(--navy);color:#fff;border-left:3px solid var(--gold)}
+nav a .icon{width:16px;text-align:center;font-size:13px}
+.data-bar{padding:12px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text-dim)}
+.data-bar .snap{color:var(--gold);font-weight:600}
+
+/* ── MAIN ── */
+#main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+#topbar{height:48px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px}
+#topbar h2{font-size:14px;font-weight:600;color:var(--text)}
+#topbar .badge{background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:.05em}
+#topbar .region-tag{background:var(--navy);color:var(--gold);font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.08em}
+#content{flex:1;overflow-y:auto;padding:20px}
+
+/* ── CARDS ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.green::before{background:var(--green)}
+.kpi.gold::before{background:var(--gold)}
+.kpi.red::before{background:var(--red)}
+.kpi.navy::before{background:var(--navy)}
+.kpi.purple::before{background:var(--purple)}
+.kpi-label{font-size:10px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:700;color:var(--text);line-height:1}
+.kpi-sub{font-size:10px;color:var(--text-dim);margin-top:4px}
+.kpi-value.red{color:#e57373}
+.kpi-value.green{color:#66bb6a}
+
+.section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.section-title .dot{width:8px;height:8px;border-radius:50%}
+
+/* ── WALK TABLES ── */
+.walk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.walk-card{background:var(--card2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.walk-header{padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#fff}
+.walk-header.ye{background:var(--green)}
+.walk-header.fwd{background:var(--navy)}
+.walk-header.ytd{background:var(--purple)}
+.walk-row{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.walk-row:last-child{border-bottom:none}
+.walk-row .wlabel{color:var(--text-dim)}
+.walk-row .wval{font-weight:600;font-family:'Cascadia Code','Consolas',monospace}
+.walk-row .wval.neg{color:#e57373}
+.walk-row .wval.pos{color:#66bb6a}
+
+/* ── DATA TABLE ── */
+.tbl-wrap{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--navy);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:1}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:hover{background:var(--hover)}
+tbody td{padding:7px 10px;color:var(--text)}
+td.num{text-align:right;font-family:'Cascadia Code','Consolas',monospace}
+td.neg{color:#e57373}
+td.pos{color:#66bb6a}
+td.warn{color:var(--gold)}
+.badge-pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700}
+.badge-pill.short{background:#4b1c1c;color:#e57373}
+.badge-pill.covered{background:#1c3b1c;color:#66bb6a}
+.badge-pill.marginal{background:#4b3c1c;color:var(--gold)}
+
+/* ── SEARCH / FILTER ── */
+.filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-row input,.filter-row select{background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:12px;outline:none}
+.filter-row input:focus,.filter-row select:focus{border-color:var(--gold)}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:color .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* ── BLOCKED NOTICE (shown until OR data is loaded) ── */
+.blocked-notice{background:var(--card);border:2px dashed var(--gold);border-radius:10px;padding:32px;text-align:center;color:var(--text-dim)}
+.blocked-notice .icon{font-size:36px;margin-bottom:12px}
+.blocked-notice h3{font-size:16px;color:var(--gold);font-weight:700;margin-bottom:8px}
+.blocked-notice p{font-size:13px;line-height:1.6;max-width:480px;margin:0 auto}
+.blocked-notice code{background:var(--card2);padding:2px 6px;border-radius:4px;color:var(--text);font-size:12px}
+
+/* ── FINDING PILLS ── */
+.findings{display:flex;flex-direction:column;gap:8px}
+.finding{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--card2);border-radius:6px;border-left:3px solid}
+.finding.red{border-color:var(--red)}
+.finding.gold{border-color:var(--gold)}
+.finding.green{border-color:var(--green)}
+.finding .f-num{font-size:18px;font-weight:700;min-width:24px;line-height:1.2}
+.finding.red .f-num{color:#e57373}
+.finding.gold .f-num{color:var(--gold)}
+.finding.green .f-num{color:#66bb6a}
+.finding .f-text{font-size:12px;line-height:1.5}
+.finding .f-text strong{color:var(--text)}
+.finding .f-text span{color:var(--text-dim)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--grey);border-radius:3px}
+
+/* ── UTILITY ── */
+.hidden{display:none!important}
+.pct-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
+.pct-fill{height:100%;border-radius:3px;transition:width .3s}
+.pct-fill.green{background:var(--green)}
+.pct-fill.gold{background:var(--gold)}
+.pct-fill.red{background:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<nav id="sidebar">
+  <div class="logo-band">
+    <span class="region-badge">OREGON · OR</span>
+    <h1>Forward Looking<br>YTD Miss vs Inventory</h1>
+    <div class="sub">Sales Plan Review 2026</div>
+  </div>
+  <nav>
+    <div class="nav-section">Dashboards</div>
+    <a class="active" onclick="showTab('exec')"><span class="icon">📊</span>Exec Summary</a>
+    <a onclick="showTab('ytd')"><span class="icon">📈</span>YTD Performance</a>
+    <a onclick="showTab('miss-ki')"><span class="icon">⚠️</span>Miss by KI</a>
+    <a onclick="showTab('miss-cust')"><span class="icon">🏪</span>Miss by Customer</a>
+    <a onclick="showTab('plan-ki')"><span class="icon">📋</span>Plan by KI</a>
+    <a onclick="showTab('excess')"><span class="icon">🌱</span>Excess at Farm</a>
+    <a onclick="showTab('hist')"><span class="icon">📉</span>Historical Lift</a>
+    <a onclick="showTab('channel')"><span class="icon">🔀</span>Channel Summary</a>
+  </nav>
+  <div class="data-bar">
+    <div>Snapshot: <span class="snap" id="snap-date">—</span></div>
+    <div style="margin-top:3px">YTD: Jan–May · Fwd: Jun–Dec</div>
+  </div>
+</nav>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+  <div id="topbar">
+    <h2>Oregon (OR) Sales Plan Review</h2>
+    <span class="badge">OR</span>
+    <span class="region-tag">West Coast · Pacific Northwest</span>
+  </div>
+  <div id="content">
+
+    <!-- ═ EXEC SUMMARY ═ -->
+    <div id="tab-exec">
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="walk-grid" id="walk-grid"></div>
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--red)"></span>Key Findings</div>
+        <div class="findings" id="findings"></div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Top 20 Key Items by YTD Miss</div>
+        <div class="tbl-wrap"><table id="top-miss-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═ YTD PERFORMANCE ═ -->
+    <div id="tab-ytd" class="hidden">
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--purple)"></span>YTD Performance — Jan–May 2026</div>
+        <div class="filter-row">
+          <input type="text" id="ytd-search" placeholder="Search KI / Item…" oninput="filterTable('ytd-tbl','ytd-search')"/>
+        </div>
+        <div class="tbl-wrap"><table id="ytd-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═ MISS BY KI ═ -->
+    <div id="tab-miss-ki" class="hidden">
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--red)"></span>Miss by Key Item</div>
+        <div class="filter-row">
+          <input type="text" id="missKI-search" placeholder="Search KI…" oninput="filterTable('missKI-tbl','missKI-search')"/>
+          <select id="missKI-filter" onchange="filterTable('missKI-tbl','missKI-search')">
+            <option value="">All KIs</option>
+            <option value="BELOW">Below Plan Only</option>
+            <option value="ABOVE">Above Plan Only</option>
+          </select>
+        </div>
+        <div class="tbl-wrap"><table id="missKI-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═ MISS BY CUSTOMER ═ -->
+    <div id="tab-miss-cust" class="hidden">
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--navy)"></span>Miss by Customer / Channel</div>
+        <div class="tbl-wrap"><table id="missCust-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═ PLAN BY KI ═ -->
+    <div id="tab-plan-ki" class="hidden">
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--green)"></span>Forward Plan by Key Item (Jun–Dec)</div>
+        <div class="filter-row">
+          <input type="text" id="planKI-search" placeholder="Search KI…" oninput="filterTable('planKI-tbl','planKI-search')"/>
+          <select id="planKI-flag" onchange="filterTable('planKI-tbl','planKI-search')">
+            <option value="">All</option>
+            <option value="SHORT">Short Only</option>
+            <option value="COVERED">Covered Only</option>
+          </select>
+        </div>
+        <div class="tbl-wrap"><table id="planKI-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═ EXCESS AT FARM ═ -->
+    <div id="tab-excess" class="hidden">
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Excess Inventory at Farm</div>
+        <div class="tbl-wrap"><table id="excess-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═ HISTORICAL LIFT ═ -->
+    <div id="tab-hist" class="hidden">
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--purple)"></span>Historical Lift (3-yr Smoothed > Plan)</div>
+        <div class="tbl-wrap"><table id="hist-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ═ CHANNEL SUMMARY ═ -->
+    <div id="tab-channel" class="hidden">
+      <div class="section">
+        <div class="section-title"><span class="dot" style="background:var(--green)"></span>OR Channel / Customer Summary</div>
+        <div class="tbl-wrap"><table id="channel-tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA — fetched from portal OR loaded as inline stub
+// ═══════════════════════════════════════════════════════
+// Portal wiring: Replace this block with a fetch('/data/or-sales-plan-data.json')
+// The inline stub below renders a "waiting on data" state until the workbook is uploaded.
+
+let D = null;
+
+// ── LOAD DATA ──
+async function loadData() {
+  try {
+    // Try fetch first (portal mode)
+    const res = await fetch('/data/or-sales-plan-data.json');
+    if (res.ok) {
+      D = await res.json();
+      init();
+      return;
+    }
+  } catch(e) { /* not in portal yet */ }
+
+  // Stub: show blocked notice
+  renderBlocked();
+}
+
+function renderBlocked() {
+  document.getElementById('tab-exec').innerHTML = `
+    <div class="blocked-notice">
+      <div class="icon">🌲</div>
+      <h3>Oregon Data Not Yet Available</h3>
+      <p>
+        The OR Sales Plan pipeline hasn't run yet. To populate this dashboard:<br><br>
+        1. Run <code>build_or_workbook_patched.py</code> to generate<br>
+        <code>OR_Forward_Looking_YTD_Miss_vs_Inventory_MMDDYY.xlsx</code><br><br>
+        2. Upload the workbook to the portal upload endpoint, or<br>
+        drop it in <code>DataDrops\\Sales Plan Review\\</code> on the share<br><br>
+        3. Run <code>extract_sales_plan.py --region OR</code> to generate<br>
+        <code>or-sales-plan-data.json</code>
+      </p>
+    </div>`;
+
+  // Show empty shells for other tabs
+  const tabs = ['ytd','miss-ki','miss-cust','plan-ki','excess','hist','channel'];
+  tabs.forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.innerHTML = '<div class="blocked-notice"><div class="icon">⏳</div><h3>Waiting for OR Data</h3><p>Run the OR pipeline first.</p></div>';
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+const TABS = ['exec','ytd','miss-ki','miss-cust','plan-ki','excess','hist','channel'];
+const NAV  = document.querySelectorAll('#sidebar nav a');
+
+function showTab(id) {
+  TABS.forEach(t => {
+    document.getElementById('tab-' + t)?.classList.toggle('hidden', t !== id);
+  });
+  NAV.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('onclick')?.includes(`'${id}'`));
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+const fmt = {
+  n: v => v == null ? '—' : Number(v).toLocaleString(undefined, {maximumFractionDigits:0}),
+  pct: v => v == null ? '—' : (Number(v) * 100).toFixed(1) + '%',
+  raw: v => v ?? '—',
+};
+
+function pctClass(v) {
+  if (v == null) return '';
+  return v >= 0 ? 'pos' : 'neg';
+}
+
+function buildTable(tableId, rows, cols) {
+  const tbl = document.getElementById(tableId);
+  if (!tbl) return;
+  const thead = tbl.querySelector('thead tr');
+  const tbody = tbl.querySelector('tbody');
+  thead.innerHTML = cols.map(c => `<th>${c.label}</th>`).join('');
+  tbody.innerHTML = rows.map(row => `
+    <tr>${cols.map(c => {
+      const raw = row[c.key];
+      let val = c.fmt ? c.fmt(raw) : fmt.raw(raw);
+      let cls = 'td ' + (c.num ? 'num ' : '') + (c.cls ? c.cls(raw) : '');
+      if (c.badge) { cls += ' '; val = `<span class="badge-pill ${c.badge(raw)}">${val}</span>`; }
+      return `<td class="${cls.trim()}">${val}</td>`;
+    }).join('')}</tr>
+  `).join('');
+}
+
+function filterTable(tableId, searchId) {
+  const q = document.getElementById(searchId)?.value.toLowerCase() ?? '';
+  const tbl = document.getElementById(tableId);
+  if (!tbl) return;
+  Array.from(tbl.querySelectorAll('tbody tr')).forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT — renders all tabs from D
+// ═══════════════════════════════════════════════════════
+function init() {
+  if (!D) return;
+
+  // Snapshot date
+  const snap = D.kpis?.snapshot_date || D.snapshot_date || '—';
+  document.getElementById('snap-date').textContent = snap;
+
+  renderKPIs();
+  renderWalks();
+  renderFindings();
+  renderTopMiss();
+  renderYTD();
+  renderMissKI();
+  renderMissCust();
+  renderPlanKI();
+  renderExcess();
+  renderHist();
+  renderChannel();
+}
+
+// ── KPIs ──
+function renderKPIs() {
+  const k = D.kpis || {};
+  const cards = [
+    { label:'Total OR KIs',       value: fmt.n(k.total_ki_count),       cls:'green',  sub:'Key Item universe' },
+    { label:'Below Plan (YTD)',    value: fmt.n(k.ki_below_plan),        cls:'red',    sub:'Jan–May 2026' },
+    { label:'YTD Achievement',     value: (k.ytd_achievement_pct||0).toFixed(1)+'%', cls:'gold', sub:'vs plan' },
+    { label:'YTD Miss (units)',    value: fmt.n(k.ytd_miss_units),       cls:'red',    sub:'Plan − Actual' },
+    { label:'Short Forward',       value: fmt.n(k.ki_short_fwd),         cls:'navy',   sub:'KIs short Jun–Dec' },
+    { label:'Excess at Farm',      value: fmt.n(k.ki_excess_count),      cls:'purple', sub:'KIs with excess' },
+  ];
+  const row = document.getElementById('kpi-row');
+  row.innerHTML = cards.map(c => {
+    const pct = c.label === 'YTD Achievement'
+      ? parseFloat(c.value) / 100
+      : null;
+    const barColor = pct != null ? (pct >= 1 ? 'green' : pct >= 0.8 ? 'gold' : 'red') : null;
+    return `<div class="kpi ${c.cls}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value ${c.cls === 'red' ? 'red' : ''}">${c.value}</div>
+      <div class="kpi-sub">${c.sub}</div>
+      ${pct != null ? `<div class="pct-bar"><div class="pct-fill ${barColor}" style="width:${Math.min(100,pct*100).toFixed(1)}%"></div></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── WALK TABLES ──
+function renderWalks() {
+  const walksConfig = [
+    { key:'walk_ye',  cls:'ye',  title:'Year-End Projection',
+      rows: d => [
+        {l:'YE Plan',  v: fmt.n(d.plan), c:''},
+        {l:'YE Proj',  v: fmt.n(d.proj), c: d.proj >= d.plan ? 'pos':'neg'},
+        {l:'Gap',      v: fmt.n(d.gap),  c: d.gap  >= 0 ? 'pos':'neg'},
+        {l:'Gap %',    v: fmt.pct(d.pct),c: d.pct  >= 0 ? 'pos':'neg'},
+      ]
+    },
+    { key:'walk_fwd', cls:'fwd', title:'Forward Outlook (Jun–Dec)',
+      rows: d => [
+        {l:'Fwd Plan',   v: fmt.n(d.plan), c:''},
+        {l:'Inv Avail',  v: fmt.n(d.inv),  c: d.inv >= d.plan ? 'pos':'neg'},
+        {l:'Gap',        v: fmt.n(d.gap),  c: d.gap >= 0 ? 'pos':'neg'},
+        {l:'Coverage %', v: fmt.pct(d.pct),c: d.pct >= 0 ? 'pos':'neg'},
+      ]
+    },
+    { key:'walk_ytd', cls:'ytd', title:'YTD Performance (Jan–May)',
+      rows: d => [
+        {l:'YTD Plan',   v: fmt.n(d.plan),   c:''},
+        {l:'YTD Actual', v: fmt.n(d.actual), c: d.actual >= d.plan ? 'pos':'neg'},
+        {l:'Miss',       v: fmt.n(d.miss),   c: d.miss   >= 0 ? 'pos':'neg'},
+        {l:'Achievement',v: fmt.pct(d.pct),  c: d.pct    >= 0 ? 'pos':'neg'},
+      ]
+    },
+  ];
+
+  const grid = document.getElementById('walk-grid');
+  grid.innerHTML = walksConfig.map(wc => {
+    const data = D[wc.key];
+    if (!data) return `<div class="walk-card">
+      <div class="walk-header ${wc.cls}">${wc.title}</div>
+      <div class="walk-row"><span class="wlabel">No data</span></div></div>`;
+    const rows = wc.rows(data);
+    return `<div class="walk-card">
+      <div class="walk-header ${wc.cls}">${data.label || wc.title}</div>
+      ${rows.map(r => `<div class="walk-row">
+        <span class="wlabel">${r.l}</span>
+        <span class="wval ${r.c}">${r.v}</span>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── FINDINGS ──
+function renderFindings() {
+  const k = D.kpis || {};
+  const ach = k.ytd_achievement_pct || 0;
+  const miss = k.ytd_miss_units || 0;
+  const short = k.ki_short_fwd || 0;
+  const excess = k.ki_excess_count || 0;
+
+  const findings = [
+    {
+      type: ach < 90 ? 'red' : ach < 100 ? 'gold' : 'green',
+      num: '1',
+      strong: `Oregon YTD at ${ach.toFixed(1)}% of plan`,
+      text: `${fmt.n(Math.abs(miss))} units ${miss < 0 ? 'behind' : 'ahead of'} plan through May 2026.`
+    },
+    {
+      type: short > 20 ? 'red' : short > 5 ? 'gold' : 'green',
+      num: '2',
+      strong: `${fmt.n(short)} KIs short of forward inventory`,
+      text: `These items need procurement or reallocation before the Jun–Dec selling window.`
+    },
+    {
+      type: excess > 0 ? 'gold' : 'green',
+      num: '3',
+      strong: `${fmt.n(excess)} KIs with excess at farm`,
+      text: `${fmt.n(k.total_excess_units || 0)} excess units identified — review for OR reallocation or redistribution.`
+    },
+  ];
+
+  document.getElementById('findings').innerHTML = findings.map(f => `
+    <div class="finding ${f.type}">
+      <div class="f-num">${f.num}</div>
+      <div class="f-text"><strong>${f.strong}</strong><br><span>${f.text}</span></div>
+    </div>`).join('');
+}
+
+// ── TOP MISS TABLE ──
+function renderTopMiss() {
+  const rows = D.top_miss || [];
+  const cols = [
+    {key:'_item_key',        label:'KI / Item'},
+    {key:'description',      label:'Description'},
+    {key:'ytd_plan_units',   label:'YTD Plan',   num:true, fmt:fmt.n},
+    {key:'ytd_actual_units', label:'YTD Actual', num:true, fmt:fmt.n},
+    {key:'ytd_miss_units',   label:'Miss (Units)',num:true,fmt:fmt.n, cls:v=>v<0?'neg':'pos'},
+    {key:'ytd_miss_pct',     label:'Miss %',     num:true, fmt:fmt.pct, cls:v=>v<0?'neg':'pos'},
+  ];
+  buildTable('top-miss-tbl', rows, cols);
+}
+
+// ── YTD TAB ──
+function renderYTD() {
+  const rows = D.ytd_miss || [];
+  const cols = [
+    {key:'_item_key',        label:'KI'},
+    {key:'description',      label:'Description'},
+    {key:'ytd_plan_units',   label:'Plan',   num:true, fmt:fmt.n},
+    {key:'ytd_actual_units', label:'Actual', num:true, fmt:fmt.n},
+    {key:'ytd_miss_units',   label:'Miss',   num:true, fmt:fmt.n, cls:v=>v<0?'neg':'pos'},
+    {key:'ytd_miss_pct',     label:'Miss %', num:true, fmt:fmt.pct, cls:v=>v<0?'neg':'pos'},
+  ];
+  buildTable('ytd-tbl', rows, cols);
+}
+
+// ── MISS BY KI TAB ──
+function renderMissKI() {
+  const rows = (D.ytd_miss || []).slice().sort((a,b)=>(a.ytd_miss_units||0)-(b.ytd_miss_units||0));
+  const cols = [
+    {key:'_item_key',        label:'KI'},
+    {key:'description',      label:'Description'},
+    {key:'ytd_plan_units',   label:'Plan',   num:true, fmt:fmt.n},
+    {key:'ytd_actual_units', label:'Actual', num:true, fmt:fmt.n},
+    {key:'ytd_miss_units',   label:'Miss ▲', num:true, fmt:fmt.n, cls:v=>v<0?'neg':'pos'},
+    {key:'ytd_miss_pct',     label:'Miss %', num:true, fmt:fmt.pct, cls:v=>v<0?'neg':'pos'},
+  ];
+  buildTable('missKI-tbl', rows, cols);
+}
+
+// ── MISS BY CUSTOMER TAB ──
+function renderMissCust() {
+  const rows = D.channel || [];
+  const cols = [
+    {key:'customer',          label:'Customer'},
+    {key:'region',            label:'Region'},
+    {key:'ytd_plan_units',    label:'YTD Plan',   num:true, fmt:fmt.n},
+    {key:'ytd_actual_units',  label:'YTD Actual', num:true, fmt:fmt.n},
+    {key:'ytd_miss_units',    label:'Miss',       num:true, fmt:fmt.n, cls:v=>v<0?'neg':'pos'},
+    {key:'fwd_plan_units',    label:'Fwd Plan',   num:true, fmt:fmt.n},
+  ];
+  buildTable('missCust-tbl', rows, cols);
+}
+
+// ── PLAN BY KI TAB ──
+function renderPlanKI() {
+  const rows = D.fwd_gap || [];
+  const cols = [
+    {key:'_item_key',       label:'KI'},
+    {key:'fwd_plan_units',  label:'Fwd Plan',  num:true, fmt:fmt.n},
+    {key:'inv_available',   label:'Inv Avail', num:true, fmt:fmt.n},
+    {key:'fwd_gap_units',   label:'Gap',       num:true, fmt:fmt.n, cls:v=>v<0?'neg':'pos'},
+    {key:'fwd_gap_pct',     label:'Gap %',     num:true, fmt:fmt.pct, cls:v=>v<0?'neg':'pos'},
+    {key:'coverage_flag',   label:'Coverage',  badge:v=>v==='SHORT'?'short':v==='COVERED'?'covered':'marginal'},
+  ];
+  buildTable('planKI-tbl', rows, cols);
+}
+
+// ── EXCESS TAB ──
+function renderExcess() {
+  const rows = D.excess || [];
+  if (!rows.length) {
+    document.getElementById('excess-tbl').parentElement.innerHTML =
+      '<p style="color:var(--text-dim);font-size:12px;padding:16px">No excess inventory identified for Oregon. ✓</p>';
+    return;
+  }
+  const cols = [
+    {key:'_item_key',       label:'KI'},
+    {key:'total_plan_units',label:'Full-Yr Plan', num:true, fmt:fmt.n},
+    {key:'inv_available',   label:'Inv Avail',   num:true, fmt:fmt.n},
+    {key:'excess_units',    label:'Excess',      num:true, fmt:fmt.n, cls:()=>'warn'},
+    {key:'excess_pct',      label:'Excess %',    num:true, fmt:fmt.pct},
+    {key:'reason_code',     label:'Reason'},
+  ];
+  buildTable('excess-tbl', rows, cols);
+}
+
+// ── HIST LIFT TAB ──
+function renderHist() {
+  const rows = D.hist_lift || [];
+  if (!rows.length) {
+    document.getElementById('hist-tbl').parentElement.innerHTML =
+      '<p style="color:var(--text-dim);font-size:12px;padding:16px">Historical lift data requires <code>cache_or/hist_or_YYYY.parquet</code> files. See CURSOR_HANDOFF_Sales_Plan_OR.md.</p>';
+    return;
+  }
+  const cols = [
+    {key:'_item_key',    label:'KI'},
+    {key:'description',  label:'Description'},
+    {key:'plan_units',   label:'2026 Plan', num:true, fmt:fmt.n},
+    {key:'hist_3yr_avg', label:'3-Yr Avg',  num:true, fmt:fmt.n},
+    {key:'lift_units',   label:'Hist Lift', num:true, fmt:fmt.n, cls:()=>'pos'},
+    {key:'lift_pct',     label:'Lift %',    num:true, fmt:fmt.pct},
+  ];
+  buildTable('hist-tbl', rows, cols);
+}
+
+// ── CHANNEL SUMMARY TAB ──
+function renderChannel() {
+  const rows = D.channel || [];
+  const cols = [
+    {key:'customer',         label:'Customer / Channel'},
+    {key:'region',           label:'Region'},
+    {key:'ytd_plan_units',   label:'YTD Plan',   num:true, fmt:fmt.n},
+    {key:'ytd_actual_units', label:'YTD Actual', num:true, fmt:fmt.n},
+    {key:'fwd_plan_units',   label:'Fwd Plan',   num:true, fmt:fmt.n},
+    {key:'fwd_gap_units',    label:'Fwd Gap',    num:true, fmt:fmt.n, cls:v=>v!=null&&v<0?'neg':'pos'},
+  ];
+  buildTable('channel-tbl', rows, cols);
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+loadData();
+</script>
+</body>
+</html>

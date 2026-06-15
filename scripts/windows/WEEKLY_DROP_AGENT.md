@@ -8,8 +8,8 @@ This document describes the **on-premises “agent” machine** that watches `Da
 |----------------|-----------|---------|--------|
 | **8:00 AM** | `Everde-SalesPlan-DailyCheck` | `Sales Plan Review\WeeklyDrop\` | Azure Blob `sales_plan_data.json` |
 | **9:00 AM** | `Everde-Freight-DailyCheck` | Juanita Load Board share → `Freight\WeeklyDrop\` | Sync raw `.xlsb`, pipeline + Azure Blob `dashboard_data.json` (non-interactive; no fuel `[y/N]` prompt) |
-| **9:30 AM** | `Everde-Weather-DailyCheck` | `JS Files\Weather Data\scripts\` (Open-Meteo fetch) | Blob `weather_dashboard_data.json` |
-| **10:00 AM Monday** | `Everde-Retail-WeeklyCheck` | Share retail feeds → `SalesOpportunity\` | Blob `retail_opp_data.json` |
+| **9:30 AM** | `Everde-Weather-DailyCheck` | `Weather\WeeklyDrop\` (daily sales sync) + `JS Files\Weather Data\scripts\` | Blob `weather_dashboard_data.json` |
+| **10:00 AM Monday** | `Everde-Retail-WeeklyCheck` | `Weather\WeeklyDrop\` + share retail feeds → `SalesOpportunity\` | Blob `retail_opp_data.json` |
 | **1:30 PM Monday** | `Everde-Nursery-WeeklyCheck` | `Inventory Metrics\*.xlsb` | `public/nursery-inventory-dashboard.html` + **git push** |
 
 Times use the **Windows clock** on the agent PC. Set the machine to **Pacific Time**, or adjust times in `register-weekly-publish-tasks.ps1`.
@@ -70,6 +70,18 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 | Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` |
 | Freight | Juanita drops on `\\VRD-AWSECS\...\Load Board Reports\2026\`; agent syncs to `DataDrops\Freight\WeeklyDrop\` | Raw `Everde Freight Data*.xlsb` (not CALIFORNIA ONLY); dashboard `*.xlsx` appears after pipeline |
 | Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` (weekly drop, typically Monday) |
+| Weather / Retail (Jonathan) | `DataDrops\Weather\WeeklyDrop\` | **Weekly retail:** newest `HD week*.xlsx` or `HD Sales YTD*.xlsx`, newest `YTD BY STORE SKU*.xlsb` / `Lowes YTD*.xlsb`. **Daily weather sales (optional same folder):** `HD FL/SE/SW Daily*.xlsx`, `LOWES Daily Retail Sales*.xlsx` (main + STX.NTX). Agent syncs daily files → `JS Files\Weather Data\Sales Data\` before weather pipeline. |
+
+**Weather / Retail drop (copy to Brent & Armando):**  
+`\\192.168.190.10\Claude Sandbox\DataDrops\Weather\WeeklyDrop`  
+Retail rebuild runs **Monday 10:00 AM** on the agent PC when files change. Weather job runs **daily 9:30 AM** (forecast always; sales×weather when daily files are current).
+
+Manual refresh after a drop:
+```powershell
+npm run weather:sync-weeklydrop
+npm run retail:full-pipeline
+npm run weather:share-pipeline
+```
 
 ## Moving the agent to another machine later
 

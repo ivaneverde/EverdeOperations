@@ -13,8 +13,8 @@ Weekly source feeds (share)
 
 | Feed | Typical pattern | Where to look |
 |------|-----------------|---------------|
-| HD store weekly | `HD week X file MMDDYY.xlsx` | `JS Files\Shared\Sales Data\` or weekly drop |
-| Lowe's store | `LOW Copy of YTD BY STORE SKU MMDDYY.xlsb` | same |
+| HD store weekly | `HD week X file MMDDYY.xlsx` | `DataDrops\Weather\WeeklyDrop\` (preferred), `JS Files\Shared\Sales Data\`, or weekly drop |
+| Lowe's store | `YTD BY STORE SKU MMDDYY.xlsb`, `Lowes YTD*.xlsb` | `DataDrops\Weather\WeeklyDrop\` (preferred) |
 | Inventory | `Inventory Transform MMDDYY.xlsx` | `Shared\INV\` or Sales Plan WeeklyDrop |
 | YTD actuals | `2026 Sales by Item MMDDYY.xlsx` | `Shared\Sales Data\` |
 | Sales plan | `2026 Sales Plan by Item.xlsx` | stable; `Shared\Sales Plan\` |

@@ -75,6 +75,8 @@ NETWORK_BASE = r"\\192.168.190.10\Claude Sandbox\JS Files"
 SHARED_BASE  = Path(NETWORK_BASE) / "Shared"
 WCR_BASE     = Path(NETWORK_BASE) / "West Coast Retail Opportunity"
 DROPS_BASE   = Path(r"\\192.168.190.10\Claude Sandbox\DataDrops\SalesOpportunity")
+WEATHER_DROP = Path(r"\\192.168.190.10\Claude Sandbox\DataDrops\Weather\WeeklyDrop")
+SALES_PLAN_DROP = Path(r"\\192.168.190.10\Claude Sandbox\DataDrops\Sales Plan Review\WeeklyDrop")
 
 def find_latest(folder, *patterns):
     for pat in patterns:
@@ -113,7 +115,13 @@ def resolve_sources(args) -> dict:
     def find(explicit, *patterns):
         if explicit and Path(explicit).exists():
             return Path(explicit)
-        # Try weekly drop folder first
+        # Weather WeeklyDrop (Jonathan retail + weather drops)
+        if WEATHER_DROP.exists():
+            f = find_latest(WEATHER_DROP, *patterns)
+            if f: return f
+        if SALES_PLAN_DROP.exists():
+            f = find_latest(SALES_PLAN_DROP, *patterns)
+            if f: return f
         if DROPS_BASE.exists():
             f = find_latest(DROPS_BASE, *patterns)
             if f: return f
@@ -137,8 +145,10 @@ def resolve_sources(args) -> dict:
         return None
 
     return {
-        'hd_store':  find(args.hd_store,  'HD week*.xlsx', 'HD_week*.xlsx'),
-        'low_store': find(args.low_store, 'LOW Copy of YTD*.xlsb', 'LOW_Copy*.xlsb',
+        'hd_store':  find(args.hd_store,  'HD week*.xlsx', 'HD_week*.xlsx',
+                          'Everything week*HD.xlsx', 'HD Sales YTD*.xlsx'),
+        'low_store': find(args.low_store, 'YTD BY STORE SKU*.xlsb', 'Lowes YTD*.xlsb',
+                          'LOW Copy of YTD*.xlsb', 'LOW_Copy*.xlsb',
                           'LOWES*YTD*BY*STORE*.xlsb'),
         'inv':       find(args.inv,       'Inventory Transform*.xlsx',
                           'Inventory_Transform*.xlsx'),
@@ -488,8 +498,20 @@ def load_actuals(path, wk_cutoff: int) -> pd.DataFrame:
     return acts
 
 
+def _hd_ly_week_from_columns(columns, fallback_week: int) -> int:
+    import re
+    for c in columns:
+        m = re.match(r'LY Sales \$ WK(\d+)', str(c).strip())
+        if m:
+            return int(m.group(1))
+        m = re.match(r'LY Sales Units WK(\d+)', str(c).strip())
+        if m:
+            return int(m.group(1))
+    return fallback_week
+
+
 def load_hd_store(path, item_group: Dict[str, str],
-                  hd_xref: pd.DataFrame) -> pd.DataFrame:
+                  hd_xref: pd.DataFrame, week_num: int | None = None) -> pd.DataFrame:
     """
     HD weekly store file: LY sales, current inventory, on-order per store × SKU.
     Returns group × customer × market grain.
@@ -497,6 +519,9 @@ def load_hd_store(path, item_group: Dict[str, str],
     log(f"  Loading HD Store Data: {Path(path).name}")
     df = pd.read_excel(path, sheet_name='Sheet1', header=0)
     df.columns = [str(c).strip() for c in df.columns]
+
+    ly_week = _hd_ly_week_from_columns(df.columns, week_num or CURRENT_ISO_WEEK)
+    log(f"    LY compare week: WK{ly_week}")
 
     df['sku']         = df['SKU Nbr'].astype(str).str.strip()
     df['store']       = df['Store Nbr'].astype(str).str.strip()
@@ -512,8 +537,8 @@ def load_hd_store(path, item_group: Dict[str, str],
     df = df[df['group'].notna()].copy()
 
     num_cols = {
-        'LY Sales Units WK14':     'ly_sales_units',
-        'LY Sales $ WK14':         'ly_sales_dlr',
+        f'LY Sales Units WK{ly_week}': 'ly_sales_units',
+        f'LY Sales $ WK{ly_week}':     'ly_sales_dlr',
         'Curr Inventory Units':    'curr_inv_units',
         'LY On Hand Units':        'ly_oh_units',
         'On Order Units':          'on_order_units',
@@ -1159,7 +1184,7 @@ def main():
     actuals_df = load_actuals(sources['actuals'], week_num + 4)  # 445 wk offset
 
     log("\nLoading store data...")
-    hd_grp, hd_stores   = load_hd_store(sources['hd_store'], item_group, hd_xref)
+    hd_grp, hd_stores   = load_hd_store(sources['hd_store'], item_group, hd_xref, week_num)
     low_grp, low_stores  = load_low_store(sources['low_store'], item_group, low_xref)
 
     log("\nRunning calculations...")

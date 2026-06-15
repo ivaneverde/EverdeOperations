@@ -36,6 +36,12 @@ try {
     exit 0
   }
 
+  $sync = Join-Path $RepoRoot "scripts\weather\sync-weeklydrop.ps1"
+  if (Test-Path -LiteralPath $sync) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $sync
+    if ($LASTEXITCODE -ne 0) { Write-Warning "weather sync-weeklydrop exited $LASTEXITCODE" }
+  }
+
   Write-Host "Running weather share pipeline..." -ForegroundColor Green
   $pipe = Join-Path $RepoRoot "scripts\weather\run-share-pipeline.ps1"
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $pipe

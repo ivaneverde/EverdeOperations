@@ -35,6 +35,7 @@ try {
   }
 
   $searchRoots = @(
+    (Join-Path $dataRoot "Weather\WeeklyDrop"),
     $shared,
     (Join-Path $shared "Sales Data"),
     (Join-Path $shared "INV"),
@@ -50,8 +51,8 @@ try {
     return $null
   }
 
-  $hd = FindSource @("HD week*.xlsx", "HD_week*.xlsx")
-  $low = FindSource @("LOW Copy of YTD*.xlsb", "LOWES*YTD*BY*STORE*.xlsb")
+  $hd = FindSource @("HD week*.xlsx", "HD_week*.xlsx", "Everything week*HD.xlsx", "HD Sales YTD*.xlsx")
+  $low = FindSource @("YTD BY STORE SKU*.xlsb", "Lowes YTD*.xlsb", "LOW Copy of YTD*.xlsb", "LOWES*YTD*BY*STORE*.xlsb")
   $inv = FindSource @("Inventory Transform*.xlsx", "Inventory_Transform*.xlsx")
   $actuals = FindSource @("2026 Sales by Item*.xlsx", "*Sales by Item*.xlsx")
   $plan = FindSource @("2026 Sales Plan by Item.xlsx")

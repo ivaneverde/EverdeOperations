@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Everde-Weather-DailyCheck
+  ─────────────────────────
+  Machine  : VRD-8FQJYW3
+  Schedule : Daily, 9:30 AM Central Time
+  Pipeline :
+    1. fetch_weather_v2.py         — pulls raw weather data from APIs
+    2. build_sales_state_v2.py     — processes weather into state-level summaries
+    3. build_sales_report_v2.py    — generates the weather sales report workbook
+    4. build_shared_crosswalk.py   — writes Sales_Weather_Crosswalk_latest.json
+                                     (shared between Weather + Retail dashboards)
+
+  Import via: schtasks /Create /XML Everde-Weather-DailyCheck.xml /TN "Everde-Weather-DailyCheck"
+  Or:         Right-click Task Scheduler → Import Task → select this file
+-->
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2026-05-21T00:00:00</Date>
+    <Author>Everde Operations</Author>
+    <Description>Daily weather data fetch and crosswalk build for the Everde Operations Portal. Runs fetch_weather_v2.py, build_sales_state_v2.py, build_sales_report_v2.py, and build_shared_crosswalk.py in sequence. Outputs Sales_Weather_Crosswalk_latest.json to the shared JS Files network share for consumption by the Weather and Retail dashboards.</Description>
+    <URI>\Everde-Weather-DailyCheck</URI>
+  </RegistrationInfo>
+
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-05-22T09:30:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT2H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+
+  <Actions Context="Author">
+    <Exec>
+      <Command>cmd.exe</Command>
+      <Arguments>/C "cd /D "\\192.168.190.10\Claude Sandbox\JS Files\Weather Data\scripts" &amp;&amp; python fetch_weather_v2.py &amp;&amp; python build_sales_state_v2.py &amp;&amp; python build_sales_report_v2.py &amp;&amp; python build_shared_crosswalk.py &gt;&gt; "\\192.168.190.10\Claude Sandbox\JS Files\logs\weather_daily.log" 2&gt;&amp;1"</Arguments>
+    </Exec>
+  </Actions>
+</Task>

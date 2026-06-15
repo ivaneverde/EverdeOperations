@@ -31,6 +31,7 @@
     "retail:full-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/retail-opportunity/run-full-pipeline.ps1",
     "publish:weather-json": "node scripts/weather/publish-dashboard-data.mjs",
     "weather:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-publish.ps1",
+    "weather:sync-weeklydrop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/sync-weeklydrop.ps1",
     "weather:share-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-share-pipeline.ps1",
     "weather:full-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-share-pipeline.ps1 -FullPipeline",
     "weather:bootstrap-json": "node scripts/weather/bootstrap-json-from-html.mjs",

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Everde-Retail-WorkbookBuild
+  ───────────────────────────
+  Machine  : VRD-8FQJYW3
+  Schedule : Monday, 9:00 AM (runs before Everde-Retail-WeeklyCheck at 10:00 AM)
+  Purpose  : Runs build_retail_workbooks.py to generate the 5 weekly xlsx files
+             that Everde-Retail-WeeklyCheck then reads and extracts into JSON.
+
+  Execution order on Mondays:
+    09:00 AM — Everde-Freight-WeeklyCheck       (Freight)
+    09:00 AM — Everde-Retail-WorkbookBuild      ← THIS TASK (builds xlsx files first)
+    10:00 AM — Everde-Retail-WeeklyCheck        (reads the xlsx files built above)
+    01:30 PM — Everde-Nursery-WeeklyCheck
+
+  Import via: schtasks /Create /XML Everde-Retail-WorkbookBuild.xml /TN "Everde-Retail-WorkbookBuild"
+-->
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2026-05-21T00:00:00</Date>
+    <Author>Everde Operations</Author>
+    <Description>Runs build_retail_workbooks.py every Monday at 9:00 AM to generate the 5 West Coast Retail xlsx workbooks (Sales Manager Summary, HD Variance, LOW Variance, Item-Level Miss Analysis, FOR Source Miss Report) before the 10:00 AM Everde-Retail-WeeklyCheck extract task runs.</Description>
+    <URI>\Everde-Retail-WorkbookBuild</URI>
+  </RegistrationInfo>
+
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-05-26T09:00:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByWeek>
+        <DaysOfWeek>
+          <Monday />
+        </DaysOfWeek>
+        <WeeksInterval>1</WeeksInterval>
+      </ScheduleByWeek>
+    </CalendarTrigger>
+  </Triggers>
+
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+
+  <Actions Context="Author">
+    <Exec>
+      <Command>cmd.exe</Command>
+      <Arguments>/C "cd /D "\\192.168.190.10\Claude Sandbox\JS Files\West Coast Retail Opportunity" &amp;&amp; python build_retail_workbooks.py &gt;&gt; "\\192.168.190.10\Claude Sandbox\JS Files\logs\retail_build.log" 2&gt;&amp;1"</Arguments>
+    </Exec>
+  </Actions>
+</Task>
