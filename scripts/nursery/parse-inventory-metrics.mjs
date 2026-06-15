@@ -97,6 +97,40 @@ function sumCounts(counts) {
   return Object.values(counts).reduce((s, v) => s + num(v), 0);
 }
 
+/** Farm code on detail rows: primary col 2, continuation rows often only col 0. */
+function resolveFarmCode(row, lastFarm) {
+  const fromCol2 = String(row[2] || "").trim();
+  if (FARMS.includes(fromCol2)) return fromCol2;
+  const fromCol0 = String(row[0] || "").trim();
+  if (FARMS.includes(fromCol0)) return fromCol0;
+  return lastFarm;
+}
+
+function farmYTDFromRow(y) {
+  return {
+    boValue: num(y[20]),
+    crValue: num(y[21]),
+    customer: num(y[22]),
+    distribution: num(y[23]),
+    farmCredits: num(y[24]),
+    sales: num(y[25]),
+    rebate: num(y[26]),
+    ytdRevenue: num(y[27]),
+    boPct: num(y[28]),
+    crPct: num(y[29]),
+    boCrPct: num(y[30]),
+    boGoal: num(y[31]),
+    crGoal: num(y[32]),
+    boCrGoal: num(y[33]),
+    boPctVar: num(y[34]),
+    crPctVar: num(y[35]),
+    boCrPctVar: num(y[36]),
+    boDollarVar: num(y[37]),
+    crDollarVar: num(y[38]),
+    boCrDollarVar: num(y[39]),
+  };
+}
+
 export function parseInventoryMetricsWorkbook(wb, opts = {}) {
   const reportDate =
     opts.reportDate ||
@@ -184,29 +218,13 @@ export function parseInventoryMetricsWorkbook(wb, opts = {}) {
       }
     }
 
-    const y = boRow;
-    farmYTD[farm] = {
-      boValue: num(y[20]),
-      crValue: num(y[21]),
-      customer: num(y[22]),
-      distribution: num(y[23]),
-      farmCredits: num(y[24]),
-      sales: num(y[25]),
-      rebate: num(y[26]),
-      ytdRevenue: num(y[27]),
-      boPct: num(y[28]),
-      crPct: num(y[29]),
-      boCrPct: num(y[30]),
-      boGoal: num(y[31]),
-      crGoal: num(y[32]),
-      boCrGoal: num(y[33]),
-      boPctVar: num(y[34]),
-      crPctVar: num(y[35]),
-      boCrPctVar: num(y[36]),
-      boDollarVar: num(y[37]),
-      crDollarVar: num(y[38]),
-      boCrDollarVar: num(y[39]),
-    };
+  }
+
+  // YTD block is a vertical table keyed by farm in column 19 (not the weekly 4-row blocks).
+  for (let i = 0; i < bo.length; i++) {
+    const farm = String(bo[i][19] || "").trim();
+    if (!FARMS.includes(farm)) continue;
+    farmYTD[farm] = farmYTDFromRow(bo[i]);
   }
 
   const gtIdx = bo.findIndex((r) => r[1] === "Grand Total");
@@ -282,12 +300,23 @@ export function parseInventoryMetricsWorkbook(wb, opts = {}) {
     };
   }
 
-  // --- ready date (3 rows per farm) ---
+  // --- ready date (3 rows per farm; continuation rows reuse col 0 farm) ---
   const readyDate = {};
+  let rdFarm = "";
+  let rdHeaderSeen = false;
   for (let i = 0; i < rd.length; i++) {
-    const farm = String(rd[i][2] || "").trim();
+    const col2 = String(rd[i][2] || "").trim();
+    const col3 = String(rd[i][3] || "").toLowerCase();
+    if (col2 === "Org Code" && col3.includes("ready date")) {
+      if (rdHeaderSeen) break;
+      rdHeaderSeen = true;
+      continue;
+    }
+    const farm = resolveFarmCode(rd[i], rdFarm);
     if (!FARMS.includes(farm)) continue;
-    const type = String(rd[i][3] || "").toLowerCase();
+    rdFarm = farm;
+    const type = col3;
+    if (!type || type === "ready date") continue;
     const counts = gradeCounts7(rd[i]);
     const total = num(rd[i][18]) || sumCounts(counts);
     if (!readyDate[farm]) readyDate[farm] = {};
@@ -296,33 +325,40 @@ export function parseInventoryMetricsWorkbook(wb, opts = {}) {
     else if (type.includes("future")) readyDate[farm].future = { counts, total };
   }
 
-  // --- demand window (4 rows per farm) ---
+  // --- demand window (4 rows per farm; continuation rows reuse col 0 farm) ---
   const demandWin = {};
+  let dwFarm = "";
   for (let i = 0; i < dw.length; i++) {
-    const farm = String(dw[i][2] || "").trim();
+    const farm = resolveFarmCode(dw[i], dwFarm);
     if (!FARMS.includes(farm)) continue;
+    dwFarm = farm;
     const win = String(dw[i][3] || "").toLowerCase();
+    if (!win || win === "dmnd window") continue;
     const counts = gradeCountsDemand(dw[i]);
     const total = num(dw[i][18]) || sumCounts(counts);
     if (!demandWin[farm]) demandWin[farm] = {};
     if (win.includes("missing")) demandWin[farm].missing = { counts, total };
-    else if (win === "past") demandWin[farm].past = { counts, total };
     else if (win.includes("sellable")) demandWin[farm].sellable = { counts, total };
     else if (win.includes("ready after")) demandWin[farm].readyAfter = { counts, total };
+    else if (win.includes("past")) demandWin[farm].past = { counts, total };
   }
 
-  // --- photos (3 rows per farm) ---
+  // --- photos (3 rows per farm; continuation rows reuse col 0 farm) ---
   const photos = {};
+  let phFarm = "";
   for (let i = 0; i < ph.length; i++) {
-    const farm = String(ph[i][2] || "").trim();
+    const farm = resolveFarmCode(ph[i], phFarm);
     if (!FARMS.includes(farm)) continue;
+    phFarm = farm;
     const timing = String(ph[i][3] || "").toLowerCase();
+    if (!timing || timing === "photo timing") continue;
     const counts = gradeCountsPhoto(ph[i]);
     const total = num(ph[i][14]) || sumCounts(counts);
     if (!photos[farm]) photos[farm] = {};
     if (timing.includes("current")) photos[farm].current = { counts, total };
     else if (timing.includes("late")) photos[farm].late = { counts, total };
-    else if (timing.includes("no")) photos[farm].no = { counts, total };
+    else if (timing.includes("no photo") || (timing.includes("no") && !timing.includes("current")))
+      photos[farm].no = { counts, total };
   }
 
   // --- aggregates ---
