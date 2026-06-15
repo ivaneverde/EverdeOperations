@@ -14,7 +14,7 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function injectPortalNursery(html: string, embed: boolean): string {
+function injectPortalNursery(html: string, embed: boolean, pane: "supply" | "demand"): string {
   if (!embed) return html;
   const style = `<style data-everde-portal="nursery-embed">
 html[data-everde-nursery-embed] .report-switcher { display: none !important; }
@@ -49,6 +49,33 @@ html[data-everde-nursery-embed] .wrap > * {
     out = style + out;
   }
   out = out.replace(/<html(\s[^>]*)?>/i, '<html$1 data-everde-nursery-embed="1">');
+  if (pane === "demand") {
+    const boot = `<script data-everde-portal="nursery-pane-boot">
+(function () {
+  function activateDemand() {
+    var tab = document.querySelector('.report-tab[data-report="demand"]');
+    if (tab) {
+      tab.click();
+      return;
+    }
+    if (typeof renderDemand === "function") renderDemand();
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      requestAnimationFrame(activateDemand);
+    });
+  } else {
+    requestAnimationFrame(activateDemand);
+  }
+})();
+</script>`;
+    const bodyClose = /<\/body\s*>/i.exec(out);
+    if (bodyClose && bodyClose.index >= 0) {
+      out = out.slice(0, bodyClose.index) + boot + out.slice(bodyClose.index);
+    } else {
+      out += boot;
+    }
+  }
   return out;
 }
 
@@ -86,7 +113,7 @@ export async function GET(request: Request) {
 
   try {
     const raw = await fs.readFile(filePath, "utf8");
-    const html = injectPortalNursery(ensureViewportMeta(raw), embed);
+    const html = injectPortalNursery(ensureViewportMeta(raw), embed, pane);
     return new NextResponse(html, {
       status: 200,
       headers: {

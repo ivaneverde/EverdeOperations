@@ -12,7 +12,8 @@ export async function resolveNurseryDashboardHtmlPath(): Promise<string | null> 
     candidates.push(env.replace(/\//g, path.sep));
   }
   const profile = process.env.USERPROFILE || process.env.HOME;
-  if (profile) {
+  // Hosted builds only ship public/; skip developer Documents copy on Vercel.
+  if (profile && !process.env.VERCEL) {
     candidates.push(
       path.join(profile, "Documents", "nursery-inventory-dashboard.html"),
     );
