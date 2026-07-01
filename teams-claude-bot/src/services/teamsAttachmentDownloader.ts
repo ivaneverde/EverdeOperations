@@ -1,5 +1,7 @@
 import type { Attachment, TurnContext } from "botbuilder";
+import { downloadMessageFilesViaGraph } from "../graph/chatMessageFiles.js";
 import { getConfig } from "../config/index.js";
+import { isPersonalBotChat } from "../utils/teamsConversationScope.js";
 import { logger } from "../utils/logger.js";
 
 export interface DownloadedFile {
@@ -226,6 +228,36 @@ export async function downloadMessageAttachments(
   }
 
   return results;
+}
+
+/** True when we should attempt to fetch files (Bot Framework and/or Graph). */
+export function shouldAttemptFileDownload(
+  context: TurnContext,
+  attachments: Attachment[],
+): boolean {
+  if (activityHasUserFileAttachment(attachments)) return true;
+  if (isPersonalBotChat(context)) return false;
+  // Group / channel: Teams UI shows files but Bot Framework often sends only HTML chrome.
+  return attachments.length > 0 && hasOnlyTeamsChromeAttachments(attachments);
+}
+
+/**
+ * Download attachments: Bot Framework (personal chat) then Graph (group / channel).
+ */
+export async function downloadAllMessageAttachments(
+  context: TurnContext,
+): Promise<DownloadedFile[]> {
+  const botFiles = await downloadMessageAttachments(context);
+  if (botFiles.length > 0) return botFiles;
+
+  if (isPersonalBotChat(context)) return [];
+
+  logger.info("graph.files.fallback", {
+    conversationType: context.activity.conversation?.conversationType,
+    messageId: context.activity.id,
+  });
+
+  return downloadMessageFilesViaGraph(context);
 }
 
 function safeUrlHost(url: string): string {

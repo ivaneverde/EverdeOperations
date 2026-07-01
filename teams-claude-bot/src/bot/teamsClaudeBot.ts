@@ -9,15 +9,15 @@ import { buildClaudeContentFromFiles } from "../services/claudeContentBuilder.js
 import { ClaudeService } from "../services/claudeService.js";
 import { ConversationStore } from "../services/conversationStore.js";
 import {
-  activityHasUserFileAttachment,
-  downloadMessageAttachments,
-  hasOnlyTeamsChromeAttachments,
+  downloadAllMessageAttachments,
+  shouldAttemptFileDownload,
   summarizeAttachments,
 } from "../services/teamsAttachmentDownloader.js";
+import { GraphFileAccessError } from "../graph/chatMessageFiles.js";
 import { handleFileConsentInvoke } from "./fileConsentHandler.js";
 import { logger } from "../utils/logger.js";
 import {
-  GROUP_CHAT_FILE_HELP,
+  GRAPH_PERMISSION_HELP,
   isPersonalBotChat,
 } from "../utils/teamsConversationScope.js";
 import { getTeamsMessageText } from "../utils/teamsMessageText.js";
@@ -34,7 +34,7 @@ Chat naturally, or **attach files** for analysis (summaries, Q&A, light analytic
 
 **Not supported in chat:** \`.xlsb\`, Word \`.docx\` (export to PDF or Excel first)
 
-**File uploads:** Use a **1:1 personal chat** with this bot (not a group chat). Teams only delivers attached files to bots in personal scope.
+**File uploads:** Works in **group chats**, **channels**, and **1:1** — attach with the paperclip and ask your question in the same message.
 
 **Commands**
 - \`/help\` — this message
@@ -84,25 +84,19 @@ export class TeamsClaudeBot extends ActivityHandler {
   private async handleMessage(context: TurnContext): Promise<void> {
     const text = getTeamsMessageText(context.activity);
     const attachments = context.activity.attachments ?? [];
-    const expectsUserFile = activityHasUserFileAttachment(attachments);
+    const tryFileDownload = shouldAttemptFileDownload(context, attachments);
     const personalChat = isPersonalBotChat(context);
-    const chromeOnly = hasOnlyTeamsChromeAttachments(attachments);
 
     logger.info("bot.message", {
       conversationType: context.activity.conversation?.conversationType,
       personalChat,
       textLen: text.length,
       attachmentCount: attachments.length,
-      expectsUserFile,
+      tryFileDownload,
       attachments: summarizeAttachments(attachments),
     });
 
-    if (!personalChat && chromeOnly && attachments.length > 0) {
-      await context.sendActivity(GROUP_CHAT_FILE_HELP);
-      return;
-    }
-
-    if (!text && !expectsUserFile) {
+    if (!text && !tryFileDownload) {
       await context.sendActivity(
         "Send a message, or attach a file (PDF, Excel, image) with your question.",
       );
@@ -130,8 +124,8 @@ export class TeamsClaudeBot extends ActivityHandler {
     try {
       const history = this.store.get(conversationId);
 
-      const files = expectsUserFile
-        ? await downloadMessageAttachments(context)
+      const files = tryFileDownload
+        ? await downloadAllMessageAttachments(context)
         : [];
 
       if (files.length > 0) {
@@ -162,7 +156,7 @@ export class TeamsClaudeBot extends ActivityHandler {
         return;
       }
 
-      if (expectsUserFile && files.length === 0) {
+      if (tryFileDownload && files.length === 0) {
         logger.warn("attachment.expected_but_missing", {
           conversationId,
           attachmentCount: attachments.length,
@@ -171,7 +165,7 @@ export class TeamsClaudeBot extends ActivityHandler {
         await context.sendActivity(
           personalChat
             ? "I see you attached a file, but I could not download it. Wait for the upload progress bar to finish, then send again with the paperclip (PDF, .xlsx, or image). For `.xlsb`, save as `.xlsx` first."
-            : GROUP_CHAT_FILE_HELP,
+            : GRAPH_PERMISSION_HELP,
         );
         return;
       }
@@ -203,6 +197,11 @@ export class TeamsClaudeBot extends ActivityHandler {
         message.includes("too large")
       ) {
         await context.sendActivity(MessageFactory.text(message));
+        return;
+      }
+
+      if (err instanceof GraphFileAccessError) {
+        await context.sendActivity(MessageFactory.text(err.message));
         return;
       }
 

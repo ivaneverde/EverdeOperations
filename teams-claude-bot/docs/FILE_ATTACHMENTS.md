@@ -30,7 +30,7 @@ This matches how most enterprises get “Claude in Teams” today.
 | **.xlsb / .docx** | Not supported in v1 — save as **.xlsx** or **PDF** |
 | **Huge Excel** | Large sheets are **truncated** (configurable row cap) — for 100MB models use portal/ETL |
 | **Follow-up without re-attach** | History stores **text summary** of the turn, not the full file bytes — for deep follow-up on the same deck, re-attach or keep one long thread (future: Claude Files API `file_id` cache) |
-| **Group chats** | Teams may prompt **file consent** the first time — users must accept |
+| **Group chats** | Teams does not pass file bytes via Bot Framework — bot uses **Microsoft Graph** (`Chat.Read.All` + `Files.Read.All`). See [`GRAPH_GROUP_FILES.md`](GRAPH_GROUP_FILES.md). Reinstall app after manifest upgrade. |
 | **Secrets** | Do not upload credentials; treat like any cloud AI upload |
 
 ## Teams admin requirements
