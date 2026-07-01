@@ -57,39 +57,90 @@ async function getBotFrameworkToken(): Promise<string> {
 }
 
 function parseTeamsFileInfo(attachment: Attachment): TeamsFileDownloadInfo | null {
+  const name = attachment.name?.trim();
   const raw = attachment.content;
-  if (!raw) return null;
+
+  if (!raw) {
+    if (name && attachment.contentUrl) {
+      return { fileName: name, downloadUrl: attachment.contentUrl };
+    }
+    return null;
+  }
+
   try {
     const obj =
       typeof raw === "string"
         ? (JSON.parse(raw) as TeamsFileDownloadInfo)
         : (raw as TeamsFileDownloadInfo);
-    return obj?.downloadUrl ? obj : null;
+    if (obj?.downloadUrl) {
+      return {
+        downloadUrl: obj.downloadUrl,
+        fileName: obj.fileName ?? name,
+        fileType: obj.fileType,
+      };
+    }
+    if (name && attachment.contentUrl) {
+      return { fileName: name, downloadUrl: attachment.contentUrl };
+    }
+    return null;
   } catch {
+    if (name && attachment.contentUrl) {
+      return { fileName: name, downloadUrl: attachment.contentUrl };
+    }
     return null;
   }
 }
 
 function isSkippableAttachment(attachment: Attachment): boolean {
   const ct = (attachment.contentType ?? "").toLowerCase();
+  // User-uploaded files in Teams (personal + group chat after consent).
+  if (ct.includes("teams.file.download.info")) return false;
+  if (parseTeamsFileInfo(attachment)?.downloadUrl) return false;
   if (ct.includes("text/html")) return true;
   if (ct.includes("application/vnd.microsoft.card")) return true;
-  if (ct.includes("application/vnd.microsoft.team")) return true;
   if (ct === "application/octet-stream" && !attachment.name && !parseTeamsFileInfo(attachment)) {
     return true;
   }
   return false;
 }
 
+/** Teams rich-text / card chrome only (no user file payload). */
+export function hasOnlyTeamsChromeAttachments(attachments: Attachment[]): boolean {
+  return attachments.length > 0 && attachments.every((a) => isSkippableAttachment(a));
+}
+
+export function summarizeAttachments(attachments: Attachment[]): string[] {
+  return attachments.map((a) => {
+    const info = parseTeamsFileInfo(a);
+    const parts = [
+      a.contentType ?? "unknown",
+      a.name ? `name=${a.name}` : "",
+      info?.downloadUrl ? "hasDownloadUrl" : "",
+      a.contentUrl ? "hasContentUrl" : "",
+    ].filter(Boolean);
+    return parts.join(" ");
+  });
+}
+
 /** True when the activity includes a user-uploaded file (not Teams rich-text chrome). */
 export function activityHasUserFileAttachment(attachments: Attachment[]): boolean {
   return attachments.some((attachment) => {
     if (isSkippableAttachment(attachment)) return false;
+    const ct = (attachment.contentType ?? "").toLowerCase();
+    if (ct.includes("teams.file.download.info") && attachment.name) return true;
     if (parseTeamsFileInfo(attachment)?.downloadUrl) return true;
     const name = attachment.name?.trim();
-    if (name && attachment.contentUrl) return true;
-    const ct = (attachment.contentType ?? "").toLowerCase();
-    if (attachment.contentUrl && (ct.includes("pdf") || ct.includes("image/"))) {
+    if (name && (attachment.contentUrl || parseTeamsFileInfo(attachment))) {
+      return true;
+    }
+    if (
+      attachment.contentUrl &&
+      (ct.includes("pdf") ||
+        ct.includes("image/") ||
+        ct.includes("spreadsheet") ||
+        ct.includes("excel") ||
+        ct.includes("csv"))
+    ) {
       return true;
     }
     return false;
@@ -136,20 +187,23 @@ export async function downloadMessageAttachments(
     let url = teamsInfo?.downloadUrl ?? attachment.contentUrl;
     if (!url) continue;
 
-    let useBotAuth = !teamsInfo?.downloadUrl;
-
     let buffer: Buffer;
     try {
-      buffer = await fetchBinary(url, useBotAuth);
+      buffer = await fetchBinary(url, false);
     } catch (firstErr) {
-      if (teamsInfo?.downloadUrl) {
-        logger.warn("attachment.download.retry_with_bot_auth", {
-          fileName,
-          err: firstErr,
-        });
+      logger.warn("attachment.download.retry_with_bot_auth", {
+        fileName,
+        err: firstErr,
+      });
+      try {
         buffer = await fetchBinary(url, true);
-      } else {
-        throw firstErr;
+      } catch (secondErr) {
+        logger.error("attachment.download.failed", {
+          fileName,
+          urlHost: safeUrlHost(url),
+          err: secondErr,
+        });
+        throw secondErr;
       }
     }
 
@@ -172,6 +226,14 @@ export async function downloadMessageAttachments(
   }
 
   return results;
+}
+
+function safeUrlHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "invalid-url";
+  }
 }
 
 function guessMimeFromName(fileName: string, fileType?: string): string {

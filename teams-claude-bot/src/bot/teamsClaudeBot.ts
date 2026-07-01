@@ -11,9 +11,15 @@ import { ConversationStore } from "../services/conversationStore.js";
 import {
   activityHasUserFileAttachment,
   downloadMessageAttachments,
+  hasOnlyTeamsChromeAttachments,
+  summarizeAttachments,
 } from "../services/teamsAttachmentDownloader.js";
 import { handleFileConsentInvoke } from "./fileConsentHandler.js";
 import { logger } from "../utils/logger.js";
+import {
+  GROUP_CHAT_FILE_HELP,
+  isPersonalBotChat,
+} from "../utils/teamsConversationScope.js";
 import { getTeamsMessageText } from "../utils/teamsMessageText.js";
 
 const HELP_TEXT = `**Claude in Teams**
@@ -27,6 +33,8 @@ Chat naturally, or **attach files** for analysis (summaries, Q&A, light analytic
 - Text / CSV / JSON / code files
 
 **Not supported in chat:** \`.xlsb\`, Word \`.docx\` (export to PDF or Excel first)
+
+**File uploads:** Use a **1:1 personal chat** with this bot (not a group chat). Teams only delivers attached files to bots in personal scope.
 
 **Commands**
 - \`/help\` — this message
@@ -77,6 +85,22 @@ export class TeamsClaudeBot extends ActivityHandler {
     const text = getTeamsMessageText(context.activity);
     const attachments = context.activity.attachments ?? [];
     const expectsUserFile = activityHasUserFileAttachment(attachments);
+    const personalChat = isPersonalBotChat(context);
+    const chromeOnly = hasOnlyTeamsChromeAttachments(attachments);
+
+    logger.info("bot.message", {
+      conversationType: context.activity.conversation?.conversationType,
+      personalChat,
+      textLen: text.length,
+      attachmentCount: attachments.length,
+      expectsUserFile,
+      attachments: summarizeAttachments(attachments),
+    });
+
+    if (!personalChat && chromeOnly && attachments.length > 0) {
+      await context.sendActivity(GROUP_CHAT_FILE_HELP);
+      return;
+    }
 
     if (!text && !expectsUserFile) {
       await context.sendActivity(
@@ -138,9 +162,16 @@ export class TeamsClaudeBot extends ActivityHandler {
         return;
       }
 
-      if (!text && expectsUserFile) {
+      if (expectsUserFile && files.length === 0) {
+        logger.warn("attachment.expected_but_missing", {
+          conversationId,
+          attachmentCount: attachments.length,
+          types: attachments.map((a) => a.contentType),
+        });
         await context.sendActivity(
-          "I could not read that attachment. Try uploading again with the paperclip (PDF, .xlsx, or image). For `.xlsb`, save as `.xlsx` first.",
+          personalChat
+            ? "I see you attached a file, but I could not download it. Wait for the upload progress bar to finish, then send again with the paperclip (PDF, .xlsx, or image). For `.xlsb`, save as `.xlsx` first."
+            : GROUP_CHAT_FILE_HELP,
         );
         return;
       }

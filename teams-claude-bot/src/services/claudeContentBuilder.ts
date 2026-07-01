@@ -34,18 +34,54 @@ function extension(fileName: string): string {
   return i >= 0 ? fileName.slice(i + 1).toLowerCase() : "";
 }
 
+/** SplashBI / export workbooks sometimes ship a wrong !ref (e.g. A1:M1) while cells span hundreds of rows. */
+function normalizeSheetRange(sheet: XLSX.WorkSheet): void {
+  let minR = Infinity;
+  let minC = Infinity;
+  let maxR = -1;
+  let maxC = -1;
+
+  for (const key of Object.keys(sheet)) {
+    if (key[0] === "!") continue;
+    const cell = XLSX.utils.decode_cell(key);
+    minR = Math.min(minR, cell.r);
+    minC = Math.min(minC, cell.c);
+    maxR = Math.max(maxR, cell.r);
+    maxC = Math.max(maxC, cell.c);
+  }
+
+  if (maxR >= 0) {
+    sheet["!ref"] = XLSX.utils.encode_range(
+      { r: minR, c: minC },
+      { r: maxR, c: maxC },
+    );
+  }
+}
+
+function orderExcelSheets(sheetNames: string[]): string[] {
+  const dataIdx = sheetNames.findIndex((n) => /^data$/i.test(n.trim()));
+  if (dataIdx <= 0) return sheetNames;
+  return [
+    sheetNames[dataIdx],
+    ...sheetNames.slice(0, dataIdx),
+    ...sheetNames.slice(dataIdx + 1),
+  ];
+}
+
 function excelToText(buffer: Buffer, fileName: string): string {
   const maxRows = getConfig().ATTACHMENT_MAX_EXCEL_ROWS;
   const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
   const parts: string[] = [];
 
-  for (const sheetName of wb.SheetNames.slice(0, 3)) {
+  for (const sheetName of orderExcelSheets(wb.SheetNames).slice(0, 3)) {
     const sheet = wb.Sheets[sheetName];
     if (!sheet) continue;
+    normalizeSheetRange(sheet);
     const rows = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(
       sheet,
       { header: 1, defval: "" },
     ) as (string | number | boolean | null)[][];
+    if (rows.length === 0) continue;
     const clipped = rows.slice(0, maxRows);
     const csv = clipped
       .map((row) =>
