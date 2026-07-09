@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Weekly (Monday): build retail workbooks from share sources, then extract + publish if outputs changed.
+  Daily: build retail workbooks from share sources, then extract + publish if outputs changed.
 #>
 param([switch]$Force)
 
@@ -23,17 +23,6 @@ try {
     $shared = ($env:RETAIL_SOURCE_BASE.Trim() -replace "/", "\").TrimEnd("\")
   }
 
-  function NewestIn([string]$dir, [string[]]$patterns) {
-    if (-not (Test-Path -LiteralPath $dir)) { return $null }
-    $all = @()
-    foreach ($p in $patterns) {
-      $all += Get-ChildItem -LiteralPath $dir -Filter $p -File -Recurse -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch "Archive|~\$" }
-    }
-    if ($all.Count -eq 0) { return $null }
-    return $all | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-  }
-
   $searchRoots = @(
     (Join-Path $dataRoot "Weather\WeeklyDrop"),
     $shared,
@@ -43,22 +32,28 @@ try {
     $dataRoot
   )
 
-  function FindSource([string[]]$patterns) {
+  function Find-NewestRetailSource {
+    param([string[]]$Patterns)
+    $hits = @()
     foreach ($root in $searchRoots) {
-      $f = NewestIn $root $patterns
-      if ($f) { return $f }
+      if (-not (Test-Path -LiteralPath $root)) { continue }
+      foreach ($pattern in $Patterns) {
+        $hits += Get-ChildItem -LiteralPath $root -Filter $pattern -File -Recurse -ErrorAction SilentlyContinue |
+          Where-Object { $_.FullName -notmatch "Archive" -and $_.Name -notlike "~$*" }
+      }
     }
-    return $null
+    if ($hits.Count -eq 0) { return $null }
+    return $hits | Sort-Object LastWriteTime -Descending | Select-Object -First 1
   }
 
-  $hd = FindSource @("HD week*.xlsx", "HD_week*.xlsx", "Everything week*HD.xlsx", "HD Sales YTD*.xlsx")
-  $low = FindSource @("YTD BY STORE SKU*.xlsb", "Lowes YTD*.xlsb", "LOW Copy of YTD*.xlsb", "LOWES*YTD*BY*STORE*.xlsb")
-  $inv = FindSource @("Inventory Transform*.xlsx", "Inventory_Transform*.xlsx")
-  $actuals = FindSource @("2026 Sales by Item*.xlsx", "*Sales by Item*.xlsx")
-  $plan = FindSource @("2026 Sales Plan by Item.xlsx")
+  $hd = Find-NewestRetailSource @("HD week*.xlsx", "HD_week*.xlsx", "Everything week*HD.xlsx", "HD Sales YTD*.xlsx")
+  $low = Find-NewestRetailSource @("YTD BY STORE SKU*.xlsb", "Lowes YTD*.xlsb", "LOW Copy of YTD*.xlsb", "LOWES*YTD*BY*STORE*.xlsb")
+  $inv = Find-NewestRetailSource @("Inventory Transform*.xlsx", "Inventory_Transform*.xlsx")
+  $actuals = Find-NewestRetailSource @("2026 Sales by Item*.xlsx", "*Sales by Item*.xlsx")
+  $plan = Find-NewestRetailSource @("2026 Sales Plan by Item.xlsx")
 
   if (-not $hd -or -not $low -or -not $inv -or -not $actuals -or -not $plan) {
-    Write-Host "Source feeds incomplete — skipping build; will still run extract check." -ForegroundColor Yellow
+    Write-Host "Source feeds incomplete - skipping build; will still run extract check." -ForegroundColor Yellow
     if ($hd) { Write-Host "  hd=$($hd.Name)" }
     if ($low) { Write-Host "  low=$($low.Name)" }
     if ($inv) { Write-Host "  inv=$($inv.Name)" }
@@ -86,17 +81,17 @@ try {
     }
 
     if ($srcChanged) {
-      Write-Host "New retail source files — running build_retail_workbooks.py..." -ForegroundColor Green
+      Write-Host "New retail source files - running build_retail_workbooks.py..." -ForegroundColor Green
       Push-Location $RepoRoot
       & npm run retail:build-workbooks
       if ($LASTEXITCODE -ne 0) { throw "retail:build-workbooks failed" }
       Set-PipelineState $RepoRoot "retail-opportunity-sources" @{
-        hd        = $srcFp.hd
-        low       = $srcFp.low
-        inv       = $srcFp.inv
-        actuals   = $srcFp.actuals
-        plan      = $srcFp.plan
-        builtAt   = (Get-Date).ToUniversalTime().ToString("o")
+        hd      = $srcFp.hd
+        low     = $srcFp.low
+        inv     = $srcFp.inv
+        actuals = $srcFp.actuals
+        plan    = $srcFp.plan
+        builtAt = (Get-Date).ToUniversalTime().ToString("o")
       }
     } else {
       Write-Host "Retail source files unchanged since last build." -ForegroundColor Cyan

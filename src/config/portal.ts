@@ -628,13 +628,13 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     title: "Supply Inventory",
     summary:
       "Price-list and saleable inventory views for nursery operations (weekly drops on the share).",
-    shareFolder: "SalesInventoryPriceList",
+    shareFolder: "Sales Inventory Availability",
     sectionOnly: true,
     nurseryPane: "supply",
     sectionSourceRelativePath:
-      "SalesInventoryPriceList\\Sales_Inventory___Price_List_060526.xls",
+      "Sales Inventory Availability\\XXTT_INV_QA_LANDSCAPE_INV_PL_67618202_1.xls",
     sectionNotes:
-      "Drop the latest Sales / Inventory / Price List workbook here; filenames rotate weekly.",
+      "Drop the latest Sales / Inventory / Price List workbook in Sales Inventory Availability (run npm run nursery:refresh-supply after each drop).",
     reports: [],
   },
   {

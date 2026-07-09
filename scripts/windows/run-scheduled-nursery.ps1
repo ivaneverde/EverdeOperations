@@ -43,7 +43,7 @@ try {
   $fp = Get-FileFingerprint $xlsb
   $prev = Get-PipelineState $RepoRoot "nursery"
 
-  if (-not $Force -and -not (Test-FingerprintChanged $prev $fp)) {
+  if (-not $Force -and -not (Test-WeeklyDropNeedsProcessing $xlsb $prev $prev)) {
     Write-Host "No new Inventory Metrics file since last run." -ForegroundColor Cyan
     exit 0
   }

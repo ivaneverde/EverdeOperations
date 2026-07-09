@@ -29,6 +29,12 @@ try {
     exit 0
   }
 
+  $syncScript = Join-Path $RepoRoot "scripts\sales-plan-review\sync-sales-by-item-from-admin.ps1"
+  if (Test-Path -LiteralPath $syncScript) {
+    Write-Host "Syncing admin Sales by Item to WeeklyDrop (if newer)..." -ForegroundColor Cyan
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $syncScript
+  }
+
   function Newest([string[]]$patterns) {
     $all = @()
     foreach ($p in $patterns) {
@@ -54,8 +60,8 @@ try {
   $prev = Get-PipelineState $RepoRoot "sales-plan"
 
   $changed = $Force -or
-    (Test-FingerprintChanged $prev.inv $fp.inv) -or
-    (Test-FingerprintChanged $prev.ytd $fp.ytd)
+    (Test-WeeklyDropNeedsProcessing $inv $prev.inv $prev) -or
+    (Test-WeeklyDropNeedsProcessing $ytd $prev.ytd $prev)
 
   if (-not $changed) {
     Write-Host "No new Sales Plan files since last run." -ForegroundColor Cyan

@@ -79,12 +79,18 @@ WEATHER_DROP = Path(r"\\192.168.190.10\Claude Sandbox\DataDrops\Weather\WeeklyDr
 SALES_PLAN_DROP = Path(r"\\192.168.190.10\Claude Sandbox\DataDrops\Sales Plan Review\WeeklyDrop")
 
 def find_latest(folder, *patterns):
+    """Newest file matching any pattern (not first pattern with any match)."""
+    folder = Path(folder)
+    if not folder.exists():
+        return None
+    all_matches: list[str] = []
     for pat in patterns:
-        matches = glob.glob(str(Path(folder) / pat))
+        matches = glob.glob(str(folder / pat))
         matches = [f for f in matches if 'Archive' not in f and '~$' not in f]
-        if matches:
-            return Path(max(matches, key=os.path.getmtime))
-    return None
+        all_matches.extend(matches)
+    if not all_matches:
+        return None
+    return Path(max(all_matches, key=os.path.getmtime))
 
 def find_latest_recursive(folder, *patterns):
     """Search subfolders (e.g. Shared\\Sales Data\\LOW … HD Sales Data)."""
@@ -184,11 +190,28 @@ LOW_ADDR_MARKET = {
     'LOSTX':'S.TX', 'LONTX':'N.TX',
 }
 
-# HD store file Market column → market
+# HD store file Market column → market (weekly file uses text labels)
 HD_MKT_MARKET = {
-    'No Cal': 'N.CA',
-    'So Cal': 'S.CA',
+    'No Cal': 'N.CA', 'NO CAL': 'N.CA', 'N.CA': 'N.CA', 'Nor Cal': 'N.CA',
+    'So Cal': 'S.CA', 'SO CAL': 'S.CA', 'S.CA': 'S.CA', 'South Cal': 'S.CA',
 }
+
+# HD Sales YTD file uses numeric Market Nbr (derived from HDxx## address codes)
+HD_MKT_NUMERIC: dict[int, str] = {}
+for _code, _mkt in HD_ADDR_MARKET.items():
+    if not _code.startswith('HD'):
+        continue
+    import re as _re
+    _m = _re.search(r'(\d+)$', _code[2:])
+    if _m:
+        HD_MKT_NUMERIC[int(_m.group(1))] = _mkt
+
+
+def _map_hd_market(series: pd.Series) -> pd.Series:
+    text = series.astype(str).str.strip().map(HD_MKT_MARKET)
+    nums = pd.to_numeric(series, errors='coerce')
+    from_num = nums.map(HD_MKT_NUMERIC)
+    return text.fillna(from_num)
 
 # Lowe's store file Subregion → market
 LOW_SUB_MARKET = {
@@ -215,6 +238,15 @@ LOW_CUSTOMERS = {'RETAIL - LOWES', "RETAIL - LOWE'S", 'LOWES', "LOWE'S"}
 # ─────────────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────────────
+
+def _normalize_sku(val) -> str:
+    if pd.isna(val):
+        return ''
+    try:
+        return str(int(float(val)))
+    except (ValueError, TypeError):
+        return str(val).strip()
+
 
 def log(msg):
     print(f"[{TODAY}] {msg}", flush=True)
@@ -498,6 +530,60 @@ def load_actuals(path, wk_cutoff: int) -> pd.DataFrame:
     return acts
 
 
+def _normalize_col_name(col) -> str:
+    import re
+    return re.sub(r'\s+', ' ', str(col).replace('\n', ' ')).strip()
+
+
+def _normalize_columns(columns) -> list[str]:
+    return [_normalize_col_name(c) for c in columns]
+
+
+def _find_col(columns, pattern: str):
+    import re
+    for c in columns:
+        if re.search(pattern, str(c), re.I):
+            return c
+    return None
+
+
+def _low_find_header_row(raw: pd.DataFrame) -> int:
+    for i in range(min(12, len(raw))):
+        cells = _normalize_columns(raw.iloc[i].tolist())
+        if 'Item' in cells and 'Store' in cells:
+            return i
+    return 0
+
+
+def _low_ly_week_from_columns(columns) -> int | None:
+    import re
+    for c in columns:
+        m = re.search(r'WK(\d+)\s+LY Sales Units', str(c), re.I)
+        if m:
+            return int(m.group(1))
+        m = re.search(r'WK(\d+)\s+LY Sales \$', str(c), re.I)
+        if m:
+            return int(m.group(1))
+    for c in columns:
+        m = re.match(r'LY Sales Units WK(\d+)', str(c).strip(), re.I)
+        if m:
+            return int(m.group(1))
+        m = re.match(r'LY Sales \$ WK(\d+)', str(c).strip(), re.I)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def _read_low_store_table(path) -> pd.DataFrame:
+    """Lowe's YTD BY STORE SKU — supports banner row + WKnn LY columns (2026 format)."""
+    raw = pd.read_excel(path, sheet_name='Sheet 1', header=None, engine='pyxlsb')
+    header_row = _low_find_header_row(raw)
+    df = raw.iloc[header_row + 1:].copy()
+    df.columns = _normalize_columns(raw.iloc[header_row].tolist())
+    df = df.dropna(how='all')
+    return df.reset_index(drop=True)
+
+
 def _hd_ly_week_from_columns(columns, fallback_week: int) -> int:
     import re
     for c in columns:
@@ -523,11 +609,10 @@ def load_hd_store(path, item_group: Dict[str, str],
     ly_week = _hd_ly_week_from_columns(df.columns, week_num or CURRENT_ISO_WEEK)
     log(f"    LY compare week: WK{ly_week}")
 
-    df['sku']         = df['SKU Nbr'].astype(str).str.strip()
+    df['sku']         = df['SKU Nbr'].map(_normalize_sku)
     df['store']       = df['Store Nbr'].astype(str).str.strip()
     df['store_name']  = df['Store Name'].astype(str).str.strip()
-    df['market']      = df['Market Nbr'].astype(str).map(HD_MKT_MARKET).fillna(
-                        df['Market Nbr'].astype(str).str.strip().map(HD_MKT_MARKET))
+    df['market']      = _map_hd_market(df['Market Nbr'])
     df = df[df['market'].isin(WC_MARKETS)].copy()
 
     # Map SKU → item → group
@@ -584,16 +669,21 @@ def load_low_store(path, item_group: Dict[str, str],
     Lowe's YTD BY STORE SKU file.
     """
     log(f"  Loading Lowe's Store Data: {Path(path).name}")
-    df = pd.read_excel(path, sheet_name='Sheet 1', header=0, engine='pyxlsb')
-    df.columns = [str(c).strip() for c in df.columns]
+    df = _read_low_store_table(path)
 
-    # Lowe's uses Item number directly (not SKU) in the store file
-    # In Lowe's store file, 'Item' column = Lowe's SKU number
-    # Need to map SKU → our Item code via low_xref, then → group
-    df['low_sku']     = df['Item'].astype(str).str.strip()
-    df['store']       = df['Store'].astype(str).str.strip()
-    df['store_name']  = df['Store Desc'].astype(str).str.strip()
-    df['sub']         = df['Subregion'].astype(str).str.strip()
+    ly_week = _low_ly_week_from_columns(df.columns)
+    if ly_week:
+        log(f"    LY compare week: WK{ly_week}")
+
+    item_col = _find_col(df.columns, r'^Item$') or 'Item'
+    store_col = _find_col(df.columns, r'^Store$') or 'Store'
+    store_desc = _find_col(df.columns, r'Store Desc') or 'Store Desc'
+    sub_col = _find_col(df.columns, r'^Subregion$') or 'Subregion'
+
+    df['low_sku']     = df[item_col].astype(str).str.strip()
+    df['store']       = df[store_col].astype(str).str.strip()
+    df['store_name']  = df[store_desc].astype(str).str.strip()
+    df['sub']         = df[sub_col].astype(str).str.strip()
     df['market']      = df['sub'].map(LOW_SUB_MARKET)
     df = df[df['market'].isin(WC_MARKETS)].copy()
 
@@ -603,19 +693,29 @@ def load_low_store(path, item_group: Dict[str, str],
     df['group'] = df['item'].map(item_group)
     df = df[df['group'].notna()].copy()
 
-    num_cols = {
-        'LY Sales Units WK14':  'ly_sales_units',
-        'LY Sales $ WK14':      'ly_sales_dlr',
+    ly_units_col = _find_col(df.columns, r'WK\d+\s+LY Sales Units') or (
+        f'LY Sales Units WK{ly_week}' if ly_week else None
+    )
+    ly_dlr_col = _find_col(df.columns, r'WK\d+\s+LY Sales \$') or (
+        f'LY Sales $ WK{ly_week}' if ly_week else None
+    )
+    ytd_dlr_col = _find_col(df.columns, r'Sales Retail YTD') or _find_col(
+        df.columns, r'^Sales Retail$'
+    )
+
+    col_map = {
+        ly_units_col: 'ly_sales_units',
+        ly_dlr_col: 'ly_sales_dlr',
         'Curr Inventory Units': 'curr_inv_units',
-        'LY On Hand Units':     'ly_oh_units',
-        'Curr On Order Units':  'on_order_units',
-        'Sales Units':          'ytd_sales_units',
-        'Sales Retail YTD':     'ytd_sales_dlr',
-        'Curr Inventory Retail':'curr_inv_retail',
-        'Avg Retail Price':     'avg_retail_price',
+        'LY On Hand Units': 'ly_oh_units',
+        'Curr On Order Units': 'on_order_units',
+        'Sales Units': 'ytd_sales_units',
+        ytd_dlr_col: 'ytd_sales_dlr',
+        'Curr Inventory Retail': 'curr_inv_retail',
+        'Avg Retail Price': 'avg_retail_price',
     }
-    for src, dst in num_cols.items():
-        if src in df.columns:
+    for src, dst in col_map.items():
+        if src and src in df.columns:
             df[dst] = pd.to_numeric(df[src], errors='coerce').fillna(0)
         else:
             df[dst] = 0.0

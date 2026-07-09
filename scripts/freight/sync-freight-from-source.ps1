@@ -57,7 +57,13 @@ if (-not $WeeklyDropDir) {
 }
 
 if (-not (Test-Path -LiteralPath $SourceDir)) {
-  Write-Host "Freight source not reachable: $SourceDir" -ForegroundColor Red
+  Write-Host "Freight source not reachable: $SourceDir" -ForegroundColor Yellow
+  Write-Host "Will rely on files already in WeeklyDrop: $WeeklyDropDir" -ForegroundColor Yellow
+  $existing = Get-NewestFreightRaw $WeeklyDropDir
+  if ($existing) {
+    Write-Host "WeeklyDrop newest raw: $($existing.Name)" -ForegroundColor Cyan
+    exit 0
+  }
   exit 1
 }
 if (-not (Test-Path -LiteralPath $WeeklyDropDir)) {

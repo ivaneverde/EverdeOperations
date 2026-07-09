@@ -59,8 +59,8 @@ try {
   $rawFp = Get-FileFingerprint $raw
   $dashFp = Get-FileFingerprint $dash
 
-  $rawNew = $Force -or (Test-FingerprintChanged $prev.raw $rawFp)
-  $dashNew = $Force -or (Test-FingerprintChanged $prev.dashboard $dashFp)
+  $rawNew = $Force -or (Test-WeeklyDropNeedsProcessing $raw $prev.raw $prev)
+  $dashNew = $Force -or (Test-WeeklyDropNeedsProcessing $dash $prev.dashboard $prev)
 
   Push-Location $RepoRoot
 

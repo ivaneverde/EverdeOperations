@@ -6,11 +6,11 @@
 .DESCRIPTION
   Schedules three per-user tasks on THIS machine (easy to re-run on a different PC later):
 
-    Everde-SalesPlan-DailyCheck     8:00 AM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
-    Everde-Freight-DailyCheck       9:00 AM daily — sync Juanita Load Board share -> WeeklyDrop -> Azure Blob
-    Everde-Retail-WeeklyCheck      10:00 AM Mondays — SalesOpportunity (5 xlsx) -> Azure Blob
-    Everde-Weather-DailyCheck       9:30 AM daily — Weather Data share scripts -> Blob JSON
-    Everde-Nursery-WeeklyCheck      1:30 PM Mondays — Inventory Metrics xlsb -> HTML + git push
+    Everde-SalesPlan-DailyCheck     8:00 AM + 2:30 PM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
+    Everde-Freight-DailyCheck       9:00 AM + 2:30 PM daily — sync Load Board share -> WeeklyDrop -> Azure Blob
+    Everde-Retail-DailyCheck       10:00 AM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
+    Everde-Weather-DailyCheck       9:30 AM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
+    Everde-Nursery-DailyCheck       1:30 PM + 2:30 PM daily — Inventory Metrics xlsb -> HTML + git push when changed
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
   -FreightTime / -NurseryTime adjusted for your timezone.
@@ -25,11 +25,10 @@
 param(
   [string]$SalesPlanTime = "08:00",
   [string]$FreightTime = "09:00",
+  [string]$CatchUpTime = "14:30",
   [string]$RetailTime = "10:00",
-  [string]$RetailDay = "Monday",
   [string]$WeatherTime = "09:30",
   [string]$NurseryTime = "13:30",
-  [string]$NurseryDay = "Monday",
   [string]$AgentLabel = "",
   [switch]$Unregister
 )
@@ -54,12 +53,11 @@ $tasks = @(
     Description = "Daily: sync newest Everde Freight Data from Load Board share to WeeklyDrop; run pipeline and publish to Azure Blob when changed."
   },
   @{
-    Name = "Everde-Retail-WeeklyCheck"
+    Name = "Everde-Retail-DailyCheck"
     Time = $RetailTime
     Script = "run-scheduled-retail-build.ps1"
-    Schedule = "Weekly"
-    Day = $RetailDay
-    Description = "Weekly (Mondays): build 5 retail workbooks from share sources when feeds change, then extract and publish to Azure Blob."
+    Schedule = "Daily"
+    Description = "Daily: build retail workbooks from share sources when feeds change, then extract and publish to Azure Blob."
   },
   @{
     Name = "Everde-Weather-DailyCheck"
@@ -69,12 +67,11 @@ $tasks = @(
     Description = "Daily: Open-Meteo fetch on Weather Data share, refresh portal weather JSON, publish to Azure Blob."
   },
   @{
-    Name = "Everde-Nursery-WeeklyCheck"
+    Name = "Everde-Nursery-DailyCheck"
     Time = $NurseryTime
     Script = "run-scheduled-nursery.ps1"
-    Schedule = "Weekly"
-    Day = $NurseryDay
-    Description = "Weekly (Mondays): if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
+    Schedule = "Daily"
+    Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
   }
 )
 
@@ -86,7 +83,7 @@ $settings = New-ScheduledTaskSettingsSet `
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
-$legacyTaskNames = @("Everde-Freight-WeeklyCheck", "Everde-Nursery-DailyCheck")
+$legacyTaskNames = @("Everde-Freight-WeeklyCheck", "Everde-Nursery-DailyCheck", "Everde-Retail-WeeklyCheck", "Everde-Nursery-WeeklyCheck")
 
 if ($Unregister) {
   foreach ($t in $tasks) {
@@ -112,21 +109,26 @@ foreach ($t in $tasks) {
 
   if ($t.Schedule -eq "Weekly") {
     $dow = [System.Enum]::Parse([System.DayOfWeek], $t.Day, $true)
-    $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dow -At $t.Time
+    $triggers = @(
+      (New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dow -At $t.Time)
+    )
   } else {
-    $trigger = New-ScheduledTaskTrigger -Daily -At $t.Time
+    $triggers = @(
+      (New-ScheduledTaskTrigger -Daily -At $t.Time),
+      (New-ScheduledTaskTrigger -Daily -At $CatchUpTime)
+    )
   }
 
   Register-ScheduledTask `
     -TaskName $t.Name `
     -Action $action `
-    -Trigger $trigger `
+    -Trigger $triggers `
     -Settings $settings `
     -Principal $principal `
     -Description $desc `
     -Force | Out-Null
 
-  $schedLabel = if ($t.Schedule -eq "Weekly") { "weekly on $($t.Day)" } else { "daily" }
+  $schedLabel = if ($t.Schedule -eq "Weekly") { "weekly on $($t.Day)" } else { "daily at $($t.Time) + catch-up $CatchUpTime" }
   Write-Host "Registered: $($t.Name) $schedLabel at $($t.Time)" -ForegroundColor Green
 }
 

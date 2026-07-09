@@ -10,7 +10,6 @@ if (-not (Test-Path $ShareRoot)) {
 $files = @(
   "nor_cal_forward_patched.py",
   "nor_cal_forward.py",
-  "build_norcal_workbook_patched.py",
   "build_norcal_workbook.py"
 )
 

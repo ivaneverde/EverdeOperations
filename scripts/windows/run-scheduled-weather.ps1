@@ -17,11 +17,26 @@ $logFile = Join-Path $logDir ("weather-{0:yyyyMMdd-HHmmss}.log" -f (Get-Date))
 Start-Transcript -Path $logFile -Append | Out-Null
 
 try {
-  $today = (Get-Date).ToString("yyyy-MM-dd")
   $prev = Get-PipelineState $RepoRoot "weather"
+  $dataRoot = Get-DataDropsRoot
+  $weatherDrop = Join-Path $dataRoot "Weather\WeeklyDrop"
+  $dropFile = $null
+  if (Test-Path -LiteralPath $weatherDrop) {
+    $dropFile = Get-ChildItem -LiteralPath $weatherDrop -File -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1
+  }
 
-  if (-not $Force -and $prev -and $prev.lastRunDate -eq $today) {
-    Write-Host "Weather already ran successfully today ($today)." -ForegroundColor Cyan
+  $needsRun = $Force
+  if (-not $needsRun -and $dropFile) {
+    $needsRun = Test-WeeklyDropNeedsProcessing $dropFile $prev.drop $prev
+  }
+  $processed = Get-ProcessedAtUtc $prev
+  if (-not $needsRun -and (-not $processed -or ((Get-Date).ToUniversalTime() - $processed).TotalHours -ge 20)) {
+    $needsRun = $true
+  }
+  if (-not $needsRun) {
+    Write-Host "No new Weather WeeklyDrop files since last run." -ForegroundColor Cyan
     exit 0
   }
 
@@ -48,7 +63,7 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "run-share-pipeline failed with exit $LASTEXITCODE" }
 
   Set-PipelineState $RepoRoot "weather" @{
-    lastRunDate = $today
+    drop        = if ($dropFile) { Get-FileFingerprint $dropFile } else { $null }
     processedAt = (Get-Date).ToUniversalTime().ToString("o")
     wxRoot      = $wxRoot
   }

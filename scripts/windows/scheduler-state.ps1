@@ -57,6 +57,36 @@ function Test-FingerprintChanged {
   )
 }
 
+function Get-ProcessedAtUtc {
+  param($Stored)
+  if (-not $Stored) { return $null }
+  $raw = if ($Stored.processedAt) { $Stored.processedAt } elseif ($Stored.lastRunDate) { $Stored.lastRunDate } else { $null }
+  if (-not $raw) { return $null }
+  try {
+    return [datetime]::Parse($raw).ToUniversalTime()
+  } catch {
+    return $null
+  }
+}
+
+function Test-WeeklyDropNeedsProcessing {
+  <#
+    True when the drop file differs from last published state, or is newer than the last
+    successful run (catches manual copies and Tue/Wed drops after the morning job).
+  #>
+  param(
+    [System.IO.FileInfo]$File,
+    $StoredFingerprint,
+    $StoredState = $null
+  )
+  if (-not $File) { return $false }
+  $fp = Get-FileFingerprint $File
+  if (Test-FingerprintChanged $StoredFingerprint $fp) { return $true }
+  $processed = Get-ProcessedAtUtc $StoredState
+  if (-not $processed) { return $true }
+  return ($File.LastWriteTimeUtc -gt $processed)
+}
+
 function Import-EverdeDotEnv {
   param([string]$EnvLocalPath)
   if (-not (Test-Path -LiteralPath $EnvLocalPath)) { return }
