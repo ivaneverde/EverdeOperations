@@ -34,14 +34,21 @@ function fmtPct1(n) {
 }
 
 function injectDemandCopy(html, demand) {
+  const paneStart = html.indexOf('<div id="report-demand"');
+  const paneEnd = html.indexOf("</div><!-- /#report-demand -->");
+  if (paneStart < 0 || paneEnd < 0) {
+    throw new Error("Could not locate report-demand pane in HTML.");
+  }
+
+  let demandPane = html.slice(paneStart, paneEnd);
   const endLabel = new Date(`${demand.meta.reportDate}T12:00:00`).toLocaleDateString(
     "en-US",
     { month: "short", day: "numeric" },
   );
-  const sub = `${fmtMoney(demand.meta.totalRevenue)} YTD revenue · ${demand.meta.farmCount} farms · weeks ${demand.meta.weekStart}–${demand.meta.weekEnd} (Mar 1 → ${endLabel}, 2026). Operational report covering grading variance, backorders &amp; credits, demand-window allocation, ready-date pipeline, photo readiness and cycle counts.`;
-  html = html.replace(
-    /(<div id="report-demand"[\s\S]*?<p class="sub">)[^<]*(<\/p>)/,
-    `$1${sub}$2`,
+  const sub = `${fmtMoney(demand.meta.totalRevenue)} YTD revenue · ${demand.meta.farmCount} farms · weeks ${demand.meta.weekStart}–${demand.meta.weekEnd} (Mar 1 → ${endLabel}, 2026). As of <strong>${demand.meta.reportDate}</strong> from Inventory Metrics.`;
+  demandPane = demandPane.replace(
+    /<p class="sub">[\s\S]*?<\/p>/,
+    `<p class="sub">${sub}</p>`,
   );
 
   const systemEu = Object.values(demand.variance).reduce(
@@ -56,30 +63,21 @@ function injectDemandCopy(html, demand) {
       ? demand.weeklyTotals.revenue.reduce((a, b) => a + b, 0) / activeWeeks
       : 0;
 
-  const calloutFixed = [
-    '    <motion>',
-    '      <motion>',
-    `      <strong>Have:</strong> ${demand.cycleAgg.startQty.toLocaleString("en-US")} graded items on hand across ${demand.meta.farmCount} farms, with ${fmtMoney(systemEu)} of system EU value.`,
-    `      <strong>Sell:</strong> ${fmtMoney(demand.meta.totalRevenue)} YTD revenue over ${activeWeeks} weeks (~${fmtMoney(wkRate)} / wk run-rate). Texas leads at ${fmtMoney(txRev)} YTD.`,
-    `      <strong>Need more of:</strong> ${fmtMoney(demand.meta.totalBO)} of demand <em>backordered</em> (${fmtPct1(demand.meta.boPct)}) plus ${fmtMoney(demand.meta.totalCR)} issued as credits (${fmtPct1(demand.meta.crPct)}) - see reason codes below.`,
-    "    </div>",
-  ]
-    .join("\n")
-    .replace(
-      "    <motion>",
-      '    <div class="callout info">',
-    )
-    .replace(
-      "      <motion>",
-      '      <div class="t">The demand plan in three pieces: <em>have · sell · need more of</em></div>',
-    );
+  const calloutFixed = `  <section class="section grid" style="gap: 12px;">
+    <div class="callout info">
+      <div class="t">The demand plan in three pieces: <em>have · sell · need more of</em> (as of ${demand.meta.reportDate})</div>
+      <strong>Have:</strong> ${demand.cycleAgg.startQty.toLocaleString("en-US")} graded items on hand across ${demand.meta.farmCount} farms, with ${fmtMoney(systemEu)} of system EU value.
+      <strong>Sell:</strong> ${fmtMoney(demand.meta.totalRevenue)} YTD revenue over ${activeWeeks} weeks (~${fmtMoney(wkRate)} / wk run-rate). Texas leads at ${fmtMoney(txRev)} YTD.
+      <strong>Need more of:</strong> ${fmtMoney(demand.meta.totalBO)} of demand <em>backordered</em> (${fmtPct1(demand.meta.boPct)}) plus ${fmtMoney(demand.meta.totalCR)} issued as credits (${fmtPct1(demand.meta.crPct)}) — see reason codes below.
+    </div>
+  </section>`;
 
-  html = html.replace(
-    /<div class="callout info">[\s\S]*?<\/div>\s*\n\s*<\/section>\s*\n\s*<hr\/>/,
-    `${calloutFixed}\n  </section>\n\n  <hr/>`,
+  demandPane = demandPane.replace(
+    /<section class="section grid" style="gap: 12px;">[\s\S]*?<\/section>/,
+    calloutFixed,
   );
 
-  return html;
+  return html.slice(0, paneStart) + demandPane + html.slice(paneEnd);
 }
 
 const xlsbPath = process.argv[2] || newestXlsb(metricsDir);

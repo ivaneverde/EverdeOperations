@@ -646,7 +646,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     sectionOnly: true,
     nurseryPane: "demand",
     sectionSourceRelativePath:
-      "Inventory Metrics\\Inventory Metrics 06 08 26.xlsb",
+      "Inventory Metrics\\Inventory Metrics 06 29 26.xlsb",
     sectionNotes:
       "Drop the latest Inventory Metrics workbook in Inventory Metrics (run npm run nursery:refresh-demand after each drop).",
     reports: [],

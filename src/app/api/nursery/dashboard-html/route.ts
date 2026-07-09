@@ -18,6 +18,8 @@ function injectPortalNursery(html: string, embed: boolean, pane: "supply" | "dem
   if (!embed) return html;
   const style = `<style data-everde-portal="nursery-embed">
 html[data-everde-nursery-embed] .report-switcher { display: none !important; }
+html[data-everde-nursery-embed][data-everde-nursery-pane="demand"] #report-supply { display: none !important; }
+html[data-everde-nursery-embed][data-everde-nursery-pane="supply"] #report-demand { display: none !important; }
 html[data-everde-nursery-embed] body {
   overflow-x: hidden !important;
   max-width: 100% !important;
@@ -48,7 +50,7 @@ html[data-everde-nursery-embed] .wrap > * {
   } else {
     out = style + out;
   }
-  out = out.replace(/<html(\s[^>]*)?>/i, '<html$1 data-everde-nursery-embed="1">');
+  out = out.replace(/<html(\s[^>]*)?>/i, `<html$1 data-everde-nursery-embed="1" data-everde-nursery-pane="${pane}">`);
   if (pane === "demand") {
     const boot = `<script data-everde-portal="nursery-pane-boot">
 (function () {

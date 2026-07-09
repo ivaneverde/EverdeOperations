@@ -38,6 +38,31 @@ function fmtPct1(n) {
 }
 
 
+function replaceFocusSection(supply, cards) {
+  const heading = "<h2>Where to focus next</h2>";
+  let out = supply;
+  while (out.includes(heading)) {
+    const start = out.indexOf(heading);
+    const sectionOpen = out.lastIndexOf("<section", start);
+    const sectionClose = out.indexOf("</section>", start);
+    if (sectionOpen < 0 || sectionClose < 0) break;
+    out = out.slice(0, sectionOpen) + out.slice(sectionClose + "</section>".length);
+  }
+  const insertAt = out.indexOf("<footer class=\"section\">");
+  const block = `<section class="section">
+    ${heading}
+    <div class="grid grid-2" style="margin-top: 12px;">
+${cards}
+    </div>
+  </section>
+
+  `;
+  if (insertAt < 0) {
+    return `${out}\n${block}`;
+  }
+  return out.slice(0, insertAt) + block + out.slice(insertAt);
+}
+
 function patchSupplyPane(html, data) {
   const paneStart = html.indexOf('<div id="report-supply"');
   const paneEnd = html.indexOf("</div><!-- /#report-supply -->");
@@ -108,6 +133,7 @@ function patchSupplyPane(html, data) {
     const noDatePct = ((h1.noReadyDate / h1.totalSaleable) * 100).toFixed(0);
     const topAging = data.agingStock[0];
     const topLate = data.lateReady[0];
+    const asOf = m.reportDate || "unknown date";
     const cards = `      <div class="card">
         <div class="head"><span>Reroute on-time stock to active sales</span><span class="pill success">Pull supply forward</span></div>
         <div class="body">${fmtInt(h1.readyOnTime)} units (${onPct}%) are ready in time for the 2026 H1 demand window — push these into the active sales pipeline first.</div>
@@ -129,13 +155,10 @@ function patchSupplyPane(html, data) {
         <div class="body">${m.shortageCount}+ items priced ≥ $25 each have fewer than 25 saleable units against active demand windows — revenue-blockers for high-spec lines.</div>
       </div>
       <div class="card">
-        <div class="head"><span>Reconcile ${m.oversoldRowCount} oversold rows</span><span class="pill danger">Resolve</span></div>
-        <div class="body">Negative saleable counts mean over-allocation — ${fmtInt(m.oversoldUnits)} units committed beyond stock on hand. Review the largest exposures in the Over-committed tab.</div>
+        <div class="head"><span>Reconcile ${m.oversoldRowCount} oversold rows</span><span class="pill danger">As of ${asOf}</span></div>
+        <div class="body">Negative saleable counts mean over-allocation — ${fmtInt(m.oversoldUnits)} units committed beyond stock on hand (source: <code>${m.sourceName}</code>). Review the largest exposures in the Over-committed tab.</div>
       </div>`;
-    supply = supply.replace(
-      /(<section class="section">\s*<h2>Where to focus next<\/h2>\s*<div class="grid grid-2" style="margin-top: 12px;">)[\s\S]*?(<\/div>\s*<\/section>)/,
-      `$1\n${cards}\n    $2`,
-    );
+    supply = replaceFocusSection(supply, cards);
   }
 
   const footer = `<footer class="section">

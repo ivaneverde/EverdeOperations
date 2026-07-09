@@ -18,9 +18,9 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
-**Snapshot 0.7.4 (portal app):** **Retail All Stores** — dashboard HTML embed includes full `all_stores` (374 stores, Wk28); assistant/bot caps raised. `retail:publish-blob` for Blob-only publish. **0.7.3:** Supply Inventory refresh. Production: https://everde-operations.vercel.app .
+**Snapshot 8.1.1 (portal app):** Nursery dashboard fixes — supply/demand pane isolation in embeds, repaired supply HTML, demand callout synced to KPIs, assistant loads both `nursery_supply_data` and `nursery_demand_data` with as-of dates. **8.1.0 lineage:** retail all-stores, raised data caps. Production: https://everde-operations.vercel.app .
 
-**Last session (2026-07-09):** Shipped **v0.7.4** — retail all-stores view, raised Excel/file/retail tool caps (Teams bot env + code deploy). After retail drops: `npm run retail:extract-publish` (extract → HTML inject → Blob).
+**Last session (2026-07-09):** Shipped **v8.1.1** — nursery pane cleanliness + assistant supply context. After drops: `npm run nursery:refresh-supply` and `npm run nursery:refresh-demand`.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 

@@ -6,6 +6,7 @@ import {
 import { loadSalesPlanDashboardJson } from "@/lib/salesPlan/loadSalesPlanDashboardJson";
 import { compactFreightForAssistant } from "@/lib/assistant/compactFreightForAssistant";
 import { compactNurseryForAssistant } from "@/lib/assistant/compactNurseryForAssistant";
+import { compactNurserySupplyForAssistant } from "@/lib/assistant/compactNurserySupplyForAssistant";
 import { compactRetailForAssistant } from "@/lib/assistant/compactRetailForAssistant";
 import { compactSalesPlanForAssistant } from "@/lib/assistant/compactSalesPlanForAssistant";
 import { compactWeatherForAssistant } from "@/lib/assistant/compactWeatherForAssistant";
@@ -20,6 +21,7 @@ import {
   maxCharsForDataset,
 } from "@/lib/assistant/contextBudget";
 import { loadNurseryDemandJson } from "@/lib/assistant/loadNurseryDemandJson";
+import { loadNurserySupplyJson } from "@/lib/assistant/loadNurserySupplyJson";
 import { loadRetailDashboardJson } from "@/lib/retail/loadRetailDashboardJson";
 import { loadWeatherDashboardJson } from "@/lib/weather/loadWeatherDashboardJson";
 import { buildPortalCatalogSummary } from "@/lib/assistant/portalCatalog";
@@ -156,6 +158,14 @@ export async function buildAssistantContext(
     compactNurseryForAssistant,
     "nursery_demand",
     "Production & Demand (nursery DEMAND) not available — refresh public/nursery-inventory-dashboard.html or publish demand JSON to Blob.",
+  );
+
+  pushDataset(
+    "nursery_supply_data",
+    await loadNurserySupplyJson(),
+    compactNurserySupplyForAssistant,
+    "nursery_supply",
+    "Supply Inventory (nursery SUPPLY) not available — run npm run nursery:refresh-supply.",
   );
 
   const retail = await loadRetailDashboardJson();

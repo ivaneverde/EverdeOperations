@@ -16,7 +16,7 @@ export function buildNurseryAssistantFacts(
   const farmYTD = root.farmYTD as Record<string, FarmYtd> | undefined;
 
   const facts: Record<string, unknown> = {
-    data_note: "Production & Demand Plan (Inventory Metrics / DEMAND pane).",
+    data_note: `Production & Demand Plan (Inventory Metrics / DEMAND pane). Report as-of ${(meta as { reportDate?: string })?.reportDate ?? "unknown"}.`,
     report: meta
       ? {
           period: meta.reportPeriod,
