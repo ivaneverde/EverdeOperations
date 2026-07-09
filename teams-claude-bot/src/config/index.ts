@@ -20,7 +20,30 @@ const envSchema = z.object({
     .positive()
     .max(32 * 1024 * 1024)
     .default(20 * 1024 * 1024),
-  ATTACHMENT_MAX_EXCEL_ROWS: z.coerce.number().int().positive().max(5000).default(500),
+  ATTACHMENT_MAX_EXCEL_ROWS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(20_000)
+    .default(10_000),
+  CONVERSATION_FILE_MAX_CHARS_PER_FILE: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(8_000_000)
+    .default(2_000_000),
+  CONVERSATION_FILE_MAX_TOTAL_CHARS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(16_000_000)
+    .default(4_000_000),
+  EVERDE_RETAIL_TOOL_MAX_CHARS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(500_000)
+    .default(120_000),
   AZURE_STORAGE_CONNECTION_STRING: z.string().optional(),
   AZURE_FREIGHT_BLOB_CONTAINER: z.string().optional(),
   AZURE_FREIGHT_DASHBOARD_JSON_BLOB: z.string().optional(),

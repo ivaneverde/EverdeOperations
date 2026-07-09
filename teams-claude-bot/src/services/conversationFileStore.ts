@@ -1,3 +1,5 @@
+import { getConfig } from "../config/index.js";
+
 /**
  * Retains extracted file text per Teams conversation so follow-up questions
  * can reference uploads without re-downloading from Graph.
@@ -9,8 +11,14 @@ export type CachedConversationFile = {
 };
 
 const MAX_FILES_PER_CHAT = 5;
-const MAX_CHARS_PER_FILE = 120_000;
-const MAX_TOTAL_CHARS = 200_000;
+
+function maxCharsPerFile(): number {
+  return getConfig().CONVERSATION_FILE_MAX_CHARS_PER_FILE;
+}
+
+function maxTotalChars(): number {
+  return getConfig().CONVERSATION_FILE_MAX_TOTAL_CHARS;
+}
 
 export class ConversationFileStore {
   private readonly files = new Map<string, CachedConversationFile[]>();
@@ -20,15 +28,16 @@ export class ConversationFileStore {
   }
 
   add(conversationId: string, fileName: string, extractedText: string): void {
-    const trimmed = extractedText.slice(0, MAX_CHARS_PER_FILE);
+    const trimmed = extractedText.slice(0, maxCharsPerFile());
     const existing = this.get(conversationId).filter((f) => f.fileName !== fileName);
     const next: CachedConversationFile[] = [
       ...existing,
       { fileName, extractedText: trimmed, uploadedAt: Date.now() },
     ].slice(-MAX_FILES_PER_CHAT);
 
+    const totalLimit = maxTotalChars();
     let total = next.reduce((s, f) => s + f.extractedText.length, 0);
-    while (total > MAX_TOTAL_CHARS && next.length > 1) {
+    while (total > totalLimit && next.length > 1) {
       next.shift();
       total = next.reduce((s, f) => s + f.extractedText.length, 0);
     }

@@ -51,7 +51,7 @@ function anthropicBudget(
     return isPrimary ? 20_000 : 12_000;
   }
   if (dataset === "retail") {
-    return isPrimary ? 18_000 : 10_000;
+    return isPrimary ? 150_000 : 80_000;
   }
   if (dataset === "weather") {
     return isPrimary ? 12_000 : 6_000;
@@ -68,7 +68,7 @@ function openAiFocusedBudget(
   if (!isPrimary) {
     if (focus === "portal") {
       if (dataset === "freight") return 8_000;
-      if (dataset === "retail") return 5_000;
+      if (dataset === "retail") return 80_000;
       if (dataset === "sales_plan") return 5_000;
       if (dataset === "nursery_demand") return 4_000;
       if (dataset === "weather") return 2_500;
@@ -77,7 +77,7 @@ function openAiFocusedBudget(
   }
   if (dataset === "freight") return 12_000;
   if (dataset === "sales_plan") return 10_000;
-  if (dataset === "retail") return 14_000;
+  if (dataset === "retail") return 120_000;
   if (dataset === "weather") return 8_000;
   return 10_000;
 }

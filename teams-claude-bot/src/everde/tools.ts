@@ -1,3 +1,4 @@
+import { getConfig } from "../config/index.js";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages/messages.js";
 import { downloadJsonFromBlob } from "../azure/downloadJson.js";
 import {
@@ -109,7 +110,7 @@ export async function executeEverdeTool(
         retailDashboardJsonPath(),
       );
       if (!raw) return "Retail opportunity JSON not available in Blob storage.";
-      return compactRetailJson(raw, TOOL_MAX_CHARS);
+      return compactRetailJson(raw, getConfig().EVERDE_RETAIL_TOOL_MAX_CHARS);
     }
 
     case "get_weather_dashboard": {

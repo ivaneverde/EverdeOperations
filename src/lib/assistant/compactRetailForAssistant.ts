@@ -44,9 +44,12 @@ export function compactRetailForAssistant(raw: string, maxChars: number): string
         meta: { ...(meta as object), all_stores_count: storeCount },
         top30_ship_now: slimRows(parsed.top30_ship_now, 6),
         top20_stores: slimRows(parsed.top20_stores, 5),
-        all_stores: slimRows(stores, 80),
+        all_stores: stores,
       };
-      const json = JSON.stringify(slim);
+      let json = JSON.stringify(slim);
+      if (json.length <= maxChars) return json;
+      delete (slim as { all_stores?: unknown }).all_stores;
+      json = JSON.stringify(slim);
       if (json.length <= maxChars) return json;
     }
 
@@ -62,10 +65,10 @@ export function compactRetailForAssistant(raw: string, maxChars: number): string
         action_buckets: kn.action_buckets ?? null,
         region_crosstab: kn.region_crosstab ?? null,
       },
-      top30_ship_now: slimRows(parsed.top30_ship_now, 12),
-      top30_behind_plan: slimRows(parsed.top30_behind_plan, 10),
-      top20_stores: slimRows(parsed.top20_stores, 10),
-      all_stores: slimRows(stores, 200),
+      top30_ship_now: parsed.top30_ship_now ?? null,
+      top30_behind_plan: parsed.top30_behind_plan ?? null,
+      top20_stores: parsed.top20_stores ?? null,
+      all_stores: stores,
       miss_analysis: parsed.miss_analysis
         ? { summary: (parsed.miss_analysis as Record<string, unknown>).summary }
         : null,
@@ -79,16 +82,20 @@ export function compactRetailForAssistant(raw: string, maxChars: number): string
     if (json.length <= maxChars) return json;
 
     delete payload.top30_behind_plan;
-    delete payload.all_stores;
+    delete payload.miss_analysis;
+    json = JSON.stringify(payload);
+    if (json.length <= maxChars) return json;
+
+    delete payload.top30_ship_now;
     delete payload.top20_stores;
     json = JSON.stringify(payload);
     if (json.length <= maxChars) return json;
 
     return JSON.stringify({
       assistant_facts: payload.assistant_facts,
-      meta,
+      meta: payload.meta,
       key_numbers: payload.key_numbers,
-      top30_ship_now: slimRows(parsed.top30_ship_now, 8),
+      all_stores: stores,
     });
   } catch {
     return truncateForContext(raw, maxChars);

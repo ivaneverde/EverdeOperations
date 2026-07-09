@@ -106,6 +106,11 @@ if (-not (Test-Path -LiteralPath $outJson)) {
 
 Write-Host "Wrote $outJson" -ForegroundColor Green
 
+$inject = Join-Path $ScriptDir "inject-json-into-html.mjs"
+Write-Host "Injecting JSON into retail dashboard HTML..." -ForegroundColor Cyan
+& node $inject $outJson
+if ($LASTEXITCODE -ne 0) { throw "inject-json-into-html.mjs failed with exit $LASTEXITCODE" }
+
 if ($SkipPublish) {
   Write-Host "SkipPublish set; not uploading to Blob." -ForegroundColor Yellow
   exit 0

@@ -78,7 +78,7 @@ export function compactRetailJson(raw: string, maxChars: number): string {
       Array.isArray(p.all_stores) && p.all_stores.length > 0
         ? p.all_stores
         : p.top20_stores;
-    payload.all_stores = slimArray(stores, 200);
+    payload.all_stores = stores;
     if (payload.meta && typeof payload.meta === "object") {
       (payload.meta as Record<string, unknown>).all_stores_count =
         (p.meta as { all_stores_count?: number } | undefined)?.all_stores_count ??
