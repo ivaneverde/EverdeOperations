@@ -31,8 +31,16 @@ export class ClaudeService {
     this.client = new Anthropic({ apiKey: this.config.ANTHROPIC_API_KEY });
   }
 
-  async complete(history: StoredTurn[], userMessage: string): Promise<string> {
-    return this.completeWithContent(history, userMessage, userMessage);
+  async complete(
+    history: StoredTurn[],
+    userMessage: string,
+    userTextForRouting?: string,
+  ): Promise<string> {
+    return this.completeWithContent(
+      history,
+      userMessage,
+      userTextForRouting ?? userMessage,
+    );
   }
 
   async completeWithContent(

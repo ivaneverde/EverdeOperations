@@ -27,6 +27,8 @@ const TEXT_LIKE_EXT = new Set([
 export interface BuildContentResult {
   blocks: ContentBlockParam[];
   summaryForHistory: string;
+  /** Plain-text extract for conversation file cache (follow-up questions). */
+  cacheTexts: { fileName: string; text: string }[];
 }
 
 function extension(fileName: string): string {
@@ -68,7 +70,7 @@ function orderExcelSheets(sheetNames: string[]): string[] {
   ];
 }
 
-function excelToText(buffer: Buffer, fileName: string): string {
+export function excelToText(buffer: Buffer, fileName: string): string {
   const maxRows = getConfig().ATTACHMENT_MAX_EXCEL_ROWS;
   const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
   const parts: string[] = [];
@@ -100,12 +102,41 @@ function excelToText(buffer: Buffer, fileName: string): string {
 /**
  * Convert downloaded Teams files into Claude message content blocks.
  */
+/** Best-effort plain text for caching / follow-up context. */
+export function extractPlainTextForCache(file: DownloadedFile): string {
+  const ext = extension(file.fileName);
+  const mime = file.contentType.toLowerCase();
+
+  if (ext === "xlsx" || ext === "xls" || mime.includes("spreadsheet") || mime.includes("excel")) {
+    return excelToText(file.buffer, file.fileName);
+  }
+
+  if (
+    mime.startsWith("text/") ||
+    TEXT_LIKE_EXT.has(ext) ||
+    ext === "csv"
+  ) {
+    return `File "${file.fileName}":\n\n${file.buffer.toString("utf8")}`;
+  }
+
+  if (mime === "application/pdf" || ext === "pdf") {
+    return `[PDF "${file.fileName}" — binary content was analyzed on upload; re-attach if you need a full re-read.]`;
+  }
+
+  if (IMAGE_MIME.has(mime) || ["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) {
+    return `[Image "${file.fileName}" — visual content was analyzed on upload.]`;
+  }
+
+  return `[File "${file.fileName}" — analyzed on upload.]`;
+}
+
 export function buildClaudeContentFromFiles(
   files: DownloadedFile[],
   userPrompt: string,
 ): BuildContentResult {
   const blocks: ContentBlockParam[] = [];
   const historyParts: string[] = [];
+  const cacheTexts: { fileName: string; text: string }[] = [];
 
   for (const file of files) {
     const ext = extension(file.fileName);
@@ -200,6 +231,13 @@ export function buildClaudeContentFromFiles(
     );
   }
 
+  for (const file of files) {
+    cacheTexts.push({
+      fileName: file.fileName,
+      text: extractPlainTextForCache(file),
+    });
+  }
+
   const prompt =
     userPrompt.trim() ||
     (files.length === 1
@@ -215,5 +253,5 @@ export function buildClaudeContentFromFiles(
     .filter(Boolean)
     .join(" — ");
 
-  return { blocks, summaryForHistory };
+  return { blocks, summaryForHistory, cacheTexts };
 }

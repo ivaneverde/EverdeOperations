@@ -2,6 +2,7 @@ import type { Attachment, TurnContext } from "botbuilder";
 import { downloadMessageFilesViaGraph } from "../graph/chatMessageFiles.js";
 import { getConfig } from "../config/index.js";
 import { isPersonalBotChat } from "../utils/teamsConversationScope.js";
+import { getTeamsMessageText } from "../utils/teamsMessageText.js";
 import { logger } from "../utils/logger.js";
 
 export interface DownloadedFile {
@@ -234,11 +235,24 @@ export async function downloadMessageAttachments(
 export function shouldAttemptFileDownload(
   context: TurnContext,
   attachments: Attachment[],
+  messageText?: string,
 ): boolean {
   if (activityHasUserFileAttachment(attachments)) return true;
   if (isPersonalBotChat(context)) return false;
-  // Group / channel: Teams UI shows files but Bot Framework often sends only HTML chrome.
-  return attachments.length > 0 && hasOnlyTeamsChromeAttachments(attachments);
+
+  // Group / channel: Bot Framework often sends only HTML chrome on file uploads.
+  // Do NOT treat chrome-only follow-up text messages as new file uploads.
+  if (attachments.length > 0 && hasOnlyTeamsChromeAttachments(attachments)) {
+    const text = (messageText ?? getTeamsMessageText(context.activity)).trim();
+    const hasNamedFile = attachments.some((a) =>
+      /\.(xlsx?|pdf|csv|txt|png|jpe?g|gif|webp)$/i.test(a.name ?? ""),
+    );
+    if (hasNamedFile) return true;
+    // File-card upload with little or no caption.
+    if (!text || text.length < 120) return true;
+  }
+
+  return false;
 }
 
 /**
