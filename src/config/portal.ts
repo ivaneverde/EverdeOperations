@@ -260,14 +260,6 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         navAccent: "404040",
       },
       {
-        slug: "retail-sales-weather",
-        title: "Sales × Weather",
-        sourceRelativePath: RETAIL_WEEKLY_SOURCE,
-        retailHtmlTab: "Sales × Weather",
-        navAccent: "5B4F8A",
-        notes: "Uses sales–weather crosswalk from the Weather Data pipeline.",
-      },
-      {
         slug: "freight-top-opportunities",
         title: "Freight — Top Opportunities",
         sourceRelativePath: FREIGHT_DASHBOARD_SOURCE,

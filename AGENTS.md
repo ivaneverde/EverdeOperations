@@ -18,9 +18,9 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
-**Snapshot 8.1.3 (portal app):** Weather nav below Sales Plan Review; Lowes Subregion map fixed (N.CA/S.CA codes from store geography) and Wk28 retail rebuild published. **8.1.2 lineage:** portal audit voids. Production: https://everde-operations.vercel.app .
+**Snapshot 8.1.4 (portal app):** Drop duplicate Retail Sales × Weather nav (keep Weather section). **8.1.3 lineage:** Lowes N.CA Subregion map + Weather below Sales Plan Review. Production: https://everde-operations.vercel.app .
 
-**Last session (2026-07-10):** Shipped **v8.1.3** — nav reorder + Lowes N.CA data restored via Subregion mapping.
+**Last session (2026-07-10):** Shipped **v8.1.4** — remove redundant Sales × Weather under Retail.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 
