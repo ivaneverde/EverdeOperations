@@ -890,9 +890,12 @@ function netColor(v) { return v >= 0 ? '#4caf7d' : '#e07b70'; }
 function showTab(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
-  document.querySelector(`[data-tab="${id}"]`).classList.add('active');
-  document.getElementById('main').scrollTop = 0;
+  const page = document.getElementById('tab-' + id);
+  if (page) page.classList.add('active');
+  const nav = document.querySelector(`[data-tab="${id}"]`);
+  if (nav) nav.classList.add('active');
+  const main = document.getElementById('main');
+  if (main) main.scrollTop = 0;
   // Lazy render
   if (!rendered[id]) { renderers[id] && renderers[id](); rendered[id] = true; }
 }
@@ -1634,7 +1637,13 @@ function renderPivot() {
 // ════════════════════════════════════════════════════════
 function renderOpportunities() {
   const container = document.getElementById('opp-content');
-  const opps = D.top_opps;
+  const opps = Array.isArray(D.top_opps) ? D.top_opps : [];
+  if (!opps.length) {
+    container.innerHTML = '<p style="color:var(--text-muted)">No flagged loads in this snapshot.</p>';
+    return;
+  }
+
+  const loadLevel = opps.some(r => r['Tracking #'] != null || r.Tracking != null);
 
   let html = `<div class="section-title">Flagged Loads — Low Fill Rate (2025–2026 YTD)</div>
   <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">
@@ -1642,32 +1651,46 @@ function renderOpportunities() {
   </div>
   <div class="table-wrap"><table>
     <thead><tr>
-      <th>Year</th><th>Region</th><th>Site</th><th>Month</th>
-      <th>Trailer</th><th>Cust Type</th>
-      <th>Loads</th><th>EUs</th><th>Miles</th>
-      <th>Revenue</th><th>Cost</th><th>Net</th><th>Fill Rate</th>
+      ${loadLevel
+        ? '<th>Tracking</th><th>Region</th><th>Site</th><th>Ship Date</th><th>Trailer</th><th>Cust Type</th><th>Cost</th><th>Net</th><th>Fill Rate</th>'
+        : '<th>Year</th><th>Region</th><th>Site</th><th>Month</th><th>Trailer</th><th>Cust Type</th><th>Loads</th><th>EUs</th><th>Miles</th><th>Revenue</th><th>Cost</th><th>Net</th><th>Fill Rate</th>'}
     </tr></thead>
-    <tbody>`;
+  <tbody>`;
 
   opps.forEach(r => {
-    const fill = r.fill_rate;
-    const fillPct = fill == null ? '?' : (fill * 100).toFixed(0) + '%';
-    const fillCls = fill < 0.5 ? 'td-neg' : fill < 0.7 ? 'td-gold' : '';
-    html += `<tr>
-      <td>${r.Year}</td>
-      <td>${r.Region}</td>
-      <td>${r.Site}</td>
-      <td>${r.Month}</td>
-      <td>${r['Trailer Type']}</td>
-      <td>${r['Cust Type']}</td>
-      <td>${fmt.dec2(r.Loads)}</td>
-      <td>${fmt.int(r.EUs)}</td>
-      <td>${fmt.int(r.Miles)}</td>
-      <td>${fmt.dollarM(r.Revenue)}</td>
-      <td>${fmt.dollarM(r.Cost)}</td>
-      <td class="${r.Net >= 0 ? 'td-pos' : 'td-neg'}">${fmt.dollarM(r.Net)}</td>
-      <td class="${fillCls}">${fillPct}</td>
-    </tr>`;
+    const fill = r.fill_rate != null ? r.fill_rate : r['Fill Rate'];
+    const fillPct = fill == null ? '?' : ((fill <= 1 ? fill * 100 : fill).toFixed(0) + '%');
+    const fillCls = (fill != null && fill < 0.5) ? 'td-neg' : (fill != null && fill < 0.7) ? 'td-gold' : '';
+    if (loadLevel) {
+      const year = r.Year != null ? r.Year : (r['Ship Date'] ? String(r['Ship Date']).slice(0, 4) : '—');
+      html += `<tr>
+        <td>${r['Tracking #'] || r.Tracking || '—'}</td>
+        <td>${r.Region || '—'}</td>
+        <td>${r.Site || '—'}</td>
+        <td>${r['Ship Date'] || r.Month || year}</td>
+        <td>${r['Trailer Type'] || r.Trailer || '—'}</td>
+        <td>${r['Cust Type'] || '—'}</td>
+        <td>${fmt.dollarM(r.Cost)}</td>
+        <td class="${(r.Net || 0) >= 0 ? 'td-pos' : 'td-neg'}">${fmt.dollarM(r.Net)}</td>
+        <td class="${fillCls}">${fillPct}</td>
+      </tr>`;
+    } else {
+      html += `<tr>
+        <td>${r.Year != null ? r.Year : '—'}</td>
+        <td>${r.Region || '—'}</td>
+        <td>${r.Site || '—'}</td>
+        <td>${r.Month || '—'}</td>
+        <td>${r['Trailer Type'] || '—'}</td>
+        <td>${r['Cust Type'] || '—'}</td>
+        <td>${fmt.dec2(r.Loads)}</td>
+        <td>${fmt.int(r.EUs)}</td>
+        <td>${fmt.int(r.Miles)}</td>
+        <td>${fmt.dollarM(r.Revenue)}</td>
+        <td>${fmt.dollarM(r.Cost)}</td>
+        <td class="${(r.Net || 0) >= 0 ? 'td-pos' : 'td-neg'}">${fmt.dollarM(r.Net)}</td>
+        <td class="${fillCls}">${fillPct}</td>
+      </tr>`;
+    }
   });
 
   html += '</tbody></table></div>';

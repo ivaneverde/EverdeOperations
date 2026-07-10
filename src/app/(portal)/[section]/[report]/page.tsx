@@ -49,8 +49,7 @@ export default async function ReportPage(
       ? rep.salesPlanHtmlTab.trim()
       : null;
   const isSalesPlanHtmlEmbed = salesPlanTab != null;
-  const isSalesPlanOrPending =
-    sec.id === "sales-plan-review" && salesPlanRegion === "or";
+  const isSalesPlanOrPending = false;
 
   const retailTab =
     typeof rep.retailHtmlTab === "string" && rep.retailHtmlTab.trim().length > 0

@@ -232,9 +232,12 @@ def detect_week_from_filename(files):
         m = re.search(r'Wk(\d+)', name, re.IGNORECASE)
         if m:
             wk = int(m.group(1))
-            # Try to extract refresh date
-            m2 = re.search(r'(\d{1,2})[._-](\d{1,2})', name)
-            date_str = f"5/{m2.group(2)}/2026" if m2 else None
+            # Prefer ISO-ish dates in filename; otherwise leave refresh_date unset
+            m2 = re.search(r'(20\d{2})[._-](\d{1,2})[._-](\d{1,2})', name)
+            if m2:
+                date_str = f"{int(m2.group(2))}/{int(m2.group(3))}/{m2.group(1)}"
+            else:
+                date_str = None
             return wk, date_str
     return None, None
 
@@ -547,6 +550,58 @@ def build_top20_from_store_workbooks(files):
 # RETAILER DETAIL EXTRACTION
 # ─────────────────────────────────────────────────────
 
+def build_ship_now_by_retailer(result):
+    """
+    Build top-30 ship-now lists per retailer so portal filters are never empty
+    when a retailer is absent from the combined Top 30 sheet.
+    """
+    out = {'HD': [], 'Lowes': []}
+    combined = result.get('top30_ship_now') or []
+    for r in combined:
+        cust = r.get('Customer')
+        if cust in out:
+            out[cust].append(r)
+
+    def from_items(block, customer):
+        if not block:
+            return []
+        rows = []
+        for key in ('items_nca', 'items_sca'):
+            for r in block.get(key) or []:
+                row = dict(r)
+                row['Customer'] = customer
+                if not row.get('Market'):
+                    row['Market'] = 'N.CA' if key.endswith('nca') else 'S.CA'
+                # Normalize ship-now $ field names used by the dashboard table
+                if row.get('ShipNow_Opp_HDretail') is None:
+                    for alt in (
+                        'ShipNow_Opp_$_retail',
+                        'Ship_Now_$_retail',
+                        'ShipNow_Opp_retail',
+                        'B1_Ship_Now_$_retail',
+                    ):
+                        if row.get(alt) is not None:
+                            row['ShipNow_Opp_HDretail'] = row[alt]
+                            break
+                if row.get('ShipNow_AB_Units') is None:
+                    for alt in ('ShipNow_AB_Units', 'Ship_Now_units', 'B1_Units'):
+                        if row.get(alt) is not None:
+                            row['ShipNow_AB_Units'] = row[alt]
+                            break
+                rows.append(alias_ship_now_row(row))
+        rows.sort(
+            key=lambda r: float(r.get('ShipNow_Opp_HDretail') or r.get('Net_Need_Units_HDretail') or 0),
+            reverse=True,
+        )
+        return slim(rows[:30], SHIP_NOW_KEEP)
+
+    if len(out['HD']) < 5:
+        out['HD'] = from_items(result.get('hd'), 'HD') or out['HD']
+    if len(out['Lowes']) < 5:
+        out['Lowes'] = from_items(result.get('lowes'), 'Lowes') or out['Lowes']
+    return out
+
+
 def extract_retailer_detail(xl, retailer_prefix):
     """Extract exec summary and items tabs for HD or Lowes."""
     tabs = xl.sheet_names
@@ -564,7 +619,7 @@ def extract_retailer_detail(xl, retailer_prefix):
             result[f'items_{mkt_key}'] = parse_tab(xl, items_tab, header_row=0, max_rows=150)
         if stores_tab in tabs:
             result[f'stores_{mkt_key}'] = parse_tab(
-                xl, stores_tab, header_row=0, max_rows=None)
+                xl, stores_tab, header_row=0, max_rows=120)
 
     return result
 
@@ -726,6 +781,11 @@ def extract(files, output_path):
         result['lowes'] = extract_retailer_detail(xl_low, 'Lowes')
         for k, v in result['lowes'].items():
             print(f"  Lowes {k}: {len(v)} rows")
+
+    # Per-retailer Top 30 Ship-Now (combined Top 30 is often all HD)
+    result['ship_now_by_retailer'] = build_ship_now_by_retailer(result)
+    for cust, rows in result['ship_now_by_retailer'].items():
+        print(f"  Ship-Now by retailer {cust}: {len(rows)} rows")
 
     # ── ALL STORES (HD + Lowe's, full list) ───────────────────
     result['all_stores'] = build_all_stores_from_workbooks(files)

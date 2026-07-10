@@ -42,6 +42,7 @@ export function contextFocusForPathname(pathname: string): AssistantContextFocus
   }
   if (p.includes("retail")) return "retail";
   if (p.includes("weather")) return "weather";
+  if (p.includes("/weather")) return "weather";
   return "portal";
 }
 

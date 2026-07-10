@@ -23,9 +23,16 @@ html,body{
   width:100%!important;
   max-width:100%!important;
   overflow-y:auto!important;
-  overflow-x:hidden!important;
+  overflow-x:auto!important;
   box-sizing:border-box;
 }
+.tw{
+  max-width:100%!important;
+  min-width:0!important;
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch;
+}
+.tw table{width:max-content;min-width:100%}
 </style>`;
 
 const PORTAL_RETAIL_ACTIVATE_BRIDGE = `<script data-everde-portal="retail-activate-bridge">

@@ -201,7 +201,42 @@ def extract_from_workbook(wb_path, region='NOR CAL'):
     plan_ki   = parse_detail_tab('Plan by KI')
     miss_sum  = parse_detail_tab('Miss Summary by KI')
     miss_cust = parse_detail_tab('Miss by Customer x KI', max_rows=500)
-    excess    = parse_detail_tab('Excess by KI')
+    excess_raw = parse_detail_tab('Excess by KI')
+    excess = []
+    for r in excess_raw:
+        row = dict(r)
+        if row.get('rank') is None and row.get('#') is not None:
+            row['rank'] = row['#']
+        if row.get('Excess QTY') is None:
+            for alt in (
+                'Excess at Farm QTY (end of Dec)',
+                'Excess at Farm QTY',
+                'Excess QTY (end of Dec)',
+            ):
+                if row.get(alt) is not None:
+                    row['Excess QTY'] = row[alt]
+                    break
+        if row.get('Excess $') is None:
+            for alt in (
+                'Excess at Farm $ (end of Dec)',
+                'Excess at Farm $',
+                'Excess $ (end of Dec)',
+            ):
+                if row.get(alt) is not None:
+                    row['Excess $'] = row[alt]
+                    break
+        if row.get('Pct of Total') is None:
+            for alt in (
+                '% of Total Excess at Farm $',
+                'Pct of Total Excess at Farm $',
+                '% of Total',
+            ):
+                if row.get(alt) is not None:
+                    row['Pct of Total'] = row[alt]
+                    break
+        if row.get('Reason') is None and row.get('Reason for Excess') is not None:
+            row['Reason'] = row['Reason for Excess']
+        excess.append(row)
     ytd_perf  = parse_detail_tab('YTD Performance', max_rows=500)
     lift_sum  = parse_detail_tab('Lift Summary by KI')
     over_plan = parse_detail_tab('Over-Plan by KI')

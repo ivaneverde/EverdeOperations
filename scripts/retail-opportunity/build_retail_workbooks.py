@@ -213,12 +213,18 @@ def _map_hd_market(series: pd.Series) -> pd.Series:
     from_num = nums.map(HD_MKT_NUMERIC)
     return text.fillna(from_num)
 
-# Lowe's store file Subregion → market
+# Lowe's store file Subregion → market (matched case-insensitively in load_low_store)
 LOW_SUB_MARKET = {
     'no cal': 'N.CA',
+    'nor cal': 'N.CA',
+    'n.ca': 'N.CA',
+    'n cal': 'N.CA',
+    'northern california': 'N.CA',
     'so cal': 'S.CA',
-    'WP': 'S.CA', 'ZE': 'S.CA', 'WN': 'S.CA', 'WT': 'S.CA',
-    'WR': 'S.CA', 'WQ': 'S.CA', 'NM/El Paso': 'S.CA',
+    's.ca': 'S.CA',
+    'southern california': 'S.CA',
+    'wp': 'S.CA', 'ze': 'S.CA', 'wn': 'S.CA', 'wt': 'S.CA',
+    'wr': 'S.CA', 'wq': 'S.CA', 'nm/el paso': 'S.CA',
 }
 
 # West Coast markets
@@ -684,7 +690,11 @@ def load_low_store(path, item_group: Dict[str, str],
     df['store']       = df[store_col].astype(str).str.strip()
     df['store_name']  = df[store_desc].astype(str).str.strip()
     df['sub']         = df[sub_col].astype(str).str.strip()
-    df['market']      = df['sub'].map(LOW_SUB_MARKET)
+    low_sub_norm = {str(k).strip().lower(): v for k, v in LOW_SUB_MARKET.items()}
+    df['market']      = df['sub'].str.lower().map(low_sub_norm)
+    unmapped = df[df['market'].isna()]['sub'].value_counts().head(12)
+    if len(unmapped):
+        log(f"    Unmapped Lowes Subregion samples: {dict(unmapped)}")
     df = df[df['market'].isin(WC_MARKETS)].copy()
 
     # Build SKU → item map from low_xref

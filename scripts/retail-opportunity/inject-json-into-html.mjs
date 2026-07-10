@@ -27,7 +27,7 @@ if (!fs.existsSync(htmlPath)) {
 const rawJson = fs.readFileSync(jsonPath, "utf8");
 const parsed = JSON.parse(rawJson);
 
-/** Keys referenced by Everde_West_Coast_Retail_Opportunity_Dashboard.html (omit hd/lowes detail). */
+/** Keys referenced by Everde_West_Coast_Retail_Opportunity_Dashboard.html. */
 const DASHBOARD_KEYS = [
   "meta",
   "key_numbers",
@@ -36,17 +36,35 @@ const DASHBOARD_KEYS = [
   "action_buckets",
   "top30_ship_now",
   "top30_behind_plan",
+  "ship_now_by_retailer",
   "top20_stores",
   "all_stores",
   "miss_analysis",
   "for_source",
   "region_comparison",
+  "weather",
 ];
+
+function slimRetailerDetail(block) {
+  if (!block || typeof block !== "object") return block;
+  const out = { ...block };
+  for (const key of Object.keys(out)) {
+    if (key.startsWith("stores_") && Array.isArray(out[key])) {
+      out[key] = out[key].slice(0, 80);
+    }
+    if (key.startsWith("items_") && Array.isArray(out[key])) {
+      out[key] = out[key].slice(0, 150);
+    }
+  }
+  return out;
+}
 
 const dashboard = {};
 for (const key of DASHBOARD_KEYS) {
   if (key in parsed) dashboard[key] = parsed[key];
 }
+if (parsed.hd) dashboard.hd = slimRetailerDetail(parsed.hd);
+if (parsed.lowes) dashboard.lowes = slimRetailerDetail(parsed.lowes);
 
 const compact = JSON.stringify(dashboard);
 

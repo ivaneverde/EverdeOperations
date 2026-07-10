@@ -760,6 +760,14 @@
         '<div class="subtitle">Newest-first history of data refreshes, features, and fixes</div></div>' +
         '<div id="change-log-content"></div></div>',
     );
+    var sidebar = document.getElementById("sidebar") || document.querySelector(".sidebar");
+    if (sidebar && !document.querySelector('[data-tab="build-health"]')) {
+      sidebar.insertAdjacentHTML(
+        "beforeend",
+        '<div class="nav-item" data-tab="build-health" style="display:none"></div>' +
+          '<div class="nav-item" data-tab="change-log" style="display:none"></div>',
+      );
+    }
     if (typeof renderers !== "undefined") {
       renderers["build-health"] = renderBuildHealth;
       renderers["change-log"] = renderChangeLog;
