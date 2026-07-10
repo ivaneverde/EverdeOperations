@@ -213,7 +213,9 @@ def _map_hd_market(series: pd.Series) -> pd.Series:
     from_num = nums.map(HD_MKT_NUMERIC)
     return text.fillna(from_num)
 
-# Lowe's store file Subregion → market (matched case-insensitively in load_low_store)
+# Lowe's store file Subregion → market (matched case-insensitively in load_low_store).
+# Codes verified from YTD BY STORE SKU store names; aligned with LOW_ADDR_MARKET
+# (LOWNO/LOWNV → N.CA; LOWSO/LOWWB/LOWAZ/LOWNM → S.CA).
 LOW_SUB_MARKET = {
     'no cal': 'N.CA',
     'nor cal': 'N.CA',
@@ -223,8 +225,14 @@ LOW_SUB_MARKET = {
     'so cal': 'S.CA',
     's.ca': 'S.CA',
     'southern california': 'S.CA',
+    # N.CA — Bay Area, Sacramento, Central Valley, foothills, Reno NV
+    'wg': 'N.CA', 'wi': 'N.CA', 'wh': 'N.CA', 'rn': 'N.CA', 'vf': 'N.CA',
+    # S.CA — LA, Inland Empire, San Diego, Coachella; AZ/NM/Vegas/UT per LOW* addr
+    'wc': 'S.CA', 'wz': 'S.CA', 'ws': 'S.CA', 'wb': 'S.CA',
     'wp': 'S.CA', 'ze': 'S.CA', 'wn': 'S.CA', 'wt': 'S.CA',
-    'wr': 'S.CA', 'wq': 'S.CA', 'nm/el paso': 'S.CA',
+    'wr': 'S.CA', 'wq': 'S.CA',
+    'vb': 'S.CA', 'vc': 'S.CA', 'vj': 'S.CA',
+    'nm/el paso': 'S.CA',
 }
 
 # West Coast markets
