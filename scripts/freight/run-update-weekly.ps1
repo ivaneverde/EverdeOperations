@@ -34,6 +34,10 @@ Write-Host "WeeklyDrop has $count raw .xlsb file(s)." -ForegroundColor Cyan
 $python = $env:FREIGHT_PYTHON
 if (-not $python) { $python = "python" }
 
+# Windows consoles often use cp1252; update.py prints emoji/unicode in fuel checks.
+if (-not $env:PYTHONUTF8) { $env:PYTHONUTF8 = "1" }
+if (-not $env:PYTHONIOENCODING) { $env:PYTHONIOENCODING = "utf-8" }
+
 if ($NonInteractive) { $SkipFuelCheck = $true }
 
 $args = @($updatePy)

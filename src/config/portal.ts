@@ -11,7 +11,7 @@ export const DATA_ROOT_UNC =
 
 /** Workbook shown as Source for freight HTML tab mirrors (published weekly dashboard). */
 const FREIGHT_DASHBOARD_SOURCE =
-  "DataDrops\\Everde_Freight_Dashboard_2026-05-28.xlsx";
+  "Freight\\WeeklyDrop\\Everde Freight Dashboard YTD 7-15-26 (rebuilt).xlsx";
 
 /**
  * Weekly retail drop on DataDrops (five pipeline output workbooks).
@@ -296,7 +296,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "nor-cal-forward-looking",
         title: "NOR CAL — Forward Looking INV vs Sales Plan",
         sourceRelativePath:
-          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+          "Sales Plan Review\\NOR_CAL_Forward_Looking_INV_vs_Sales_Plan_071526.xlsx",
         salesPlanHtmlTab: "Exec Summary",
         navAccent: "2F5233",
         sheetTabs: [
@@ -313,7 +313,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "nor-cal-ytd-performance",
         title: "YTD Performance",
         sourceRelativePath:
-          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+          "Sales Plan Review\\NOR_CAL_Forward_Looking_INV_vs_Sales_Plan_071526.xlsx",
         salesPlanHtmlTab: "YTD Performance",
         navAccent: "1F3A5F",
       },
@@ -321,7 +321,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "nor-cal-miss-by-ki",
         title: "Miss by KI",
         sourceRelativePath:
-          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+          "Sales Plan Review\\NOR_CAL_Forward_Looking_INV_vs_Sales_Plan_071526.xlsx",
         salesPlanHtmlTab: "Miss by KI",
         navAccent: "C0392B",
       },
@@ -329,7 +329,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "nor-cal-plan-by-ki",
         title: "Plan by KI",
         sourceRelativePath:
-          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+          "Sales Plan Review\\NOR_CAL_Forward_Looking_INV_vs_Sales_Plan_071526.xlsx",
         salesPlanHtmlTab: "Plan by KI",
         navAccent: "C49B3F",
       },
@@ -337,7 +337,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "nor-cal-excess-at-farm",
         title: "Excess at Farm",
         sourceRelativePath:
-          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+          "Sales Plan Review\\NOR_CAL_Forward_Looking_INV_vs_Sales_Plan_071526.xlsx",
         salesPlanHtmlTab: "Excess at Farm",
         navAccent: "5B4F8A",
       },
@@ -345,7 +345,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         slug: "nor-cal-channel-summary",
         title: "Channel Summary",
         sourceRelativePath:
-          "Sales Plan Review\\NOR CAL Forward Looking INV vs Sales Plan 051126.xlsx",
+          "Sales Plan Review\\NOR_CAL_Forward_Looking_INV_vs_Sales_Plan_071526.xlsx",
         salesPlanHtmlTab: "Channel Summary",
         navAccent: "404040",
       },
@@ -649,7 +649,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     sectionOnly: true,
     nurseryPane: "demand",
     sectionSourceRelativePath:
-      "Inventory Metrics\\Inventory Metrics 06 29 26.xlsb",
+      "Inventory Metrics\\Inventory Metrics 07 13 26.xlsb",
     sectionNotes:
       "Drop the latest Inventory Metrics workbook in Inventory Metrics (run npm run nursery:refresh-demand after each drop).",
     reports: [],
