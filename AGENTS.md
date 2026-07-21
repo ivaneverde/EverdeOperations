@@ -18,9 +18,9 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
-**Snapshot 8.1.5 (portal app):** Weekly drop catch-up — nursery Metrics 07 13 26, NOR CAL sales plan 071526 + Blob, freight dashboard 7-15-26 from raw 07-11-26, UTF-8 fix on freight update. Retail still Wk28 (no newer HD/Lowes store drops). Production: https://everde-operations.vercel.app .
+**Snapshot 8.1.6 (portal app):** Weekly drop catch-up — nursery Metrics 07 20 26, NOR CAL 072126, freight dashboard 7-21-26 (raw 07-18-26), retail Wk29 (updated actuals; store feeds still HD May / Lowes 7.8). Production: https://everde-operations.vercel.app .
 
-**Last session (2026-07-15):** Shipped **v8.1.5** — weekly drop portal refresh.
+**Last session (2026-07-21):** Shipped **v8.1.6** — full weekly drop refresh.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 
