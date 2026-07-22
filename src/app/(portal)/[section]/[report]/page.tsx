@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { FreightDashboardEmbed } from "@/components/reports/FreightDashboardEmbed";
+import { HdYtdGridEmbed } from "@/components/reports/HdYtdGridEmbed";
 import { RetailDashboardEmbed } from "@/components/reports/RetailDashboardEmbed";
 import { SalesPlanDashboardEmbed } from "@/components/reports/SalesPlanDashboardEmbed";
 import { SalesPlanOrPending } from "@/components/reports/SalesPlanOrPending";
@@ -32,6 +33,14 @@ export default async function ReportPage(
 
   if (sec.id === "load-board-freight" && rep.slug === "everde-freight-data-ytd") {
     return <FreightYtdSourcePage section={sec} report={rep} />;
+  }
+
+  if (rep.hdYtdGrid === true) {
+    return (
+      <ReportShell section={sec} report={rep} embedBody>
+        <HdYtdGridEmbed />
+      </ReportShell>
+    );
   }
 
   const freightTab =

@@ -46,6 +46,10 @@ next-env.d.ts
 /public/sales_plan_data.json
 /public/or_sales_plan_data.json
 /public/retail_opp_data.json
+/public/hd_ytd_meta.json
+/public/hd_ytd_rows.json.gz
+/public/dashboard_data.json
+/public/weather_dashboard_data.json
 /public/weather_dashboard_data.json
 
 # local freight JSON/CSV extraction (scripts/freight/extract_dashboard_html.py)

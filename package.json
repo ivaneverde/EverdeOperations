@@ -1,6 +1,6 @@
 {
   "name": "everde-ai-operations",
-  "version": "8.1.6",
+  "version": "8.1.7",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
@@ -23,6 +23,8 @@
     "sales-plan:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-extract-and-publish.ps1",
     "sales-plan:sync-sales-by-item": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/sync-sales-by-item-from-admin.ps1",
     "sales-plan:or-extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-or-extract-and-publish.ps1",
+    "sales-plan:hd-ytd-extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-hd-ytd-extract-and-publish.ps1",
+    "publish:hd-ytd-json": "node scripts/sales-plan-review/publish-hd-ytd-data.mjs",
     "sales-plan:bootstrap-json": "node scripts/sales-plan-review/bootstrap-json-from-html.mjs",
     "sales-plan:publish-local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/publish-local-json.ps1",
     "publish:retail-json": "node scripts/retail-opportunity/publish-dashboard-data.mjs",
@@ -46,6 +48,7 @@
   "dependencies": {
     "@azure/msal-browser": "^5.10.1",
     "@azure/storage-blob": "^12.31.0",
+    "@tanstack/react-virtual": "^3.14.8",
     "jose": "^6.2.3",
     "next": "^15.5.9",
     "papaparse": "^5.5.3",

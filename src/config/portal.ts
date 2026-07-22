@@ -56,6 +56,7 @@ export type PortalReport = {
    * and calls iframe `activate(tab)` with this nav title.
    */
   weatherHtmlTab?: string;
+  hdYtdGrid?: boolean;
   /** Optional hex color (no #) for a small sidebar dot, matching dashboard tab colors */
   navAccent?: string;
   /**
@@ -292,6 +293,16 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       "Forward-looking inventory versus sales plan (region-scoped workbooks, shared engine).",
     shareFolder: "Sales Plan Review",
     reports: [
+      {
+        slug: "hd-sales-ytd-following-week",
+        title: "HD Sales YTD w/ Following Week Sales",
+        sourceRelativePath:
+          "Sales Plan Review\\WeeklyDrop\\HD Sales YTD with Following Week Sales 07 20 26.xlsx",
+        hdYtdGrid: true,
+        navAccent: "2F5233",
+        notes:
+          "WeeklyDrop: HD Sales YTD with Following Week Sales*.xlsx (newest file → Blob grid).",
+      },
       {
         slug: "nor-cal-forward-looking",
         title: "NOR CAL — Forward Looking INV vs Sales Plan",
