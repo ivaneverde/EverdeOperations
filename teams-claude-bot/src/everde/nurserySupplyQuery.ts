@@ -10,8 +10,11 @@ export type NurserySupplyLine = {
   grade?: string;
   saleable?: number;
   graded?: number;
+  /** max(0, saleable) — units still available to sell */
+  available?: number;
   price?: number;
   demandWindow?: string;
+  readyDate?: string | null;
 };
 
 function normRegionToken(s: string): string {
@@ -67,6 +70,16 @@ export function filterNurserySupplyLines(
     "unit",
     "inventory",
     "stock",
+    "next",
+    "crop",
+    "come",
+    "comes",
+    "ready",
+    "when",
+    "not",
+    "including",
+    "exclude",
+    "excluding",
   ]);
 
   const normalized = raw
@@ -87,11 +100,21 @@ export function filterNurserySupplyLines(
   if (tokens.length === 0) return lines;
 
   const gradeTokens = tokens.filter((t) =>
-    ["a", "b", "c", "ss", "gs"].includes(t),
+    ["a", "b", "c", "ss", "gs", "d", "p"].includes(t),
   );
   const regionTokens = tokens.filter((t) =>
     ["norcal", "socal", "nca", "sca"].includes(t),
   );
+  const excludeGrades = new Set<string>();
+  // "not including c d or the p grades" → tokens may still have c,d,p after stop-word strip
+  if (/\bnot\s+including\b|\bexclud/i.test(raw)) {
+    for (const t of ["c", "d", "p", "ss", "gs"]) {
+      if (raw.includes(` ${t} `) || raw.endsWith(` ${t}`) || raw.includes(`${t} grade`)) {
+        excludeGrades.add(t);
+      }
+    }
+  }
+
   const otherTokens = tokens.filter(
     (t) => !gradeTokens.includes(t) && !regionTokens.includes(t),
   );
@@ -106,16 +129,16 @@ export function filterNurserySupplyLines(
       line.size,
       line.grade,
       line.demandWindow,
+      line.readyDate,
     ]
       .map((x) => String(x ?? "").toLowerCase())
       .join(" | ");
     const regionHay = normRegionToken(String(line.region ?? ""));
     const grade = String(line.grade ?? "").toLowerCase();
 
-    if (
-      gradeTokens.length > 0 &&
-      !gradeTokens.some((t) => grade === t)
-    ) {
+    if (excludeGrades.has(grade)) return false;
+
+    if (gradeTokens.length > 0 && !gradeTokens.some((t) => grade === t)) {
       return false;
     }
     if (
@@ -153,16 +176,65 @@ export function filterNurserySupplyLines(
   });
 }
 
-export function aggregateNurserySupplyByRegionGrade(
+type AggCell = {
+  graded_on_hand: number;
+  saleable_net: number;
+  available_to_sell: number;
+  farms: string[];
+  earliest_ready_date: string | null;
+  demand_windows: string[];
+};
+
+function emptyCell(): AggCell {
+  return {
+    graded_on_hand: 0,
+    saleable_net: 0,
+    available_to_sell: 0,
+    farms: [],
+    earliest_ready_date: null,
+    demand_windows: [],
+  };
+}
+
+export function aggregateNurserySupplyDetail(
   lines: NurserySupplyLine[],
-): Record<string, Record<string, number>> {
-  const out: Record<string, Record<string, number>> = {};
+): Record<string, Record<string, AggCell>> {
+  const out: Record<string, Record<string, AggCell>> = {};
   for (const line of lines) {
     const region = String(line.region ?? "—");
     const grade = String(line.grade ?? "—");
     if (!out[region]) out[region] = {};
-    out[region][grade] =
-      (out[region][grade] || 0) + (Number(line.saleable) || 0);
+    if (!out[region][grade]) out[region][grade] = emptyCell();
+    const cell = out[region][grade];
+    const graded = Number(line.graded) || 0;
+    const saleable = Number(line.saleable) || 0;
+    const available =
+      line.available != null
+        ? Number(line.available) || 0
+        : Math.max(0, saleable);
+    cell.graded_on_hand += graded;
+    cell.saleable_net += saleable;
+    cell.available_to_sell += available;
+    if (line.farm && !cell.farms.includes(line.farm)) cell.farms.push(line.farm);
+    if (line.demandWindow && !cell.demand_windows.includes(line.demandWindow)) {
+      cell.demand_windows.push(line.demandWindow);
+    }
+    if (line.readyDate) {
+      if (
+        !cell.earliest_ready_date ||
+        line.readyDate < cell.earliest_ready_date
+      ) {
+        cell.earliest_ready_date = line.readyDate;
+      }
+    }
+  }
+  for (const region of Object.keys(out)) {
+    for (const grade of Object.keys(out[region])) {
+      const c = out[region][grade];
+      c.graded_on_hand = Math.round(c.graded_on_hand * 100) / 100;
+      c.saleable_net = Math.round(c.saleable_net * 100) / 100;
+      c.available_to_sell = Math.round(c.available_to_sell * 100) / 100;
+    }
   }
   return out;
 }
@@ -173,7 +245,7 @@ export function formatNurserySupplyQuery(
   maxChars: number,
 ): string {
   const filtered = filterNurserySupplyLines(lines, q);
-  const byRegionGrade = aggregateNurserySupplyByRegionGrade(filtered);
+  const byRegionGrade = aggregateNurserySupplyDetail(filtered);
   const sample = filtered.slice(0, 40).map((r) => ({
     farm: r.farm,
     region: r.region,
@@ -181,20 +253,47 @@ export function formatNurserySupplyQuery(
     botanical: r.botanical,
     size: r.size,
     grade: r.grade,
-    saleable: r.saleable,
-    item: r.item,
+    graded_on_hand: r.graded,
+    saleable_net: r.saleable,
+    available_to_sell:
+      r.available != null ? r.available : Math.max(0, Number(r.saleable) || 0),
+    readyDate: r.readyDate ?? null,
+    demandWindow: r.demandWindow,
   }));
-  const totalSaleable = filtered.reduce(
-    (s, r) => s + (Number(r.saleable) || 0),
-    0,
+
+  const totals = filtered.reduce(
+    (acc, r) => {
+      const saleable = Number(r.saleable) || 0;
+      acc.graded += Number(r.graded) || 0;
+      acc.saleable += saleable;
+      acc.available +=
+        r.available != null ? Number(r.available) || 0 : Math.max(0, saleable);
+      return acc;
+    },
+    { graded: 0, saleable: 0, available: 0 },
   );
+
   return truncateText(
     JSON.stringify({
       q,
       matched_lines: filtered.length,
-      total_saleable: Math.round(totalSaleable * 100) / 100,
+      field_guide: {
+        graded_on_hand:
+          "Physical graded inventory on hand from XXTT Sales/Inventory/Price List (active inventory).",
+        saleable_net:
+          "Net saleable after allocations — can be negative if oversold (NOT Production & Demand BO/CR dollars).",
+        available_to_sell: "max(0, saleable_net) — units still free to sell.",
+        readyDate: "Next crop / ready date from the same XXTT price-list file when populated.",
+      },
+      totals: {
+        graded_on_hand: Math.round(totals.graded * 100) / 100,
+        saleable_net: Math.round(totals.saleable * 100) / 100,
+        available_to_sell: Math.round(totals.available * 100) / 100,
+      },
       by_region_grade: byRegionGrade,
       sample_rows: sample,
+      answer_hint:
+        "For 'how many do I have' / active inventory, lead with graded_on_hand (and available_to_sell). Mention oversold only when saleable_net < 0. Do not call this BO/CR — that is Production & Demand.",
     }),
     maxChars,
   );

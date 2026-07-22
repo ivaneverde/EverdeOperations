@@ -454,8 +454,11 @@ export function parseSupplyPriceListFile(filePath, opts = {}) {
     grade: r.grade,
     saleable: Math.round(r.saleable * 100) / 100,
     graded: Math.round(r.graded * 100) / 100,
+    /** Net units available to sell (never negative). */
+    available: Math.max(0, Math.round(r.saleable * 100) / 100),
     price: r.price,
     demandWindow: r.demandWindow,
+    readyDate: r.ready ? r.ready.toISOString().slice(0, 10) : null,
   }));
 
   return {

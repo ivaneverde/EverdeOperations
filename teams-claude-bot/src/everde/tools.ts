@@ -114,7 +114,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_nursery_supply",
     description:
-      "Everde nursery Supply Inventory (XXTT price list / saleable by farm, region, grade, size). Use for Grade A/B farm inventory questions (e.g. Japanese Boxwood 1G in N CA / S CA). focus=summary or query with q=.",
+      "Everde nursery Supply Inventory (XXTT price list — active graded/saleable by farm, region, grade, size, ready date). Use for 'how many do I have' Grade A/B questions. Prefer graded_on_hand for on-hand counts; saleable can be negative if oversold (not BO/CR). focus=summary or query with q=.",
     input_schema: {
       type: "object",
       properties: {
