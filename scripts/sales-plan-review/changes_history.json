@@ -1,0 +1,87 @@
+[
+  {
+    "version": "2026-06-16",
+    "snapshot": "2026-05-11",
+    "build_id": "v-2026-06-16-recovery",
+    "changes": [
+      [
+        "Tab Added",
+        "Production Recovery (Tab 9) \u2014 action list of plan miss recoverable via production. Each row = (Customer, KI, Month) action with target item to grow, recoverable QTY/$, grow days, latest start date, slack days, and items being substituted for."
+      ],
+      [
+        "Methodology",
+        "Plan miss now reflects only the LOCKED-IN portion. Recoverable miss (where MIN grow days fits within days-from-snap-to-month-end) is removed from miss columns workbook-wide and surfaced on the new Production Recovery tab."
+      ],
+      [
+        "Methodology",
+        "KI-level recovery: if any item in a customer's KI has fitting grow days for a given month, the FULL KI-level miss for that (Customer, KI, Month) is recoverable via within-KI substitution. Production target = item with shortest grow days."
+      ],
+      [
+        "Methodology",
+        "Grow days cascade fallback: Tier 1 = exact item match; Tier 2 = same KI MIN; Tier 3 = same Genus+Size MIN; Tier 4 = same Size MIN. Items with no match anywhere stay locked in."
+      ],
+      [
+        "Source",
+        "Added load_grow_times() to engine; reads WIN and BRA tabs from Shared/Misc Look Ups/Prod lookups ALL 091925.xlsx. NOR CAL plan rows have Org Code = WIN or BRA per row, used to attribute grow days."
+      ],
+      [
+        "Cosmetic",
+        "Tab color-coding: Production Recovery uses orange (#ED7D31) \u2014 distinct from red Miss tabs and green Lift tabs. Reflects 'action-oriented recovery' nature."
+      ],
+      [
+        "Methodology",
+        "Outlier rule fixed: smoothed history now drops a year when its value > 10x the mean of the OTHER years (previously compared vs raw_mean inclusive of the year itself, which was mathematically impossible to trigger). Outlier Yrs column on Customer Over-Plan Detail now populates for ~9 KI x customer rows. Smoothed history values shift slightly for those rows; downstream Lift demand and Plan Miss adjust accordingly."
+      ],
+      [
+        "Tab Added",
+        "Three new Miss tabs at KI granularity: 'Miss Summary by KI' (KI-only summary), 'Miss by Customer x KI' (one row per Customer x KI), 'Miss by KI x Month' (one row per KI x Month)."
+      ],
+      [
+        "Tab Added",
+        "Three new Lift tabs at KI granularity: 'Lift Summary by KI' (KI-only summary), 'Lift by KI x Month' (one row per KI x Month, no customer dimension)."
+      ],
+      [
+        "Tab Renamed",
+        "'Short Item Detail' -> 'Customer Miss Detail' (Customer x Item granularity preserved; clearer that miss is the metric)."
+      ],
+      [
+        "Tab Renamed",
+        "'Lift Summary by KI' (was Customer x KI) -> 'Lift by Customer x KI' to match the new symmetric structure. The new 'Lift Summary by KI' is now the KI-only summary."
+      ],
+      [
+        "Tab Renamed",
+        "'Lift Detail by Month' (Customer x Item x Month) -> 'Lift by Customer x Item' (Customer x Item, Month dimension dropped). Item-level lift detail now lives at Customer x Item granularity."
+      ],
+      [
+        "Tab Renamed",
+        "'Customer Over-Plan by KI' -> 'Over-Plan by KI' ('Customer' prefix dropped on KI-only tabs since customer dimension isn't visible there)."
+      ],
+      [
+        "Cosmetic",
+        "Customer Over-Plan Detail tab columns finished renaming: 'Excess QTY/$' -> 'Over-Plan QTY/$ YE'; year history columns -> longer-form like '2023 Sales QTY (full year)'; price columns -> 'Avg Sell Price 2026 YTD' / 'Avg Sell Price 2025'."
+      ],
+      [
+        "Format",
+        "SUBTOTAL row improvements: per-unit Avg Price columns now show weighted-average formulas (Plan $ / Plan QTY) instead of meaningless sum-of-prices, where a $-and-QTY pair is available. Where no pair is available, leave blank rather than show wrong number."
+      ],
+      [
+        "Format",
+        "SUBTOTAL row also covers all newly-added Miss/Lift tabs with proper % column ratios."
+      ],
+      [
+        "Cosmetic",
+        "Naming convention: 'Customer' prefix kept only where customer dimension is actually visible in the rows (Customer x KI, Customer x Item, per-customer walks). Dropped on KI-only tabs and KI x Month tabs."
+      ],
+      [
+        "Cosmetic",
+        "Tab color-coding applied: same-domain tabs share a color (Miss=red, Lift=green, Excess at Farm=gold, Customer Over-Plan=blue, Cross-cut=purple, Headline=navy, Reference=grey). Verification step at build time warns if any tab is uncolored."
+      ]
+    ],
+    "interpretation_notes": [
+      "Plan miss numbers are NOT directly comparable to prior versions. Miss now reflects only LOCKED-IN portion (grow days don't fit). The recoverable portion (~$481K in this build) moved to the new Production Recovery tab as a separate action list.",
+      "Tab count: 19 (added Production Recovery between Miss tabs and Lift tabs).",
+      "Production Recovery uses MIN grow days per item, no fall-down inflation, no liner availability check, unlimited production capacity assumed (per CEO 2026-05-07).",
+      "Sum of Production Recovery $ + remaining Miss $ may differ slightly from prior total miss due to KI weighted-average pricing on the recovery tab vs item-level pricing on the miss tabs."
+    ]
+  }
+]
