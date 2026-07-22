@@ -9,6 +9,7 @@ import { buildClaudeContentFromFiles } from "../services/claudeContentBuilder.js
 import { ClaudeService } from "../services/claudeService.js";
 import { ConversationStore } from "../services/conversationStore.js";
 import { ConversationFileStore } from "../services/conversationFileStore.js";
+import { ConversationEverdeStore } from "../services/conversationEverdeStore.js";
 import {
   activityHasUserFileAttachment,
   downloadAllMessageAttachments,
@@ -39,8 +40,9 @@ Chat naturally, or **attach files** for analysis (summaries, Q&A, light analytic
 **File uploads:** Works in **group chats**, **channels**, and **1:1** — attach with the paperclip and ask your question in the same message.
 
 **Everde Operations Portal**
-- Freight, sales plan, retail, weather, and nursery metrics are loaded from the portal each turn — ask naturally (e.g. *"How much did we spend on freight this week?"*).
-- Uploaded files stay in context for follow-up questions in the same chat — no need to re-attach unless you switch files.
+- Freight, sales plan, HD/Lowe's YTD Following Week, retail, weather, and nursery metrics are loaded from the portal — ask naturally (e.g. *"How is Encinitas doing on HD YTD?"*).
+- Portal data and uploaded files stay in context for follow-up questions in the same chat — keep discussing without re-stating stores, SKUs, or filters.
+- Type \`/reset\` if you want to clear that conversation memory.
 
 **Commands**
 - \`/help\` — this message
@@ -52,6 +54,7 @@ export class TeamsClaudeBot extends ActivityHandler {
   private readonly claude: ClaudeService;
   private readonly store: ConversationStore;
   private readonly fileStore: ConversationFileStore;
+  private readonly everdeStore: ConversationEverdeStore;
 
   constructor() {
     super();
@@ -59,6 +62,7 @@ export class TeamsClaudeBot extends ActivityHandler {
     this.claude = new ClaudeService(config);
     this.store = new ConversationStore(config.CONVERSATION_MAX_TURNS);
     this.fileStore = new ConversationFileStore();
+    this.everdeStore = new ConversationEverdeStore();
 
     this.onMembersAdded(async (context, next) => {
       const members = context.activity.membersAdded ?? [];
@@ -124,6 +128,7 @@ export class TeamsClaudeBot extends ActivityHandler {
     if (command === "/reset" || command === "reset") {
       this.store.clear(conversationId);
       this.fileStore.clear(conversationId);
+      this.everdeStore.clear(conversationId);
       await context.sendActivity("Conversation history cleared for this chat.");
       return;
     }
@@ -153,11 +158,20 @@ export class TeamsClaudeBot extends ActivityHandler {
           ),
         );
 
-        const reply = await this.claude.completeWithContent(
+        const { text: reply, toolCalls } = await this.claude.completeWithContent(
           history,
           blocks,
           text,
         );
+
+        for (const call of toolCalls) {
+          this.everdeStore.add(
+            conversationId,
+            call.name,
+            call.input,
+            call.result,
+          );
+        }
 
         this.store.append(conversationId, {
           role: "user",
@@ -202,15 +216,39 @@ export class TeamsClaudeBot extends ActivityHandler {
       }
 
       const fileContext = this.fileStore.buildFollowUpContext(conversationId);
-      const userPayload = fileContext
-        ? `${fileContext}\n\n---\n\nUser follow-up: ${text}`
-        : text;
+      const everdeContext =
+        this.everdeStore.buildFollowUpContext(conversationId);
+      const contextParts = [fileContext, everdeContext].filter(Boolean);
+      const userPayload =
+        contextParts.length > 0
+          ? `${contextParts.join("\n\n")}\n\n---\n\nUser follow-up: ${text}`
+          : text;
 
-      const reply = await this.claude.complete(history, userPayload, text);
+      const { text: reply, toolCalls } = await this.claude.complete(
+        history,
+        userPayload,
+        text,
+      );
+
+      for (const call of toolCalls) {
+        this.everdeStore.add(
+          conversationId,
+          call.name,
+          call.input,
+          call.result,
+        );
+      }
+
+      const historyNote = [
+        fileContext ? "uploaded file" : null,
+        everdeContext ? "prior Everde data" : null,
+      ]
+        .filter(Boolean)
+        .join(" + ");
 
       this.store.append(conversationId, {
         role: "user",
-        content: fileContext ? `${text} (re: uploaded file)` : text,
+        content: historyNote ? `${text} (re: ${historyNote})` : text,
       });
       this.store.append(conversationId, { role: "assistant", content: reply });
 

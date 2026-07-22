@@ -21,6 +21,11 @@ import { shouldEnableWebSearch } from "./webSearchDetect.js";
 
 const MAX_TOOL_ROUNDS = 6;
 
+export type ClaudeCompleteResult = {
+  text: string;
+  toolCalls: { name: string; input: unknown; result: string }[];
+};
+
 export class ClaudeService {
   private readonly client: Anthropic;
   private readonly config: AppConfig;
@@ -35,7 +40,7 @@ export class ClaudeService {
     history: StoredTurn[],
     userMessage: string,
     userTextForRouting?: string,
-  ): Promise<string> {
+  ): Promise<ClaudeCompleteResult> {
     return this.completeWithContent(
       history,
       userMessage,
@@ -47,7 +52,7 @@ export class ClaudeService {
     history: StoredTurn[],
     userContent: string | ContentBlockParam[],
     userTextForRouting = "",
-  ): Promise<string> {
+  ): Promise<ClaudeCompleteResult> {
     const routingText =
       userTextForRouting.trim() ||
       (typeof userContent === "string" ? userContent : "");
@@ -66,6 +71,7 @@ export class ClaudeService {
       this.config.ENABLE_WEB_SEARCH && shouldEnableWebSearch(routingText);
     const tools = this.buildTools(routingText, webSearchEnabled);
     const hasDocuments = Array.isArray(userContent);
+    const toolCalls: ClaudeCompleteResult["toolCalls"] = [];
 
     logger.info("claude.request", {
       model: this.config.CLAUDE_MODEL,
@@ -89,7 +95,10 @@ export class ClaudeService {
           response.stop_reason === "end_turn" ||
           response.stop_reason === "max_tokens"
         ) {
-          return this.extractText(response.content);
+          return {
+            text: this.extractText(response.content),
+            toolCalls,
+          };
         }
 
         if (response.stop_reason === "pause_turn") {
@@ -104,6 +113,11 @@ export class ClaudeService {
           for (const block of response.content) {
             if (block.type !== "tool_use") continue;
             const result = await executeEverdeTool(block.name, block.input);
+            toolCalls.push({
+              name: block.name,
+              input: block.input,
+              result,
+            });
             toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
@@ -113,14 +127,20 @@ export class ClaudeService {
           }
 
           if (toolResults.length === 0) {
-            return this.extractText(response.content);
+            return {
+              text: this.extractText(response.content),
+              toolCalls,
+            };
           }
 
           messages.push({ role: "user", content: toolResults });
           continue;
         }
 
-        return this.extractText(response.content);
+        return {
+          text: this.extractText(response.content),
+          toolCalls,
+        };
       }
 
       throw new Error("Claude exceeded maximum tool rounds");
