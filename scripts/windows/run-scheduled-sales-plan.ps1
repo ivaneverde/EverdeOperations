@@ -103,6 +103,34 @@ try {
       Write-Host "HD YTD publish complete." -ForegroundColor Green
     }
   }
+
+  # --- Lowe's YTD BY STORE SKU (independent fingerprint; same WeeklyDrop) ---
+  $lowes = Newest @(
+    "YTD BY STORE SKU*.xlsb",
+    "YTD BY STORE SKU*.xlsx",
+    "Lowes YTD*.xlsb",
+    "LOW YTD BY STORE SKU*.xlsb",
+    "LOWES YTD*.xlsb"
+  )
+  if (-not $lowes) {
+    Write-Host "Lowes YTD: no matching workbook in WeeklyDrop yet." -ForegroundColor Yellow
+  } else {
+    $lowesFp = Get-FileFingerprint $lowes
+    $lowesPrev = Get-PipelineState $RepoRoot "lowes-ytd"
+    $lowesChanged = $Force -or (Test-WeeklyDropNeedsProcessing $lowes $lowesPrev.file $lowesPrev)
+    if (-not $lowesChanged) {
+      Write-Host "Lowes YTD: $($lowes.Name) unchanged since last publish." -ForegroundColor Cyan
+    } else {
+      Write-Host "Lowes YTD: new file $($lowes.Name). Extract + Blob publish..." -ForegroundColor Green
+      & npm run sales-plan:lowes-ytd-extract-publish
+      if ($LASTEXITCODE -ne 0) { throw "sales-plan:lowes-ytd-extract-publish failed with exit $LASTEXITCODE" }
+      Set-PipelineState $RepoRoot "lowes-ytd" @{
+        file        = $lowesFp
+        processedAt = (Get-Date).ToUniversalTime().ToString("o")
+      }
+      Write-Host "Lowes YTD publish complete." -ForegroundColor Green
+    }
+  }
 } finally {
   Pop-Location -ErrorAction SilentlyContinue
   Stop-Transcript | Out-Null

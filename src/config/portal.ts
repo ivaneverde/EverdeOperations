@@ -57,6 +57,8 @@ export type PortalReport = {
    */
   weatherHtmlTab?: string;
   hdYtdGrid?: boolean;
+  /** When true, renders Lowe's Sales YTD Following Week virtualized grid. */
+  lowesYtdGrid?: boolean;
   /** Optional hex color (no #) for a small sidebar dot, matching dashboard tab colors */
   navAccent?: string;
   /**
@@ -302,6 +304,16 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         navAccent: "2F5233",
         notes:
           "WeeklyDrop: HD Sales YTD with Following Week Sales*.xlsx (newest file → Blob grid).",
+      },
+      {
+        slug: "lowes-sales-ytd-following-week",
+        title: "Lowe's Sales YTD w/ Following Week Sales",
+        sourceRelativePath:
+          "Sales Plan Review\\WeeklyDrop\\YTD BY STORE SKU 7.20.26.xlsb",
+        lowesYtdGrid: true,
+        navAccent: "1F3A5F",
+        notes:
+          "WeeklyDrop: YTD BY STORE SKU*.xlsb (newest file → Blob grid). Same folder as HD / Sales by Item.",
       },
       {
         slug: "nor-cal-forward-looking",

@@ -48,6 +48,8 @@ next-env.d.ts
 /public/retail_opp_data.json
 /public/hd_ytd_meta.json
 /public/hd_ytd_rows.json.gz
+/public/lowes_ytd_meta.json
+/public/lowes_ytd_rows.json.gz
 /public/dashboard_data.json
 /public/weather_dashboard_data.json
 /public/weather_dashboard_data.json

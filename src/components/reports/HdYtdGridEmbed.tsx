@@ -49,9 +49,18 @@ function formatCell(value: Cell, fmt: string): string {
 }
 
 /**
- * Portal-themed Excel-like virtualized grid for HD Sales YTD Following Week Sales.
+ * Portal-themed Excel-like virtualized grid for HD / Lowe's YTD Following Week Sales.
  */
-export function HdYtdGridEmbed() {
+export function HdYtdGridEmbed({
+  kind = "hd",
+}: {
+  kind?: "hd" | "lowes";
+}) {
+  const apiBase = kind === "lowes" ? "/api/lowes-ytd" : "/api/hd-ytd";
+  const filterPlaceholder =
+    kind === "lowes"
+      ? "Filter Subregion / Store / Item…"
+      : "Filter Market / Store / SKU…";
   const [meta, setMeta] = useState<HdYtdMeta | null>(null);
   const [rows, setRows] = useState<Cell[][]>([]);
   const [total, setTotal] = useState(0);
@@ -91,7 +100,7 @@ export function HdYtdGridEmbed() {
         limit: String(limit),
       });
       if (query) params.set("q", query);
-      const res = await fetch(`/api/hd-ytd/rows?${params}`);
+      const res = await fetch(`${apiBase}/rows?${params}`);
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as {
           error?: string;
@@ -127,14 +136,14 @@ export function HdYtdGridEmbed() {
         return next;
       });
     },
-    [],
+    [apiBase],
   );
 
   const bootstrap = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const mRes = await fetch("/api/hd-ytd/meta");
+      const mRes = await fetch(`${apiBase}/meta`);
       if (!mRes.ok) {
         const body = (await mRes.json().catch(() => null)) as {
           error?: string;
@@ -150,7 +159,7 @@ export function HdYtdGridEmbed() {
     } finally {
       setLoading(false);
     }
-  }, [loadWindow, qApplied]);
+  }, [loadWindow, qApplied, apiBase]);
 
   useEffect(() => {
     void bootstrap();
@@ -230,7 +239,7 @@ export function HdYtdGridEmbed() {
           onKeyDown={(e) => {
             if (e.key === "Enter") applyFilter();
           }}
-          placeholder="Filter Market / Store / SKU…"
+          placeholder={filterPlaceholder}
           className="min-w-[220px] flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm"
         />
         <button

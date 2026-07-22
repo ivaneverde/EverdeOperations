@@ -1,6 +1,6 @@
 {
   "name": "everde-ai-operations",
-  "version": "8.1.7",
+  "version": "8.1.8",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
@@ -25,6 +25,8 @@
     "sales-plan:or-extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-or-extract-and-publish.ps1",
     "sales-plan:hd-ytd-extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-hd-ytd-extract-and-publish.ps1",
     "publish:hd-ytd-json": "node scripts/sales-plan-review/publish-hd-ytd-data.mjs",
+    "sales-plan:lowes-ytd-extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-lowes-ytd-extract-and-publish.ps1",
+    "publish:lowes-ytd-json": "node scripts/sales-plan-review/publish-lowes-ytd-data.mjs",
     "sales-plan:bootstrap-json": "node scripts/sales-plan-review/bootstrap-json-from-html.mjs",
     "sales-plan:publish-local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/publish-local-json.ps1",
     "publish:retail-json": "node scripts/retail-opportunity/publish-dashboard-data.mjs",

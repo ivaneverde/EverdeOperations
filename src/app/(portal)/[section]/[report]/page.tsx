@@ -38,7 +38,15 @@ export default async function ReportPage(
   if (rep.hdYtdGrid === true) {
     return (
       <ReportShell section={sec} report={rep} embedBody>
-        <HdYtdGridEmbed />
+        <HdYtdGridEmbed kind="hd" />
+      </ReportShell>
+    );
+  }
+
+  if (rep.lowesYtdGrid === true) {
+    return (
+      <ReportShell section={sec} report={rep} embedBody>
+        <HdYtdGridEmbed kind="lowes" />
       </ReportShell>
     );
   }
