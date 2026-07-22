@@ -53,6 +53,12 @@ try {
   & npm run nursery:refresh-demand
   if ($LASTEXITCODE -ne 0) { throw "nursery:refresh-demand failed with exit $LASTEXITCODE" }
 
+  Write-Host "Publishing nursery demand + supply JSON to Azure Blob..." -ForegroundColor Cyan
+  & npm run nursery:publish-blob
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning "nursery:publish-blob exited $LASTEXITCODE (HTML refresh still usable on portal via git)"
+  }
+
   $publicHtml = Join-Path $RepoRoot "public\nursery-inventory-dashboard.html"
   if (-not (Test-Path -LiteralPath $publicHtml)) {
     throw "Expected output missing: $publicHtml"

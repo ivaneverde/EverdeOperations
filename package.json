@@ -44,6 +44,7 @@
     "weather:bootstrap-json": "node scripts/weather/bootstrap-json-from-html.mjs",
     "nursery:refresh-demand": "node scripts/nursery/refresh-nursery-demand.mjs",
     "nursery:refresh-supply": "node scripts/nursery/refresh-nursery-supply.mjs",
+    "nursery:publish-blob": "node scripts/nursery/publish-nursery-blob.mjs",
     "weekly:register-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1",
     "weekly:unregister-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1 -Unregister"
   },

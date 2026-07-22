@@ -30,9 +30,18 @@ export function weatherDashboardJsonPath(): string {
   );
 }
 
-export function nurseryDemandJsonPath(): string | null {
-  const p = process.env.AZURE_NURSERY_DEMAND_JSON_BLOB?.trim();
-  return p || null;
+export function nurseryDemandJsonPath(): string {
+  return (
+    process.env.AZURE_NURSERY_DEMAND_JSON_BLOB?.trim() ||
+    "nursery/latest/nursery_demand_data.json"
+  );
+}
+
+export function nurserySupplyJsonPath(): string {
+  return (
+    process.env.AZURE_NURSERY_SUPPLY_JSON_BLOB?.trim() ||
+    "nursery/latest/nursery_supply_data.json"
+  );
 }
 
 export function hdYtdMetaJsonPath(): string {

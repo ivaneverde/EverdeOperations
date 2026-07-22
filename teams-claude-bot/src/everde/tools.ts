@@ -7,6 +7,7 @@ import {
   hdYtdMetaJsonPath,
   lowesYtdMetaJsonPath,
   nurseryDemandJsonPath,
+  nurserySupplyJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
   weatherDashboardJsonPath,
@@ -14,6 +15,7 @@ import {
 import {
   compactFreightJson,
   compactNurseryJson,
+  compactNurserySupplyJson,
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
@@ -26,6 +28,10 @@ import {
   loadYtdRowsCached,
   type YtdKind,
 } from "./ytdFollowingWeek.js";
+import {
+  formatNurserySupplyQuery,
+  type NurserySupplyLine,
+} from "./nurserySupplyQuery.js";
 
 const TOOL_MAX_CHARS = 12000;
 const YTD_SAMPLE_ROWS = 25;
@@ -106,9 +112,29 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
     input_schema: { type: "object", properties: {} },
   },
   {
+    name: "get_nursery_supply",
+    description:
+      "Everde nursery Supply Inventory (XXTT price list / saleable by farm, region, grade, size). Use for Grade A/B farm inventory questions (e.g. Japanese Boxwood 1G in N CA / S CA). focus=summary or query with q=.",
+    input_schema: {
+      type: "object",
+      properties: {
+        focus: {
+          type: "string",
+          enum: ["summary", "query"],
+          description: "Default summary. Use query for product/grade/region filters.",
+        },
+        q: {
+          type: "string",
+          description:
+            "Filter for focus=query, e.g. 'japanese boxwood 1g' or 'boxwood norcal grade A'.",
+        },
+      },
+    },
+  },
+  {
     name: "get_nursery_demand",
     description:
-      "Fetch nursery production / demand JSON when published to Blob.",
+      "Fetch nursery Production & Demand (Inventory Metrics) JSON from Blob — BO/CR, farm YTD, demand windows.",
     input_schema: { type: "object", properties: {} },
   },
   {
@@ -241,11 +267,36 @@ export async function executeEverdeTool(
       return compactWeatherJson(raw, TOOL_MAX_CHARS);
     }
 
+    case "get_nursery_supply": {
+      const raw = await downloadJsonFromBlob(
+        container,
+        nurserySupplyJsonPath(),
+      );
+      if (!raw) {
+        return "Nursery supply JSON not available in Blob. Run npm run nursery:publish-blob.";
+      }
+      const focus = toolFocus(input);
+      if (focus !== "query") {
+        return compactNurserySupplyJson(raw, TOOL_MAX_CHARS);
+      }
+      const q = toolQuery(input);
+      if (!q) {
+        return "focus=query requires q= (e.g. 'japanese boxwood 1g' or 'boxwood grade A norcal').";
+      }
+      try {
+        const parsed = JSON.parse(raw) as { lines?: NurserySupplyLine[] };
+        const lines = Array.isArray(parsed.lines) ? parsed.lines : [];
+        if (lines.length === 0) {
+          return "Nursery supply Blob has no line-level rows yet — re-run nursery:publish-blob.";
+        }
+        return formatNurserySupplyQuery(lines, q, TOOL_MAX_CHARS);
+      } catch {
+        return compactNurserySupplyJson(raw, TOOL_MAX_CHARS);
+      }
+    }
+
     case "get_nursery_demand": {
       const path = nurseryDemandJsonPath();
-      if (!path) {
-        return "Nursery demand not configured (set AZURE_NURSERY_DEMAND_JSON_BLOB).";
-      }
       const raw = await downloadJsonFromBlob(container, path);
       if (!raw) return "Nursery demand JSON not available in Blob storage.";
       return compactNurseryJson(raw, TOOL_MAX_CHARS);

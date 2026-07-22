@@ -198,7 +198,9 @@ if (!fs.existsSync(htmlPath)) {
 
 const baseName = path.basename(xlsPath);
 const data = parseSupplyPriceListFile(xlsPath, { sourceName: baseName });
-const dataBlock = JSON.stringify(data, null, 2);
+// Full SKU lines belong on Blob for Teams queries — keep portal HTML compact.
+const { lines: _lines, ...dataForHtml } = data;
+const dataBlock = JSON.stringify(dataForHtml, null, 2);
 
 let html = fs.readFileSync(htmlPath, "utf8");
 const startIdx = html.indexOf("const DATA = {");

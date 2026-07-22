@@ -5,6 +5,7 @@ import {
   hdYtdMetaJsonPath,
   lowesYtdMetaJsonPath,
   nurseryDemandJsonPath,
+  nurserySupplyJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
   weatherDashboardJsonPath,
@@ -12,6 +13,7 @@ import {
 import {
   compactFreightJson,
   compactNurseryJson,
+  compactNurserySupplyJson,
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
@@ -93,14 +95,16 @@ export async function buildEverdeSnapshot(): Promise<EverdeSnapshot> {
       "Weather JSON not in Blob.",
     ),
     loadDataset(
+      "nursery_supply",
+      () => downloadJsonFromBlob(container, nurserySupplyJsonPath()),
+      compactNurserySupplyJson,
+      "Nursery supply not on Blob — run npm run nursery:publish-blob.",
+    ),
+    loadDataset(
       "nursery_demand",
-      async () => {
-        const path = nurseryDemandJsonPath();
-        if (!path) return null;
-        return downloadJsonFromBlob(container, path);
-      },
+      () => downloadJsonFromBlob(container, nurseryDemandJsonPath()),
       compactNurseryJson,
-      "Nursery demand not on Blob yet (optional AZURE_NURSERY_DEMAND_JSON_BLOB).",
+      "Nursery demand not on Blob — run npm run nursery:publish-blob.",
     ),
   ]);
 

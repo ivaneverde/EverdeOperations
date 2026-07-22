@@ -103,8 +103,42 @@ export function compactWeatherJson(raw: string, maxChars: number): string {
 export function compactNurseryJson(raw: string, maxChars: number): string {
   try {
     const p = JSON.parse(raw) as Record<string, unknown>;
-    const payload = pickKeys(p, ["meta", "headline", "summary", "farms", "demand"]);
+    const payload = pickKeys(p, [
+      "meta",
+      "headline",
+      "summary",
+      "farms",
+      "demand",
+      "farmBO",
+      "farmYTD",
+      "weeklyTotals",
+      "topReasons",
+    ]);
     payload.farms = slimArray(p.farms, 20);
+    payload.farmBO = slimArray(p.farmBO, 20);
+    payload.farmYTD = slimArray(p.farmYTD, 20);
+    return truncateText(JSON.stringify(payload), maxChars);
+  } catch {
+    return truncateText(raw, maxChars);
+  }
+}
+
+/** Compact nursery supply (price list) — never dump full SKU lines in snapshot. */
+export function compactNurserySupplyJson(
+  raw: string,
+  maxChars: number,
+): string {
+  try {
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    const meta = (p.meta ?? {}) as Record<string, unknown>;
+    const payload = {
+      meta,
+      grades: p.grades ?? null,
+      regions: p.regions ?? null,
+      farmGradeMatrix: p.farmGradeMatrix ?? null,
+      oversold: slimArray(p.oversold, 10),
+      note: "For Grade A/B × farm/region × product (e.g. Japanese Boxwood 1G), use get_nursery_supply with focus=query and q=.",
+    };
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {
     return truncateText(raw, maxChars);

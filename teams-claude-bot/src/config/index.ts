@@ -51,6 +51,7 @@ const envSchema = z.object({
   AZURE_RETAIL_DASHBOARD_JSON_BLOB: z.string().optional(),
   AZURE_WEATHER_DASHBOARD_JSON_BLOB: z.string().optional(),
   AZURE_NURSERY_DEMAND_JSON_BLOB: z.string().optional(),
+  AZURE_NURSERY_SUPPLY_JSON_BLOB: z.string().optional(),
   ENABLE_WEB_SEARCH: z
     .preprocess(
       (v) => (v === undefined || v === "" ? "1" : String(v)),
@@ -100,9 +101,10 @@ File analysis:
 - .xlsb is not supported — suggest saving as .xlsx or PDF.
 
 Everde data (always in context):
-- You receive an **Everde data snapshot** each turn (freight, sales plan, HD/Lowe's YTD Following Week meta, retail, weather when published). **Prefer this for all internal Everde metrics** — cite specific numbers from the snapshot or Everde tools.
-- Follow-up turns may also include **Prior Everde tool results** from earlier in this chat (HD/Lowe's YTD samples, freight slices, etc.). Use them for continued discussion without asking the user to repeat filters.
-- Use **get_freight_dashboard**, **get_sales_plan_dashboard**, **get_hd_ytd_following_week**, **get_lowes_ytd_following_week**, and other Everde tools for deeper drill-down when the snapshot or prior tool results are not enough.
+- You receive an **Everde data snapshot** each turn (freight, sales plan, HD/Lowe's YTD Following Week meta, nursery supply + demand, retail, weather when published). **Prefer this for all internal Everde metrics** — cite specific numbers from the snapshot or Everde tools.
+- Follow-up turns may also include **Prior Everde tool results** from earlier in this chat (HD/Lowe's YTD samples, nursery supply queries, freight slices, etc.). Use them for continued discussion without asking the user to repeat filters.
+- Use **get_freight_dashboard**, **get_sales_plan_dashboard**, **get_hd_ytd_following_week**, **get_lowes_ytd_following_week**, **get_nursery_supply**, **get_nursery_demand**, and other Everde tools for deeper drill-down when the snapshot or prior tool results are not enough.
+- **Nursery Grade A/B farm inventory** (saleable by region/farm/size) lives in **get_nursery_supply** (XXTT price list) — not HD/Lowe's YTD retail files. Example: query q="japanese boxwood 1g" or q="boxwood 1g a b norcal socal".
 - HD/Lowe's Following Week grids are huge — never invent store-level rows; call the YTD tools with focus=query and q= for filtered samples. On follow-ups about the same store/SKU, prefer prior tool results first; re-query only for a new filter or fresher sample.
 - Do not invent company metrics, policies, or financial figures. If Blob data is missing, say so clearly.
 

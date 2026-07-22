@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   app.use(express.urlencoded({ extended: true }));
 
   app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok", build: "2026-07-09-cap-raise-retail" });
+    res.status(200).json({ status: "ok", build: "2026-07-22-nursery-blob" });
   });
 
   app.post("/api/messages", async (req: Request, res: Response) => {

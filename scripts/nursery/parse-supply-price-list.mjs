@@ -443,6 +443,21 @@ export function parseSupplyPriceListFile(filePath, opts = {}) {
     Object.values(regions).reduce((s, r) => s + r.revenuePot, 0),
   );
 
+  /** Compact line-level rows for Teams/portal queries (Grade × region × SKU). */
+  const lines = rows.map((r) => ({
+    farm: r.farm,
+    region: r.region,
+    botanical: r.botanical,
+    common: r.common,
+    item: r.item,
+    size: r.size,
+    grade: r.grade,
+    saleable: Math.round(r.saleable * 100) / 100,
+    graded: Math.round(r.graded * 100) / 100,
+    price: r.price,
+    demandWindow: r.demandWindow,
+  }));
+
   return {
     meta: {
       sourceName,
@@ -481,5 +496,6 @@ export function parseSupplyPriceListFile(filePath, opts = {}) {
     shortages,
     stockouts,
     oversold,
+    lines,
   };
 }
