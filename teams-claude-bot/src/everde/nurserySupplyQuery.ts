@@ -19,7 +19,7 @@ function normRegionToken(s: string): string {
     .toLowerCase()
     .replace(/\./g, "")
     .replace(/\s+/g, "")
-    .replace(/northerncalifornia|ncalifornia|norcal|nca/g, "norcal")
+    .replace(/northerncalifornia|ncalifornia|norcal|nocal|nca/g, "norcal")
     .replace(/southerncalifornia|scalifornia|socal|sca/g, "socal");
 }
 
@@ -74,7 +74,9 @@ export function filterNurserySupplyLines(
     .replace(/\bs\.?\s*ca\b/g, "socal")
     .replace(/\bnorthern\s+california\b/g, "norcal")
     .replace(/\bsouthern\s+california\b/g, "socal")
+    .replace(/\bnocal\b/g, "norcal")
     .replace(/\b1[\s-]?gal(?:lon)?s?\b/g, "1g")
+    .replace(/\b#?0*1\b(?!\d)/g, "1g")
     .replace(/\bjap(?:anese)?\b/g, "japanese");
 
   const tokens = normalized
@@ -124,13 +126,26 @@ export function filterNurserySupplyLines(
     }
 
     return otherTokens.every((t) => {
-      if (t === "1g" || t === "1gal" || t === "1gallon") {
+      if (t === "1g" || t === "1gal" || t === "1gallon" || t === "#001" || t === "001") {
         const size = String(line.size ?? "").toLowerCase().replace(/\s+/g, "");
-        return size.includes("1g") || size.includes("1gal");
-      }
-      if (t === "boxwood" || t === "japanese" || t === "buxus") {
         return (
-          hay.includes(t) || hay.includes("boxwood") || hay.includes("buxus")
+          size.includes("1g") ||
+          size.includes("1gal") ||
+          size.includes("#001") ||
+          size === "001" ||
+          size.includes("1gallon")
+        );
+      }
+      if (t === "3g" || t === "3gal" || t === "#003" || t === "003") {
+        const size = String(line.size ?? "").toLowerCase().replace(/\s+/g, "");
+        return size.includes("3g") || size.includes("#003") || size === "003";
+      }
+      if (t === "boxwood" || t === "japanese" || t === "buxus" || t === "japonica") {
+        return (
+          hay.includes(t) ||
+          hay.includes("boxwood") ||
+          hay.includes("buxus") ||
+          hay.includes("japon")
         );
       }
       return hay.includes(t) || regionHay.includes(normRegionToken(t));
