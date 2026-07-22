@@ -4,6 +4,8 @@ import { downloadJsonFromBlob } from "../azure/downloadJson.js";
 import {
   freightBlobContainer,
   freightDashboardJsonPath,
+  hdYtdMetaJsonPath,
+  lowesYtdMetaJsonPath,
   nurseryDemandJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
@@ -15,10 +17,19 @@ import {
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
+  compactYtdFollowingWeekMeta,
 } from "./compact.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
+import {
+  filterYtdRows,
+  formatYtdSample,
+  loadYtdRowsCached,
+  type YtdKind,
+} from "./ytdFollowingWeek.js";
 
 const TOOL_MAX_CHARS = 12000;
+const YTD_SAMPLE_ROWS = 25;
+const YTD_QUERY_ROWS = 50;
 
 export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
@@ -41,6 +52,46 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
     description:
       "Fetch Everde NOR CAL sales plan dashboard JSON (plan vs actual, misses, excess, channels).",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_hd_ytd_following_week",
+    description:
+      "HD Sales YTD with Following Week Sales (store×SKU grid). Use for Home Depot YTD / following-week questions. focus=summary (meta+totals), sample (first rows), or query (filter with q on Market/Store/SKU). Never dumps the full ~97k-row grid.",
+    input_schema: {
+      type: "object",
+      properties: {
+        focus: {
+          type: "string",
+          enum: ["summary", "sample", "query"],
+          description: "Default summary.",
+        },
+        q: {
+          type: "string",
+          description:
+            "Filter text for focus=query (Market, Store, SKU, KEY). Example: ENCINITAS or 117205.",
+        },
+      },
+    },
+  },
+  {
+    name: "get_lowes_ytd_following_week",
+    description:
+      "Lowe's Sales YTD with Following Week Sales (YTD BY STORE SKU grid). Use for Lowe's store×item YTD questions. focus=summary, sample, or query (q filters Subregion/Store/Item). Never dumps the full ~300k-row grid.",
+    input_schema: {
+      type: "object",
+      properties: {
+        focus: {
+          type: "string",
+          enum: ["summary", "sample", "query"],
+          description: "Default summary.",
+        },
+        q: {
+          type: "string",
+          description:
+            "Filter text for focus=query (Subregion, Store, Item). Example: NORWALK or WC.",
+        },
+      },
+    },
   },
   {
     name: "get_retail_opportunity",
@@ -68,6 +119,74 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   },
 ];
 
+function toolFocus(input: unknown): string {
+  if (
+    typeof input === "object" &&
+    input &&
+    "focus" in input &&
+    typeof (input as { focus?: string }).focus === "string"
+  ) {
+    return (input as { focus: string }).focus;
+  }
+  return "summary";
+}
+
+function toolQuery(input: unknown): string {
+  if (
+    typeof input === "object" &&
+    input &&
+    "q" in input &&
+    typeof (input as { q?: string }).q === "string"
+  ) {
+    return (input as { q: string }).q.trim();
+  }
+  return "";
+}
+
+async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
+  const container = freightBlobContainer();
+  const metaPath =
+    kind === "lowes" ? lowesYtdMetaJsonPath() : hdYtdMetaJsonPath();
+  const label = kind === "lowes" ? "Lowe's" : "HD";
+  const metaRaw = await downloadJsonFromBlob(container, metaPath);
+  if (!metaRaw) {
+    return `${label} YTD Following Week meta not available in Blob.`;
+  }
+
+  const focus = toolFocus(input);
+  if (focus === "summary") {
+    return compactYtdFollowingWeekMeta(metaRaw, TOOL_MAX_CHARS);
+  }
+
+  const meta = JSON.parse(metaRaw) as {
+    columns?: string[];
+    rowCount?: number;
+  };
+  const columns = Array.isArray(meta.columns) ? meta.columns : [];
+  const rows = await loadYtdRowsCached(kind, columns);
+  if (!rows) {
+    return `${label} YTD row grid not available in Blob (meta is present).`;
+  }
+
+  if (focus === "sample") {
+    return [
+      `asOf/meta rowCount=${meta.rowCount ?? rows.length}`,
+      formatYtdSample(columns, rows, YTD_SAMPLE_ROWS, TOOL_MAX_CHARS),
+    ].join("\n");
+  }
+
+  // query
+  const q = toolQuery(input);
+  if (!q) {
+    return "focus=query requires q= (e.g. store name, SKU, subregion). Or use focus=summary|sample.";
+  }
+  const filtered = filterYtdRows(rows, columns, q);
+  return [
+    `q=${JSON.stringify(q)} matched=${filtered.length} of ${rows.length}`,
+    formatYtdSample(columns, filtered, YTD_QUERY_ROWS, TOOL_MAX_CHARS),
+  ].join("\n");
+}
+
 export async function executeEverdeTool(
   name: string,
   input: unknown,
@@ -84,13 +203,7 @@ export async function executeEverdeTool(
         freightDashboardJsonPath(),
       );
       if (!raw) return "Freight dashboard JSON not available in Blob storage.";
-      const focus =
-        typeof input === "object" &&
-        input &&
-        "focus" in input &&
-        typeof (input as { focus?: string }).focus === "string"
-          ? (input as { focus: string }).focus
-          : "summary";
+      const focus = toolFocus(input);
       const compact = compactFreightJson(raw, TOOL_MAX_CHARS);
       return `focus=${focus}\n${compact}`;
     }
@@ -103,6 +216,12 @@ export async function executeEverdeTool(
       if (!raw) return "Sales plan JSON not available in Blob storage.";
       return compactSalesPlanJson(raw, TOOL_MAX_CHARS);
     }
+
+    case "get_hd_ytd_following_week":
+      return runYtdTool("hd", input);
+
+    case "get_lowes_ytd_following_week":
+      return runYtdTool("lowes", input);
 
     case "get_retail_opportunity": {
       const raw = await downloadJsonFromBlob(

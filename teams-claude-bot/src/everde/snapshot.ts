@@ -2,6 +2,8 @@ import { downloadJsonFromBlob } from "../azure/downloadJson.js";
 import {
   freightBlobContainer,
   freightDashboardJsonPath,
+  hdYtdMetaJsonPath,
+  lowesYtdMetaJsonPath,
   nurseryDemandJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
@@ -13,6 +15,7 @@ import {
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
+  compactYtdFollowingWeekMeta,
 } from "./compact.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
 
@@ -64,6 +67,18 @@ export async function buildEverdeSnapshot(): Promise<EverdeSnapshot> {
       () => downloadJsonFromBlob(container, salesPlanDashboardJsonPath()),
       compactSalesPlanJson,
       "Sales plan JSON not in Blob.",
+    ),
+    loadDataset(
+      "hd_ytd_following_week",
+      () => downloadJsonFromBlob(container, hdYtdMetaJsonPath()),
+      compactYtdFollowingWeekMeta,
+      "HD Sales YTD Following Week meta not in Blob — run npm run sales-plan:hd-ytd-extract-publish.",
+    ),
+    loadDataset(
+      "lowes_ytd_following_week",
+      () => downloadJsonFromBlob(container, lowesYtdMetaJsonPath()),
+      compactYtdFollowingWeekMeta,
+      "Lowe's Sales YTD Following Week meta not in Blob — run npm run sales-plan:lowes-ytd-extract-publish.",
     ),
     loadDataset(
       "retail_opportunity",

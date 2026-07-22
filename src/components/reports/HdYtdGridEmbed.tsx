@@ -17,17 +17,59 @@ type HdYtdMeta = {
 type Cell = string | number | boolean | null;
 
 const ROW_H = 28;
-const COL_W_DEFAULT = 110;
-const COL_W_NAME = 220;
-const COL_W_KEY = 130;
+const COL_W_MIN = 48;
+const COL_W_DEFAULT = 100;
+const COL_W_NAME = 180;
+const COL_W_KEY = 120;
+const COL_W_ID = 64;
 
-function colWidth(name: string, index: number): number {
+function defaultColWidth(name: string, index: number): number {
   const n = name.toLowerCase();
   if (index === 0 || n === "key") return COL_W_KEY;
   if (n.includes("name") || n.includes("desc")) return COL_W_NAME;
-  if (n.includes("sku nbr") || n.includes("store nbr") || n.includes("market"))
-    return 88;
+  if (
+    n.includes("market nbr") ||
+    n.includes("district nbr") ||
+    n.includes("store nbr") ||
+    n.includes("sku nbr") ||
+    n === "subregion" ||
+    n.endsWith(" nbr")
+  ) {
+    return COL_W_ID;
+  }
+  if (n.includes("$") || n.includes("sales") || n.includes("units")) {
+    return 96;
+  }
   return COL_W_DEFAULT;
+}
+
+function widthsStorageKey(kind: "hd" | "lowes"): string {
+  return `everde-ytd-col-widths-${kind}`;
+}
+
+function loadSavedWidths(
+  kind: "hd" | "lowes",
+  columns: string[],
+): number[] | null {
+  try {
+    const raw = localStorage.getItem(widthsStorageKey(kind));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { columns?: string[]; widths?: number[] };
+    if (
+      !Array.isArray(parsed.columns) ||
+      !Array.isArray(parsed.widths) ||
+      parsed.columns.length !== columns.length ||
+      parsed.widths.length !== columns.length
+    ) {
+      return null;
+    }
+    if (parsed.columns.some((c, i) => c !== columns[i])) return null;
+    return parsed.widths.map((w) =>
+      Math.max(COL_W_MIN, Math.round(Number(w) || COL_W_DEFAULT)),
+    );
+  } catch {
+    return null;
+  }
 }
 
 function formatCell(value: Cell, fmt: string): string {
@@ -68,29 +110,91 @@ export function HdYtdGridEmbed({
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [qApplied, setQApplied] = useState("");
+  const [colWidths, setColWidths] = useState<number[]>([]);
   const parentRef = useRef<HTMLDivElement>(null);
   const fetchGen = useRef(0);
-
-  const colWidths = useMemo(() => {
-    if (!meta) return [] as number[];
-    return meta.columns.map((c, i) => colWidth(c, i));
-  }, [meta]);
+  const resizeRef = useRef<{
+    index: number;
+    startX: number;
+    startW: number;
+  } | null>(null);
+  const persistRef = useRef<{ kind: "hd" | "lowes"; columns: string[] }>({
+    kind,
+    columns: [],
+  });
+  persistRef.current = { kind, columns: meta?.columns ?? [] };
 
   const freeze = meta?.freezeColumns ?? 7;
   const stickyLeft = useMemo(() => {
     const lefts: number[] = [];
     let x = 0;
-    for (let i = 0; i < (meta?.columns.length ?? 0); i++) {
+    for (let i = 0; i < colWidths.length; i++) {
       lefts.push(x);
       x += colWidths[i] ?? COL_W_DEFAULT;
     }
     return lefts;
-  }, [meta, colWidths]);
+  }, [colWidths]);
 
   const totalWidth = useMemo(
     () => colWidths.reduce((a, b) => a + b, 0),
     [colWidths],
   );
+
+  const persistWidths = useCallback((widths: number[]) => {
+    const { kind: k, columns } = persistRef.current;
+    if (!columns.length || widths.length !== columns.length) return;
+    try {
+      localStorage.setItem(
+        widthsStorageKey(k),
+        JSON.stringify({ columns, widths }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const beginResize = useCallback(
+    (index: number, clientX: number) => {
+      resizeRef.current = {
+        index,
+        startX: clientX,
+        startW: colWidths[index] ?? COL_W_DEFAULT,
+      };
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [colWidths],
+  );
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const r = resizeRef.current;
+      if (!r) return;
+      const next = Math.max(COL_W_MIN, Math.round(r.startW + (e.clientX - r.startX)));
+      setColWidths((prev) => {
+        if (prev[r.index] === next) return prev;
+        const copy = prev.slice();
+        copy[r.index] = next;
+        return copy;
+      });
+    };
+    const onUp = () => {
+      if (!resizeRef.current) return;
+      resizeRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      setColWidths((prev) => {
+        persistWidths(prev);
+        return prev;
+      });
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [persistWidths]);
 
   const loadWindow = useCallback(
     async (start: number, limit: number, query: string, append: boolean) => {
@@ -152,6 +256,10 @@ export function HdYtdGridEmbed({
       }
       const m = (await mRes.json()) as HdYtdMeta;
       setMeta(m);
+      setColWidths(
+        loadSavedWidths(kind, m.columns) ??
+          m.columns.map((c, i) => defaultColWidth(c, i)),
+      );
       setRows([]);
       await loadWindow(0, 400, qApplied, false);
     } catch (e) {
@@ -159,7 +267,7 @@ export function HdYtdGridEmbed({
     } finally {
       setLoading(false);
     }
-  }, [loadWindow, qApplied, apiBase]);
+  }, [loadWindow, qApplied, apiBase, kind]);
 
   useEffect(() => {
     void bootstrap();
@@ -212,12 +320,12 @@ export function HdYtdGridEmbed({
   if (loading && !meta) {
     return (
       <div className="rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
-        Loading HD Sales YTD grid…
+        Loading {kind === "lowes" ? "Lowe's" : "HD"} Sales YTD grid…
       </div>
     );
   }
 
-  if (!meta) return null;
+  if (!meta || colWidths.length !== meta.columns.length) return null;
 
   const headerH = ROW_H;
   const totalsH = meta.totals?.some((t) => t != null && t !== "") ? ROW_H : 0;
@@ -277,18 +385,44 @@ export function HdYtdGridEmbed({
               return (
                 <div
                   key={`h-${i}`}
-                  className="flex shrink-0 items-center overflow-hidden text-ellipsis whitespace-nowrap border-r border-[#2a4030] px-2 text-[11px] font-semibold tracking-wide text-[#F5E6C8]"
+                  className="relative flex shrink-0 items-center overflow-hidden text-ellipsis whitespace-nowrap border-r border-[#2a4030] px-2 pr-3 text-[11px] font-semibold tracking-wide text-[#F5E6C8]"
                   style={{
                     width: colWidths[i],
                     background: "#1F3A28",
                     position: sticky ? "sticky" : undefined,
                     left: sticky ? stickyLeft[i] : undefined,
                     zIndex: sticky ? 40 : 30,
-                    boxShadow: sticky && i === freeze - 1 ? "2px 0 4px rgba(0,0,0,.25)" : undefined,
+                    boxShadow:
+                      sticky && i === freeze - 1
+                        ? "2px 0 4px rgba(0,0,0,.25)"
+                        : undefined,
                   }}
-                  title={col}
+                  title={`${col} — drag right edge to resize; double-click to reset`}
                 >
-                  {col}
+                  <span className="min-w-0 flex-1 overflow-hidden text-ellipsis">
+                    {col}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Resize ${col}`}
+                    className="absolute top-0 right-0 z-50 h-full w-2 cursor-col-resize border-0 bg-transparent p-0 hover:bg-[#C49B3F]/35"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      beginResize(i, e.clientX);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const w = defaultColWidth(col, i);
+                      setColWidths((prev) => {
+                        const copy = prev.slice();
+                        copy[i] = w;
+                        persistWidths(copy);
+                        return copy;
+                      });
+                    }}
+                  />
                 </div>
               );
             })}

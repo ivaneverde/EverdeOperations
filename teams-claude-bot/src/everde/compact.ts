@@ -110,3 +110,36 @@ export function compactNurseryJson(raw: string, maxChars: number): string {
     return truncateText(raw, maxChars);
   }
 }
+
+/** Compact HD / Lowe's Following Week YTD meta (never full row grids). */
+export function compactYtdFollowingWeekMeta(
+  raw: string,
+  maxChars: number,
+): string {
+  try {
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    const columns = Array.isArray(p.columns)
+      ? (p.columns as string[])
+      : [];
+    const totals = Array.isArray(p.totals) ? (p.totals as unknown[]) : [];
+    const totalsByCol: Record<string, unknown> = {};
+    for (let i = 0; i < columns.length; i++) {
+      const t = totals[i];
+      if (t != null && t !== "") totalsByCol[columns[i]] = t;
+    }
+    const payload = {
+      sourceFile: p.sourceFile,
+      asOf: p.asOf,
+      retailer: p.retailer ?? null,
+      rowCount: p.rowCount,
+      columnCount: p.columnCount,
+      freezeColumns: p.freezeColumns,
+      columns: columns.slice(0, 40),
+      totals_by_column: totalsByCol,
+      note: "Full store-SKU grids are huge — use get_hd_ytd_following_week / get_lowes_ytd_following_week with focus=query and q= for filtered samples.",
+    };
+    return truncateText(JSON.stringify(payload), maxChars);
+  } catch {
+    return truncateText(raw, maxChars);
+  }
+}

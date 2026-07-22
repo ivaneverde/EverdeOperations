@@ -7,6 +7,8 @@ import type { AssistantProvider } from "@/lib/assistant/types";
 export type AssistantDatasetId =
   | "freight"
   | "sales_plan"
+  | "hd_ytd"
+  | "lowes_ytd"
   | "nursery_demand"
   | "nursery_supply"
   | "retail"
@@ -32,6 +34,8 @@ export function contextFocusForPathname(pathname: string): AssistantContextFocus
   if (p.includes("production-demand")) {
     return "nursery_demand";
   }
+  if (p.includes("hd-sales-ytd") || p.includes("hd-ytd")) return "hd_ytd";
+  if (p.includes("lowes-sales-ytd") || p.includes("lowes-ytd")) return "lowes_ytd";
   if (p.includes("sales-plan")) return "sales_plan";
   if (
     p.includes("load-board") ||
@@ -56,6 +60,9 @@ function anthropicBudget(
   }
   if (dataset === "sales_plan") {
     return isPrimary ? 20_000 : 12_000;
+  }
+  if (dataset === "hd_ytd" || dataset === "lowes_ytd") {
+    return isPrimary ? 8_000 : 4_000;
   }
   if (dataset === "retail") {
     return isPrimary ? 150_000 : 80_000;
@@ -83,6 +90,7 @@ function openAiFocusedBudget(
       if (dataset === "freight") return 8_000;
       if (dataset === "retail") return 80_000;
       if (dataset === "sales_plan") return 5_000;
+      if (dataset === "hd_ytd" || dataset === "lowes_ytd") return 2_500;
       if (dataset === "nursery_demand") return 6_000;
       if (dataset === "nursery_supply") return 6_000;
       if (dataset === "weather") return 2_500;
@@ -91,6 +99,7 @@ function openAiFocusedBudget(
   }
   if (dataset === "freight") return 12_000;
   if (dataset === "sales_plan") return 10_000;
+  if (dataset === "hd_ytd" || dataset === "lowes_ytd") return 6_000;
   if (dataset === "retail") return 120_000;
   if (dataset === "weather") return 8_000;
   return 10_000;
@@ -108,7 +117,13 @@ export function maxCharsForDataset(
     (focus === "retail" && dataset === "retail") ||
     (focus === "weather" && dataset === "weather") ||
     (focus === "nursery_demand" && dataset === "nursery_demand") ||
-    (focus === "nursery_supply" && dataset === "nursery_supply");
+    (focus === "nursery_supply" && dataset === "nursery_supply") ||
+    (focus === "hd_ytd" && dataset === "hd_ytd") ||
+    (focus === "lowes_ytd" && dataset === "lowes_ytd") ||
+    (focus === "sales_plan" &&
+      (dataset === "sales_plan" ||
+        dataset === "hd_ytd" ||
+        dataset === "lowes_ytd"));
 
   if (provider === "openai") {
     if (openAiCompendiumMode()) {

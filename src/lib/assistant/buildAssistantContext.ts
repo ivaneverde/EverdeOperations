@@ -10,6 +10,7 @@ import { compactNurserySupplyForAssistant } from "@/lib/assistant/compactNursery
 import { compactRetailForAssistant } from "@/lib/assistant/compactRetailForAssistant";
 import { compactSalesPlanForAssistant } from "@/lib/assistant/compactSalesPlanForAssistant";
 import { compactWeatherForAssistant } from "@/lib/assistant/compactWeatherForAssistant";
+import { compactYtdFollowingWeekForAssistant } from "@/lib/assistant/compactYtdFollowingWeekForAssistant";
 import {
   anthropicCompendiumMode,
   openAiCompendiumMode,
@@ -24,6 +25,7 @@ import { loadNurseryDemandJson } from "@/lib/assistant/loadNurseryDemandJson";
 import { loadNurserySupplyJson } from "@/lib/assistant/loadNurserySupplyJson";
 import { loadRetailDashboardJson } from "@/lib/retail/loadRetailDashboardJson";
 import { loadWeatherDashboardJson } from "@/lib/weather/loadWeatherDashboardJson";
+import { loadYtdMeta } from "@/lib/hdYtd/loadHdYtdData";
 import { buildPortalCatalogSummary } from "@/lib/assistant/portalCatalog";
 import { truncateForContext } from "@/lib/assistant/truncateForContext";
 
@@ -91,9 +93,10 @@ export async function buildAssistantContext(
     "You are the Everde AI Operations compendium analyst across all portal sections.",
     "Answer from the portal catalog and JSON datasets below. Cite specific numbers, names, carriers, farms, and key items.",
     "Retail and weather JSON are included when published to Blob or available locally.",
+    "HD and Lowe's Following Week YTD meta (totals/as-of) are included when published; full store×SKU grids are in-portal only.",
     `User is viewing: ${routeLabel}. Emphasize that section when applicable, but you may draw on any loaded dataset for cross-functional questions.`,
     compendiumMode
-      ? `Context emphasis: ${focus} (compendium — freight, sales plan, nursery, retail, and weather when published; payloads compacted for API limits).`
+      ? `Context emphasis: ${focus} (compendium — freight, sales plan, HD/Lowe's YTD meta, nursery, retail, and weather when published; payloads compacted for API limits).`
       : `Context emphasis: ${focus} (focused mode — primary section + headlines only; set ${provider === "openai" ? "OPENAI" : "ANTHROPIC"}_ASSISTANT_COMPENDIUM=1 on the server for full cross-portal data).`,
     "Each dataset may include assistant_facts — prefer those for rankings and headlines, then supporting detail in the same block.",
   ];
@@ -139,6 +142,24 @@ export async function buildAssistantContext(
     compactSalesPlanForAssistant,
     "sales_plan",
     "Sales plan JSON not available (Blob, public/sales_plan_data.json, or HTML embed).",
+  );
+
+  const hdMeta = await loadYtdMeta("hd");
+  pushDataset(
+    "hd_ytd_following_week",
+    hdMeta ? JSON.stringify(hdMeta) : null,
+    compactYtdFollowingWeekForAssistant,
+    "hd_ytd",
+    "HD Sales YTD Following Week meta not available — run npm run sales-plan:hd-ytd-extract-publish.",
+  );
+
+  const lowesMeta = await loadYtdMeta("lowes");
+  pushDataset(
+    "lowes_ytd_following_week",
+    lowesMeta ? JSON.stringify(lowesMeta) : null,
+    compactYtdFollowingWeekForAssistant,
+    "lowes_ytd",
+    "Lowe's Sales YTD Following Week meta not available — run npm run sales-plan:lowes-ytd-extract-publish.",
   );
 
   if (input.pathname.includes("or-forward-looking")) {

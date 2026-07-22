@@ -34,3 +34,29 @@ export function nurseryDemandJsonPath(): string | null {
   const p = process.env.AZURE_NURSERY_DEMAND_JSON_BLOB?.trim();
   return p || null;
 }
+
+export function hdYtdMetaJsonPath(): string {
+  const prefix =
+    process.env.AZURE_HD_YTD_BLOB_PREFIX?.trim() || "sales-plan/hd-ytd/latest";
+  return `${prefix.replace(/\/$/, "")}/hd_ytd_meta.json`;
+}
+
+export function hdYtdRowsGzipPath(): string {
+  const prefix =
+    process.env.AZURE_HD_YTD_BLOB_PREFIX?.trim() || "sales-plan/hd-ytd/latest";
+  return `${prefix.replace(/\/$/, "")}/hd_ytd_rows.json.gz`;
+}
+
+export function lowesYtdMetaJsonPath(): string {
+  const prefix =
+    process.env.AZURE_LOWES_YTD_BLOB_PREFIX?.trim() ||
+    "sales-plan/lowes-ytd/latest";
+  return `${prefix.replace(/\/$/, "")}/lowes_ytd_meta.json`;
+}
+
+export function lowesYtdRowsGzipPath(): string {
+  const prefix =
+    process.env.AZURE_LOWES_YTD_BLOB_PREFIX?.trim() ||
+    "sales-plan/lowes-ytd/latest";
+  return `${prefix.replace(/\/$/, "")}/lowes_ytd_rows.json.gz`;
+}
