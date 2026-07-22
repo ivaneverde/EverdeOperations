@@ -262,7 +262,7 @@ export function formatNurserySupplyQuery(
   }));
 
   const totals = filtered.reduce(
-    (acc, r) => {
+    (acc: { graded: number; saleable: number; available: number }, r) => {
       const saleable = Number(r.saleable) || 0;
       acc.graded += Number(r.graded) || 0;
       acc.saleable += saleable;
