@@ -658,7 +658,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     sectionOnly: true,
     nurseryPane: "supply",
     sectionSourceRelativePath:
-      "Sales Inventory Availability\\XXTT_INV_QA_LANDSCAPE_INV_PL_67618202_1.xls",
+      "Sales Inventory Availability\\XXTT_INV_QA_LANDSCAPE_INV_PL_67738459_1.xls",
     sectionNotes:
       "Drop the latest Sales / Inventory / Price List workbook in Sales Inventory Availability (run npm run nursery:refresh-supply after each drop).",
     reports: [],
