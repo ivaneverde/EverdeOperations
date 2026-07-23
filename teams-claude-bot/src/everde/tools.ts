@@ -62,7 +62,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_hd_ytd_following_week",
     description:
-      "HD Sales YTD with Following Week Sales (store×SKU grid). Use for Home Depot YTD / following-week questions. focus=summary (meta+totals), sample (first rows), or query (filter with q on Market/Store/SKU). Never dumps the full ~97k-row grid.",
+      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps. Use focus=query with q= like 'market 48', 'district 25', 'store 614'. No Subclass column (Shrub/Landscape) in this file.",
     input_schema: {
       type: "object",
       properties: {
@@ -74,7 +74,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
         q: {
           type: "string",
           description:
-            "Filter text for focus=query (Market, Store, SKU, KEY). Example: ENCINITAS or 117205.",
+            "Filter for focus=query. Prefer 'market 48', 'district 25', 'store 614', or store name. Avoid bare short numbers alone when possible.",
         },
       },
     },
@@ -204,12 +204,12 @@ async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
   // query
   const q = toolQuery(input);
   if (!q) {
-    return "focus=query requires q= (e.g. store name, SKU, subregion). Or use focus=summary|sample.";
+    return "focus=query requires q= (e.g. 'market 48', 'district 25', 'store 614', or store name). Or use focus=summary|sample.";
   }
   const filtered = filterYtdRows(rows, columns, q);
   return [
     `q=${JSON.stringify(q)} matched=${filtered.length} of ${rows.length}`,
-    formatYtdSample(columns, filtered, YTD_QUERY_ROWS, TOOL_MAX_CHARS),
+    formatYtdSample(columns, filtered, YTD_QUERY_ROWS, TOOL_MAX_CHARS, q),
   ].join("\n");
 }
 
