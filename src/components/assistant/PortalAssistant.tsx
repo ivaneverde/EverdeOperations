@@ -30,6 +30,43 @@ function isNarrowViewport(): boolean {
   return window.matchMedia("(max-width: 639px)").matches;
 }
 
+/** Keep the drawer inside the visible area when iOS Safari keyboard is open. */
+function useVisualViewportBox(active: boolean) {
+  const [box, setBox] = useState<{ top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (!active || typeof window === "undefined") {
+      setBox(null);
+      return;
+    }
+
+    const vv = window.visualViewport;
+    if (!vv) {
+      setBox(null);
+      return;
+    }
+
+    const sync = () => {
+      setBox({
+        top: vv.offsetTop,
+        height: vv.height,
+      });
+    };
+
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
+  }, [active]);
+
+  return box;
+}
+
 export function PortalAssistant() {
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
@@ -45,7 +82,9 @@ export function PortalAssistant() {
   const [composerFocused, setComposerFocused] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const drawerInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLFormElement>(null);
   const openFromHeaderFocus = useRef(false);
+  const viewportBox = useVisualViewportBox(open);
 
   const suggestions = useMemo(
     () => suggestedPromptsForPath(pathname),
@@ -176,6 +215,25 @@ export function PortalAssistant() {
   /** Hide suggestion UI while typing on narrow screens so it never covers the field. */
   const hideSuggestionsForTyping =
     composerFocused || draft.trim().length > 0;
+  /** Compact chrome when typing on phone so more room above the keyboard. */
+  const compactMobileHeader = composerFocused;
+
+  const overlayStyle =
+    viewportBox != null
+      ? {
+          top: viewportBox.top,
+          height: viewportBox.height,
+          bottom: "auto" as const,
+        }
+      : undefined;
+
+  const onComposerFocus = () => {
+    setComposerFocused(true);
+    // After keyboard animates, re-sync viewport and keep composer visible.
+    window.setTimeout(() => {
+      composerRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    }, 300);
+  };
 
   return (
     <>
@@ -232,22 +290,39 @@ export function PortalAssistant() {
       {open ? (
         <div
           className="fixed inset-0 z-50 flex justify-end bg-black/25"
+          style={overlayStyle}
           role="presentation"
           onClick={() => setOpen(false)}
         >
           <aside
-            className="flex h-dvh max-h-dvh w-full max-w-md flex-col border-l border-zinc-200 bg-white shadow-xl sm:h-full sm:max-h-none"
+            className="flex h-full w-full max-w-md flex-col border-l border-zinc-200 bg-white shadow-xl"
+            style={
+              viewportBox != null ? { height: viewportBox.height } : undefined
+            }
             role="dialog"
             aria-label="Analyst assistant"
+            aria-modal="true"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="shrink-0 border-b border-zinc-200 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <header
+              className={
+                compactMobileHeader
+                  ? "shrink-0 border-b border-zinc-200 px-4 py-2 sm:py-3"
+                  : "shrink-0 border-b border-zinc-200 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
+              }
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h2 className="text-sm font-semibold text-zinc-900">
                     Analyst assistant
                   </h2>
-                  <p className="text-xs text-zinc-500">
+                  <p
+                    className={
+                      compactMobileHeader
+                        ? "hidden text-xs text-zinc-500 sm:block"
+                        : "text-xs text-zinc-500"
+                    }
+                  >
                     {activeProviderMeta
                       ? `${activeProviderMeta.label} · ${activeProviderMeta.model}`
                       : "Portal compendium: freight, sales plan, production & demand."}
@@ -266,7 +341,11 @@ export function PortalAssistant() {
               </div>
               {showProviderToggle ? (
                 <div
-                  className="mt-2 flex gap-1"
+                  className={
+                    compactMobileHeader
+                      ? "mt-2 hidden gap-1 sm:flex"
+                      : "mt-2 flex gap-1"
+                  }
                   role="group"
                   aria-label="AI provider"
                 >
@@ -386,6 +465,7 @@ export function PortalAssistant() {
             </div>
 
             <form
+              ref={composerRef}
               className="shrink-0 border-t border-zinc-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
               onSubmit={(e) => {
                 e.preventDefault();
@@ -396,13 +476,17 @@ export function PortalAssistant() {
                 <input
                   ref={drawerInputRef}
                   type="text"
+                  name="analyst-question"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  onFocus={() => setComposerFocused(true)}
+                  onFocus={onComposerFocus}
                   onBlur={() => setComposerFocused(false)}
                   placeholder="Ask a question…"
                   enterKeyHint="send"
                   autoComplete="off"
+                  autoCorrect="on"
+                  autoCapitalize="sentences"
+                  spellCheck
                   className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-3 py-2.5 text-base sm:py-2 sm:text-sm focus:border-[var(--everde-forest)] focus:outline-none focus:ring-1 focus:ring-[var(--everde-forest)]"
                   aria-label="Ask the analyst"
                 />
