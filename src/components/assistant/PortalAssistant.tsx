@@ -25,6 +25,11 @@ function storeProvider(provider: AssistantProvider) {
   localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
 }
 
+function isNarrowViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(max-width: 639px)").matches;
+}
+
 export function PortalAssistant() {
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
@@ -35,7 +40,12 @@ export function PortalAssistant() {
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [provider, setProvider] = useState<AssistantProvider>("anthropic");
   const [lastModel, setLastModel] = useState<string | null>(null);
+  /** Mobile: suggestions start collapsed so the composer stays reachable. */
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [composerFocused, setComposerFocused] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const drawerInputRef = useRef<HTMLInputElement>(null);
+  const openFromHeaderFocus = useRef(false);
 
   const suggestions = useMemo(
     () => suggestedPromptsForPath(pathname),
@@ -61,9 +71,10 @@ export function PortalAssistant() {
         const pick =
           stored && list.some((p) => p.id === stored)
             ? stored
-            : data.defaultProvider && list.some((p) => p.id === data.defaultProvider)
+            : data.defaultProvider &&
+                list.some((p) => p.id === data.defaultProvider)
               ? data.defaultProvider
-              : list[0]?.id ?? "openai";
+              : (list[0]?.id ?? "openai");
         setProvider(pick);
       } catch {
         /* config optional for render */
@@ -89,6 +100,20 @@ export function PortalAssistant() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
   }, [messages, open, loading]);
 
+  useEffect(() => {
+    if (!open) return;
+    // Desktop: suggestions expanded by default. Mobile: collapsed.
+    setSuggestionsOpen(!isNarrowViewport());
+    if (isNarrowViewport() || openFromHeaderFocus.current) {
+      // Let the drawer paint, then focus composer (moves typing into drawer on phone).
+      const t = window.setTimeout(() => {
+        drawerInputRef.current?.focus({ preventScroll: true });
+        openFromHeaderFocus.current = false;
+      }, 50);
+      return () => window.clearTimeout(t);
+    }
+  }, [open]);
+
   const send = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -103,6 +128,7 @@ export function PortalAssistant() {
       setDraft("");
       setLoading(true);
       setOpen(true);
+      setSuggestionsOpen(false);
 
       try {
         const res = await fetch("/api/assistant/chat", {
@@ -146,6 +172,10 @@ export function PortalAssistant() {
   };
 
   const showProviderToggle = providers.length > 1;
+  const showEmptySuggestions = messages.length === 0 && suggestions.length > 0;
+  /** Hide suggestion UI while typing on narrow screens so it never covers the field. */
+  const hideSuggestionsForTyping =
+    composerFocused || draft.trim().length > 0;
 
   return (
     <>
@@ -181,7 +211,10 @@ export function PortalAssistant() {
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => setOpen(true)}
+            onFocus={() => {
+              openFromHeaderFocus.current = true;
+              setOpen(true);
+            }}
             placeholder="Ask the analyst about this page…"
             className="min-w-0 flex-1 rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-[var(--everde-forest)] focus:outline-none focus:ring-1 focus:ring-[var(--everde-forest)]"
             aria-label="Ask the analyst"
@@ -203,14 +236,14 @@ export function PortalAssistant() {
           onClick={() => setOpen(false)}
         >
           <aside
-            className="flex h-full w-full max-w-md flex-col border-l border-zinc-200 bg-white shadow-xl"
+            className="flex h-dvh max-h-dvh w-full max-w-md flex-col border-l border-zinc-200 bg-white shadow-xl sm:h-full sm:max-h-none"
             role="dialog"
             aria-label="Analyst assistant"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="border-b border-zinc-200 px-4 py-3">
+            <header className="shrink-0 border-b border-zinc-200 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-sm font-semibold text-zinc-900">
                     Analyst assistant
                   </h2>
@@ -257,27 +290,76 @@ export function PortalAssistant() {
 
             <div
               ref={listRef}
-              className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3"
+              className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3"
             >
-              {messages.length === 0 ? (
+              {showEmptySuggestions && !hideSuggestionsForTyping ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-zinc-500">
-                    Try a question for this section:
-                  </p>
-                  <ul className="space-y-1.5">
-                    {suggestions.map((q) => (
-                      <li key={q}>
-                        <button
-                          type="button"
-                          onClick={() => void send(q)}
-                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs text-zinc-800 hover:border-[var(--everde-forest)] hover:bg-white"
-                        >
-                          {q}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Mobile: collapsed disclosure + chip row. Desktop: full list. */}
+                  <div className="sm:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setSuggestionsOpen((v) => !v)}
+                      className="flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs font-medium text-zinc-700"
+                      aria-expanded={suggestionsOpen}
+                    >
+                      Suggested questions
+                      <span className="text-zinc-400" aria-hidden>
+                        {suggestionsOpen ? "−" : "+"}
+                      </span>
+                    </button>
+                    {suggestionsOpen ? (
+                      <ul className="mt-2 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {suggestions.map((q) => (
+                          <li key={q} className="shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => void send(q)}
+                              className="max-w-[16rem] truncate rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-left text-xs text-zinc-800 hover:border-[var(--everde-forest)]"
+                            >
+                              {q}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+
+                  <div className="hidden space-y-2 sm:block">
+                    <p className="text-xs text-zinc-500">
+                      Try a question for this section:
+                    </p>
+                    <ul className="space-y-1.5">
+                      {suggestions.map((q) => (
+                        <li key={q}>
+                          <button
+                            type="button"
+                            onClick={() => void send(q)}
+                            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs text-zinc-800 hover:border-[var(--everde-forest)] hover:bg-white"
+                          >
+                            {q}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
+              ) : null}
+
+              {showEmptySuggestions && hideSuggestionsForTyping ? (
+                <p className="text-xs text-zinc-400 sm:hidden">
+                  Type your question below — or{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-[var(--everde-forest)] underline"
+                    onClick={() => {
+                      setComposerFocused(false);
+                      setSuggestionsOpen(true);
+                    }}
+                  >
+                    show suggestions
+                  </button>
+                  .
+                </p>
               ) : null}
 
               {messages.map((m, i) => (
@@ -304,7 +386,7 @@ export function PortalAssistant() {
             </div>
 
             <form
-              className="border-t border-zinc-200 p-3"
+              className="shrink-0 border-t border-zinc-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
               onSubmit={(e) => {
                 e.preventDefault();
                 void send(draft);
@@ -312,11 +394,17 @@ export function PortalAssistant() {
             >
               <div className="flex gap-2">
                 <input
+                  ref={drawerInputRef}
                   type="text"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Follow up…"
-                  className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[var(--everde-forest)] focus:outline-none focus:ring-1 focus:ring-[var(--everde-forest)]"
+                  onFocus={() => setComposerFocused(true)}
+                  onBlur={() => setComposerFocused(false)}
+                  placeholder="Ask a question…"
+                  enterKeyHint="send"
+                  autoComplete="off"
+                  className="min-w-0 flex-1 rounded-lg border border-zinc-300 px-3 py-2.5 text-base sm:py-2 sm:text-sm focus:border-[var(--everde-forest)] focus:outline-none focus:ring-1 focus:ring-[var(--everde-forest)]"
+                  aria-label="Ask the analyst"
                 />
                 <button
                   type="submit"
