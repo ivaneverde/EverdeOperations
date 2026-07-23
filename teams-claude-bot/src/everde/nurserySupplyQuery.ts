@@ -1,4 +1,5 @@
 import { truncateText } from "./compact.js";
+import { NURSERY_GRADE_HIERARCHY } from "./gradeHierarchy.js";
 
 export type NurserySupplyLine = {
   farm?: string;
@@ -10,11 +11,21 @@ export type NurserySupplyLine = {
   grade?: string;
   saleable?: number;
   graded?: number;
-  /** max(0, saleable) — units still available to sell */
   available?: number;
   price?: number;
   demandWindow?: string;
   readyDate?: string | null;
+};
+
+export type NurseryFilterOptions = {
+  /** If set, only these grades (lowercase). */
+  includeGrades?: string[] | null;
+  /** Grades to drop (lowercase); also drops P* when "p" listed. */
+  excludeGrades?: string[] | null;
+  /** Only rows with a readyDate. */
+  requireReadyDate?: boolean;
+  /** Ignore A/B tokens from the query text (used for coming-ready pass). */
+  ignoreQueryGradeTokens?: boolean;
 };
 
 function normRegionToken(s: string): string {
@@ -37,7 +48,6 @@ function plantHay(line: NurserySupplyLine): string {
   return `${line.common ?? ""} ${line.botanical ?? ""}`.toLowerCase();
 }
 
-/** True Japanese Boxwood (Buxus M. Japonica) — not Winter Gem / Fatsia / Euonymus. */
 function isJapaneseBoxwood(line: NurserySupplyLine): boolean {
   const h = plantHay(line);
   return (
@@ -58,10 +68,55 @@ function sizeIs1G(sizeRaw: string): boolean {
   );
 }
 
+function gradeExcluded(grade: string, exclude: Set<string>): boolean {
+  const g = grade.toLowerCase();
+  if (exclude.has(g)) return true;
+  // "P grades" → PN, P2N, P3N, P
+  if (exclude.has("p") && /^p\d*n?$/.test(g)) return true;
+  return false;
+}
+
+export type NurseryQueryIntent = {
+  wantsComingReady: boolean;
+  onHandGrades: string[]; // e.g. ["a","b"]
+  excludeGrades: string[]; // e.g. ["c","d","p"]
+};
+
+export function parseNurseryQueryIntent(q: string): NurseryQueryIntent {
+  const raw = q.trim().toLowerCase();
+  const wantsComingReady =
+    /\bcoming\s+ready\b/.test(raw) ||
+    /\bready\s+date/.test(raw) ||
+    /\bwhen\b.*\bready\b/.test(raw) ||
+    /\bnext\s+crop\b/.test(raw);
+
+  const onHandGrades: string[] = [];
+  // "between A and B grade" / "A and B grade"
+  if (/\bbetween\s+a\s+and\s+b\b/.test(raw) || /\ba\s+and\s+b\s+grade/.test(raw)) {
+    onHandGrades.push("a", "b");
+  } else {
+    for (const g of ["a", "b", "ss", "gs", "c", "d"]) {
+      if (new RegExp(`\\bgrade\\s+${g}\\b|\\b${g}\\s+grade\\b`, "i").test(raw)) {
+        onHandGrades.push(g);
+      }
+    }
+  }
+
+  const excludeGrades: string[] = [];
+  if (/\bnot\s+including\b|\bexclud/i.test(raw)) {
+    for (const t of ["c", "d", "p"]) {
+      if (new RegExp(`\\b${t}\\b`, "i").test(raw)) excludeGrades.push(t);
+    }
+  }
+
+  return { wantsComingReady, onHandGrades, excludeGrades };
+}
+
 /** Filter SKU lines; ignore stop-words; normalize N CA / 1 gal / jap boxwood. */
 export function filterNurserySupplyLines(
   lines: NurserySupplyLine[],
   q: string,
+  options: NurseryFilterOptions = {},
 ): NurserySupplyLine[] {
   const raw = q.trim().toLowerCase();
   if (!raw) return lines;
@@ -108,6 +163,12 @@ export function filterNurserySupplyLines(
     "do",
     "we",
     "then",
+    "these",
+    "that",
+    "ids",
+    "id",
+    "item",
+    "items",
   ]);
 
   const wantsJapaneseBoxwood =
@@ -131,23 +192,27 @@ export function filterNurserySupplyLines(
     .map((t) => t.trim())
     .filter((t) => t && !stop.has(t));
 
-  const gradeTokens = tokens.filter((t) =>
-    ["a", "b", "c", "ss", "gs", "d", "p"].includes(t),
-  );
+  const gradeTokens = options.ignoreQueryGradeTokens
+    ? []
+    : tokens.filter((t) =>
+        ["a", "b", "c", "ss", "gs", "d", "p", "sn", "gn", "pn"].includes(t),
+      );
   const regionTokens = tokens.filter((t) =>
     ["norcal", "socal", "nca", "sca"].includes(t),
   );
-  const excludeGrades = new Set<string>();
-  if (/\bnot\s+including\b|\bexclud/i.test(raw)) {
+
+  const exclude = new Set(
+    (options.excludeGrades ?? []).map((g) => g.toLowerCase()),
+  );
+  if (!options.ignoreQueryGradeTokens && /\bnot\s+including\b|\bexclud/i.test(raw)) {
     for (const t of ["c", "d", "p"]) {
-      if (
-        new RegExp(`\\b${t}\\b`, "i").test(raw) ||
-        raw.includes(`${t} grade`)
-      ) {
-        excludeGrades.add(t);
-      }
+      if (new RegExp(`\\b${t}\\b`, "i").test(raw)) exclude.add(t);
     }
   }
+
+  const include =
+    options.includeGrades?.map((g) => g.toLowerCase()) ??
+    (gradeTokens.length ? gradeTokens : null);
 
   const otherTokens = tokens.filter(
     (t) =>
@@ -159,7 +224,6 @@ export function filterNurserySupplyLines(
       t !== "japonica",
   );
 
-  // If user said jap boxwood as a phrase, don't also require loose japanese/boxwood tokens
   const wantsBoxwood =
     !wantsJapaneseBoxwood &&
     (tokens.includes("boxwood") || tokens.includes("buxus"));
@@ -186,15 +250,14 @@ export function filterNurserySupplyLines(
     const grade = String(line.grade ?? "").toLowerCase();
     const plant = plantHay(line);
 
-    if (excludeGrades.has(grade)) return false;
+    if (gradeExcluded(grade, exclude)) return false;
+    if (include && include.length > 0 && !include.includes(grade)) return false;
+    if (options.requireReadyDate && !line.readyDate) return false;
 
     if (wantsJapaneseBoxwood && !isJapaneseBoxwood(line)) return false;
     if (wantsBoxwood && !/boxwood|buxus/.test(plant)) return false;
     if (wantsJapaneseAlone && !/japan|japon/.test(plant)) return false;
 
-    if (gradeTokens.length > 0 && !gradeTokens.some((t) => grade === t)) {
-      return false;
-    }
     if (
       regionTokens.length > 0 &&
       !regionTokens.some((t) => regionMatches(String(line.region ?? ""), t))
@@ -227,6 +290,7 @@ type AggCell = {
   earliest_ready_date: string | null;
   ready_dates: string[];
   demand_windows: string[];
+  item_ids: string[];
 };
 
 function emptyCell(): AggCell {
@@ -238,6 +302,7 @@ function emptyCell(): AggCell {
     earliest_ready_date: null,
     ready_dates: [],
     demand_windows: [],
+    item_ids: [],
   };
 }
 
@@ -261,6 +326,9 @@ export function aggregateNurserySupplyDetail(
     cell.saleable_net += saleable;
     cell.available_to_sell += available;
     if (line.farm && !cell.farms.includes(line.farm)) cell.farms.push(line.farm);
+    if (line.item && !cell.item_ids.includes(line.item)) {
+      cell.item_ids.push(line.item);
+    }
     if (line.demandWindow && !cell.demand_windows.includes(line.demandWindow)) {
       cell.demand_windows.push(line.demandWindow);
     }
@@ -288,36 +356,13 @@ export function aggregateNurserySupplyDetail(
   return out;
 }
 
-export function formatNurserySupplyQuery(
-  lines: NurserySupplyLine[],
-  q: string,
-  maxChars: number,
-): string {
-  const filtered = filterNurserySupplyLines(lines, q);
-  const byRegionGrade = aggregateNurserySupplyDetail(filtered);
-
-  const comingReady = filtered
-    .filter((r) => r.readyDate)
-    .sort((a, b) => String(a.readyDate).localeCompare(String(b.readyDate)))
-    .slice(0, 40)
-    .map((r) => ({
-      farm: r.farm,
-      region: r.region,
-      common: r.common,
-      size: r.size,
-      grade: r.grade,
-      graded_on_hand: r.graded,
-      available_to_sell:
-        r.available != null ? r.available : Math.max(0, Number(r.saleable) || 0),
-      readyDate: r.readyDate,
-      demandWindow: r.demandWindow,
-    }));
-
-  const sample = filtered.slice(0, 40).map((r) => ({
+function mapRows(lines: NurserySupplyLine[]) {
+  return lines.map((r) => ({
     farm: r.farm,
     region: r.region,
     common: r.common,
     botanical: r.botanical,
+    item_id: r.item,
     size: r.size,
     grade: r.grade,
     graded_on_hand: r.graded,
@@ -327,11 +372,45 @@ export function formatNurserySupplyQuery(
     readyDate: r.readyDate ?? null,
     demandWindow: r.demandWindow,
   }));
+}
 
-  const totals = filtered.reduce(
-    (acc: { graded: number; saleable: number; available: number }, r) => {
-      const saleable = Number(r.saleable) || 0;
+export function formatNurserySupplyQuery(
+  lines: NurserySupplyLine[],
+  q: string,
+  maxChars: number,
+): string {
+  const intent = parseNurseryQueryIntent(q);
+
+  // Base plant/region/size match without locking to A/B for the whole query
+  const base = filterNurserySupplyLines(lines, q, {
+    ignoreQueryGradeTokens: true,
+    excludeGrades: intent.excludeGrades,
+  });
+
+  const onHandGrades =
+    intent.onHandGrades.length > 0 ? intent.onHandGrades : null;
+  const onHand = filterNurserySupplyLines(lines, q, {
+    includeGrades: onHandGrades,
+    excludeGrades: intent.excludeGrades,
+    ignoreQueryGradeTokens: Boolean(onHandGrades),
+  });
+
+  // Coming ready: same plant/geo/size, exclude C/D/P*, INCLUDE SS pipeline grades
+  const comingReady = filterNurserySupplyLines(lines, q, {
+    ignoreQueryGradeTokens: true,
+    excludeGrades:
+      intent.excludeGrades.length > 0
+        ? intent.excludeGrades
+        : intent.wantsComingReady
+          ? ["c", "d", "p"]
+          : [],
+    requireReadyDate: true,
+  }).sort((a, b) => String(a.readyDate).localeCompare(String(b.readyDate)));
+
+  const onHandTotals = onHand.reduce(
+    (acc, r) => {
       acc.graded += Number(r.graded) || 0;
+      const saleable = Number(r.saleable) || 0;
       acc.saleable += saleable;
       acc.available +=
         r.available != null ? Number(r.available) || 0 : Math.max(0, saleable);
@@ -340,36 +419,54 @@ export function formatNurserySupplyQuery(
     { graded: 0, saleable: 0, available: 0 },
   );
 
-  const withReady = filtered.filter((r) => r.readyDate).length;
-  const withoutReady = filtered.length - withReady;
+  const comingReadyUnits = comingReady.reduce(
+    (s, r) => s + (Number(r.graded) || 0),
+    0,
+  );
 
   return truncateText(
     JSON.stringify({
       q,
-      matched_lines: filtered.length,
+      intent: {
+        ...intent,
+        note: intent.wantsComingReady
+          ? "On-hand uses A/B when requested; coming_ready includes SS (and other non-excluded pipeline grades) with READY DATE — SS is on the path to A/B."
+          : "Single filter pass.",
+      },
+      grade_hierarchy_brief: {
+        top: NURSERY_GRADE_HIERARCHY.top_shippable,
+        pipeline_includes_ss: true,
+        ss: NURSERY_GRADE_HIERARCHY.definitions.SS,
+      },
       source:
-        "Sales Inventory Availability XXTT inventory file (LANDSCAPE_INV_PL) — same workbook users call the inventory file. READY DATE is a column in this file; some lines are blank.",
-      field_guide: {
-        graded_on_hand:
-          "Physical graded inventory on hand from the XXTT inventory file.",
-        saleable_net:
-          "Net saleable after allocations — can be negative if oversold (NOT Production & Demand BO/CR).",
-        available_to_sell: "max(0, saleable_net) — units still free to sell.",
-        readyDate:
-          "READY DATE from the XXTT inventory file when populated. Null/blank means that line has no ready date yet — other matching lines may still have dates.",
+        "XXTT inventory file (Sales Inventory Availability LANDSCAPE_INV_PL). READY DATE is a column in this file.",
+      on_hand: {
+        grades: onHandGrades ?? "all matched",
+        matched_lines: onHand.length,
+        totals: {
+          graded_on_hand: Math.round(onHandTotals.graded * 100) / 100,
+          saleable_net: Math.round(onHandTotals.saleable * 100) / 100,
+          available_to_sell: Math.round(onHandTotals.available * 100) / 100,
+        },
+        by_region_grade: aggregateNurserySupplyDetail(onHand),
+        rows: mapRows(onHand).slice(0, 40),
       },
-      totals: {
-        graded_on_hand: Math.round(totals.graded * 100) / 100,
-        saleable_net: Math.round(totals.saleable * 100) / 100,
-        available_to_sell: Math.round(totals.available * 100) / 100,
-        lines_with_readyDate: withReady,
-        lines_missing_readyDate: withoutReady,
+      coming_ready: {
+        matched_lines: comingReady.length,
+        graded_on_hand_total: Math.round(comingReadyUnits * 100) / 100,
+        excludes: intent.excludeGrades.length
+          ? intent.excludeGrades
+          : intent.wantsComingReady
+            ? ["c", "d", "p*"]
+            : [],
+        includes_note:
+          "Includes SS (Sales/Shippable — young crop moving toward A) and other non-excluded grades that have READY DATE populated.",
+        by_region_grade: aggregateNurserySupplyDetail(comingReady),
+        rows: mapRows(comingReady).slice(0, 40),
       },
-      by_region_grade: byRegionGrade,
-      coming_ready: comingReady,
-      sample_rows: sample,
+      base_match_lines: base.length,
       answer_hint:
-        "Call this the inventory file (XXTT), not a separate price list. For on-hand, lead with graded_on_hand. For 'coming ready', list coming_ready rows with readyDate — never say ready dates are missing from the file if coming_ready is non-empty. Blank readyDate on some lines is normal.",
+        "1) Report on_hand A/B graded counts. 2) Separately report coming_ready — MUST include SS rows with readyDate (e.g. WIN SS Sep 2026). Do not say no ready dates if coming_ready.rows is non-empty. Call this the inventory file. Item ID = ITEM column.",
     }),
     maxChars,
   );

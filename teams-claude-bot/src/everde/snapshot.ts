@@ -20,6 +20,7 @@ import {
   compactYtdFollowingWeekMeta,
 } from "./compact.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
+import { buildGradeHierarchyBlock } from "./gradeHierarchy.js";
 
 export type EverdeDatasetSnapshot = {
   name: string;
@@ -55,7 +56,7 @@ async function loadDataset(
 
 export async function buildEverdeSnapshot(): Promise<EverdeSnapshot> {
   const container = freightBlobContainer();
-  const catalog = buildPortalCatalogSummary();
+  const catalog = `${buildPortalCatalogSummary()}\n\n${buildGradeHierarchyBlock()}`;
 
   const datasets = await Promise.all([
     loadDataset(

@@ -22,6 +22,7 @@ import {
   compactYtdFollowingWeekMeta,
 } from "./compact.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
+import { buildGradeHierarchyBlock } from "./gradeHierarchy.js";
 import {
   filterYtdRows,
   formatYtdSample,
@@ -114,7 +115,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_nursery_supply",
     description:
-      "Everde nursery Supply Inventory from the XXTT inventory file (Sales Inventory Availability LANDSCAPE_INV_PL — graded/saleable/ready date by farm). Users call this the inventory file. Prefer graded_on_hand for on-hand; use readyDate for crop-ready timing. focus=summary or query with q= (e.g. 'japanese boxwood 1g a b norcal socal').",
+      "Everde nursery Supply Inventory (XXTT inventory file). For on-hand A/B + coming-ready questions, returns separate on_hand and coming_ready sections — coming_ready includes SS pipeline grades with READY DATE when user excludes only C/D/P. focus=summary or query with q=.",
     input_schema: {
       type: "object",
       properties: {
@@ -221,7 +222,7 @@ export async function executeEverdeTool(
 
   switch (name) {
     case "get_portal_catalog":
-      return buildPortalCatalogSummary();
+      return `${buildPortalCatalogSummary()}\n\n${buildGradeHierarchyBlock()}`;
 
     case "get_freight_dashboard": {
       const raw = await downloadJsonFromBlob(
