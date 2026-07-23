@@ -165,30 +165,126 @@ export function clearYtdCache(kind?: YtdFollowingKind): void {
   }
 }
 
-/** Case-insensitive substring match on geo / item / store columns. */
+/** Pad HD market/district/store codes to 4 digits when numeric. */
+function padHdCode(raw: string): string {
+  const s = String(raw ?? "").trim();
+  if (/^\d+$/.test(s) && s.length <= 4) return s.padStart(4, "0");
+  return s;
+}
+
+function colIndex(columns: string[], ...needles: string[]): number {
+  const lower = columns.map((c) => c.toLowerCase());
+  for (const n of needles) {
+    const i = lower.findIndex((c) => c === n || c.includes(n));
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+function cellEqCode(cell: YtdCell, code: string): boolean {
+  const a = padHdCode(String(cell ?? ""));
+  const b = padHdCode(code);
+  return a === b || String(cell ?? "").trim() === code.trim();
+}
+
+/**
+ * Filter HD/Lowe's YTD rows.
+ * Exact Market / District / Store / SKU matches when query looks like
+ * "market 48", "district 25", "store 614" (4-digit padded).
+ */
 export function filterYtdRows(
   rows: YtdRow[],
   columns: string[],
   q: string,
 ): YtdRow[] {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return rows;
-  const idxs = columns
-    .map((c, i) => ({ c: c.toLowerCase(), i }))
-    .filter(
-      ({ c }) =>
-        c.includes("market") ||
-        c.includes("subregion") ||
-        c.includes("store") ||
-        c.includes("sku") ||
-        c.includes("item") ||
-        c === "key",
-    )
-    .map(({ i }) => i);
-  const use = idxs.length ? idxs : columns.map((_, i) => i).slice(0, 7);
-  return rows.filter((row) =>
-    use.some((i) => String(row[i] ?? "").toLowerCase().includes(needle)),
-  );
+  const raw = q.trim();
+  if (!raw) return rows;
+
+  const marketI = colIndex(columns, "market nbr", "market");
+  const districtI = colIndex(columns, "district nbr", "district");
+  const storeI = colIndex(columns, "store nbr");
+  const storeNameI = colIndex(columns, "store name");
+  const skuI = colIndex(columns, "sku nbr", "item");
+  const skuNameI = colIndex(columns, "sku name", "item name", "desc");
+  const subregionI = colIndex(columns, "subregion");
+
+  let market: string | undefined;
+  let district: string | undefined;
+  let store: string | undefined;
+  let sku: string | undefined;
+  let rest = raw;
+
+  const take = (re: RegExp, set: (v: string) => void) => {
+    const m = rest.match(re);
+    if (!m) return;
+    set(padHdCode(m[1]));
+    rest = rest.replace(m[0], " ");
+  };
+  take(/\bmarkets?\s*(?:nbr|number|#|:)?\s*(\d{1,4})\b/i, (v) => {
+    market = v;
+  });
+  take(/\bdistricts?\s*(?:nbr|number|#|:)?\s*(\d{1,4})\b/i, (v) => {
+    district = v;
+  });
+  take(/\bstores?\s*(?:nbr|number|#|:)?\s*(\d{1,4})\b/i, (v) => {
+    store = v;
+  });
+  take(/\bskus?\s*(?:nbr|number|#|:)?\s*(\d{4,8})\b/i, (v) => {
+    sku = v;
+  });
+
+  const bare = !market && !district && !store && !sku ? raw.match(/^#?(\d{1,4})$/) : null;
+  const bareCode = bare ? padHdCode(bare[1]) : null;
+  const text = rest
+    .toLowerCase()
+    .split(/[\s,/|]+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  if (!market && !district && !store && !sku && !bareCode) {
+    // Legacy substring search on geo/name columns only (not SKU nbr alone for short needles)
+    const idxs = columns
+      .map((c, i) => ({ c: c.toLowerCase(), i }))
+      .filter(
+        ({ c }) =>
+          c.includes("market") ||
+          c.includes("subregion") ||
+          c.includes("store") ||
+          c.includes("sku name") ||
+          c.includes("item name") ||
+          c === "key",
+      )
+      .map(({ i }) => i);
+    const use = idxs.length ? idxs : columns.map((_, i) => i).slice(0, 7);
+    const needle = raw.toLowerCase();
+    return rows.filter((row) =>
+      use.some((i) => String(row[i] ?? "").toLowerCase().includes(needle)),
+    );
+  }
+
+  return rows.filter((row) => {
+    if (market && marketI >= 0 && !cellEqCode(row[marketI], market)) return false;
+    if (district && districtI >= 0 && !cellEqCode(row[districtI], district))
+      return false;
+    if (store && storeI >= 0 && !cellEqCode(row[storeI], store)) return false;
+    if (sku && skuI >= 0 && !cellEqCode(row[skuI], sku)) return false;
+    if (bareCode) {
+      const hit =
+        (storeI >= 0 && cellEqCode(row[storeI], bareCode)) ||
+        (marketI >= 0 && cellEqCode(row[marketI], bareCode)) ||
+        (districtI >= 0 && cellEqCode(row[districtI], bareCode));
+      if (!hit) return false;
+    }
+    if (text.length === 0) return true;
+    const hay = [
+      storeNameI >= 0 ? row[storeNameI] : "",
+      skuNameI >= 0 ? row[skuNameI] : "",
+      subregionI >= 0 ? row[subregionI] : "",
+    ]
+      .map((x) => String(x ?? "").toLowerCase())
+      .join(" | ");
+    return text.every((t) => hay.includes(t));
+  });
 }
 
 // Back-compat aliases used by HD routes
