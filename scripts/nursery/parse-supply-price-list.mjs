@@ -452,6 +452,8 @@ export function parseSupplyPriceListFile(filePath, opts = {}) {
     item: r.item,
     size: r.size,
     grade: r.grade,
+    /** Same taxonomy as HD/Lowe's xref Plant Category (e.g. SHRUB EVERGREEN). */
+    category: r.category,
     saleable: Math.round(r.saleable * 100) / 100,
     graded: Math.round(r.graded * 100) / 100,
     /** Net units available to sell (never negative). */

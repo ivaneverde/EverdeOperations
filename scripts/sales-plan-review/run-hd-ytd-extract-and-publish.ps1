@@ -60,6 +60,12 @@ Write-Host "Extracting HD YTD Following Week Sales..." -ForegroundColor Cyan
 & $python @pyArgs
 if ($LASTEXITCODE -ne 0) { throw "extract_hd_ytd_following.py failed" }
 
+$xrefDir = "\\192.168.190.10\Claude Sandbox\JS Files\Shared\Inventory Cross References"
+$buildCat = Join-Path $ScriptDir "build_ytd_sku_category_map.py"
+Write-Host "Building HD SKU → Plant Category map from xref..." -ForegroundColor Cyan
+& $python $buildCat --xref-dir $xrefDir --out-dir $outDir
+if ($LASTEXITCODE -ne 0) { Write-Warning "sku category map build failed (YTD publish will continue without it)" }
+
 if ($SkipPublish) {
   Write-Host "SkipPublish set; artifacts in $outDir" -ForegroundColor Yellow
   exit 0

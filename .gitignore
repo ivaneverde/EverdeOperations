@@ -48,8 +48,10 @@ next-env.d.ts
 /public/retail_opp_data.json
 /public/hd_ytd_meta.json
 /public/hd_ytd_rows.json.gz
+/public/hd_sku_category_map.json
 /public/lowes_ytd_meta.json
 /public/lowes_ytd_rows.json.gz
+/public/lowes_sku_category_map.json
 /public/dashboard_data.json
 /public/weather_dashboard_data.json
 /public/weather_dashboard_data.json
@@ -58,6 +60,8 @@ next-env.d.ts
 
 # local freight JSON/CSV extraction (scripts/freight/extract_dashboard_html.py)
 /scripts/freight/out/
+/scripts/sales-plan-review/_tmp_*.xlsb
+
 
 # Scheduled DataDrops agent state and logs (per machine)
 /.everde-scheduler/

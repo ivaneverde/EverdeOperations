@@ -5,7 +5,9 @@ import {
   freightBlobContainer,
   freightDashboardJsonPath,
   hdYtdMetaJsonPath,
+  hdYtdSkuCategoryMapPath,
   lowesYtdMetaJsonPath,
+  lowesYtdSkuCategoryMapPath,
   nurseryDemandJsonPath,
   nurserySupplyJsonPath,
   retailDashboardJsonPath,
@@ -27,6 +29,7 @@ import {
   filterYtdRows,
   formatYtdSample,
   loadYtdRowsCached,
+  type SkuCategoryLookup,
   type YtdKind,
 } from "./ytdFollowingWeek.js";
 import {
@@ -63,7 +66,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_hd_ytd_following_week",
     description:
-      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps. Use focus=query with q= like 'market 48', 'district 25', 'store 614'. No Subclass column (Shrub/Landscape) in this file.",
+      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps. No native Subclass column — Plant Category (e.g. SHRUB EVERGREEN) is joined from the HD Inventory Cross Reference (same as XXTT CATEGORY). Use focus=query with q= like 'market 48', 'district 25', 'store 614', 'shrub evergreen'.",
     input_schema: {
       type: "object",
       properties: {
@@ -83,7 +86,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_lowes_ytd_following_week",
     description:
-      "Lowe's Sales YTD with Following Week Sales (YTD BY STORE SKU grid). Use for Lowe's store×item YTD questions. focus=summary, sample, or query (q filters Subregion/Store/Item). Never dumps the full ~300k-row grid.",
+      "Lowe's Sales YTD with Following Week Sales (YTD BY STORE SKU grid). Plant Category joined from Lowe's xref (same taxonomy as XXTT CATEGORY). Use focus=summary, sample, or query (q= store/item/category like 'shrub evergreen'). Never dumps the full ~300k-row grid.",
     input_schema: {
       type: "object",
       properties: {
@@ -144,6 +147,12 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
       "List Everde AI Operations portal sections and what data each covers.",
     input_schema: { type: "object", properties: {} },
   },
+  {
+    name: "get_grade_definitions",
+    description:
+      "Everde nursery grade hierarchy and definitions (A, B, SS, SN, GS, C, D, P*, T). Use whenever someone asks what grades mean, how crop moves up to A/B, or whether SS counts for coming-ready.",
+    input_schema: { type: "object", properties: {} },
+  },
 ];
 
 function toolFocus(input: unknown): string {
@@ -168,6 +177,35 @@ function toolQuery(input: unknown): string {
     return (input as { q: string }).q.trim();
   }
   return "";
+}
+
+async function loadSkuCategoryMap(
+  kind: YtdKind,
+): Promise<SkuCategoryLookup | null> {
+  const path =
+    kind === "lowes" ? lowesYtdSkuCategoryMapPath() : hdYtdSkuCategoryMapPath();
+  const raw = await downloadJsonFromBlob(freightBlobContainer(), path);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as {
+      bySku?: Record<string, { category?: string } | string>;
+    };
+    const bySku = parsed.bySku;
+    if (!bySku || typeof bySku !== "object") return null;
+    const out: SkuCategoryLookup = {};
+    for (const [sku, val] of Object.entries(bySku)) {
+      const cat =
+        typeof val === "string"
+          ? val
+          : val && typeof val === "object"
+            ? String(val.category ?? "")
+            : "";
+      if (sku && cat) out[sku] = cat;
+    }
+    return Object.keys(out).length ? out : null;
+  } catch {
+    return null;
+  }
 }
 
 async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
@@ -195,22 +233,40 @@ async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
     return `${label} YTD row grid not available in Blob (meta is present).`;
   }
 
+  const skuCategory = await loadSkuCategoryMap(kind);
+
   if (focus === "sample") {
     return [
       `asOf/meta rowCount=${meta.rowCount ?? rows.length}`,
-      formatYtdSample(columns, rows, YTD_SAMPLE_ROWS, TOOL_MAX_CHARS),
+      `plant_category_map=${skuCategory ? `${Object.keys(skuCategory).length} SKUs` : "unavailable"}`,
+      formatYtdSample(
+        columns,
+        rows,
+        YTD_SAMPLE_ROWS,
+        TOOL_MAX_CHARS,
+        undefined,
+        skuCategory,
+      ),
     ].join("\n");
   }
 
   // query
   const q = toolQuery(input);
   if (!q) {
-    return "focus=query requires q= (e.g. 'market 48', 'district 25', 'store 614', or store name). Or use focus=summary|sample.";
+    return "focus=query requires q= (e.g. 'market 48', 'district 25', 'store 614', 'shrub evergreen'). Or use focus=summary|sample.";
   }
-  const filtered = filterYtdRows(rows, columns, q);
+  const filtered = filterYtdRows(rows, columns, q, skuCategory);
   return [
     `q=${JSON.stringify(q)} matched=${filtered.length} of ${rows.length}`,
-    formatYtdSample(columns, filtered, YTD_QUERY_ROWS, TOOL_MAX_CHARS, q),
+    `plant_category_map=${skuCategory ? `${Object.keys(skuCategory).length} SKUs` : "unavailable — publish hd/lowes_sku_category_map.json"}`,
+    formatYtdSample(
+      columns,
+      filtered,
+      YTD_QUERY_ROWS,
+      TOOL_MAX_CHARS,
+      q,
+      skuCategory,
+    ),
   ].join("\n");
 }
 
@@ -223,6 +279,9 @@ export async function executeEverdeTool(
   switch (name) {
     case "get_portal_catalog":
       return `${buildPortalCatalogSummary()}\n\n${buildGradeHierarchyBlock()}`;
+
+    case "get_grade_definitions":
+      return buildGradeHierarchyBlock();
 
     case "get_freight_dashboard": {
       const raw = await downloadJsonFromBlob(

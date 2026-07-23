@@ -9,6 +9,7 @@ export type NurserySupplyLine = {
   item?: string;
   size?: string;
   grade?: string;
+  category?: string;
   saleable?: number;
   graded?: number;
   available?: number;
@@ -365,6 +366,7 @@ function mapRows(lines: NurserySupplyLine[]) {
     item_id: r.item,
     size: r.size,
     grade: r.grade,
+    category: r.category,
     graded_on_hand: r.graded,
     saleable_net: r.saleable,
     available_to_sell:

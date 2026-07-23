@@ -56,6 +56,12 @@ export function hdYtdRowsGzipPath(): string {
   return `${prefix.replace(/\/$/, "")}/hd_ytd_rows.json.gz`;
 }
 
+export function hdYtdSkuCategoryMapPath(): string {
+  const prefix =
+    process.env.AZURE_HD_YTD_BLOB_PREFIX?.trim() || "sales-plan/hd-ytd/latest";
+  return `${prefix.replace(/\/$/, "")}/hd_sku_category_map.json`;
+}
+
 export function lowesYtdMetaJsonPath(): string {
   const prefix =
     process.env.AZURE_LOWES_YTD_BLOB_PREFIX?.trim() ||
@@ -68,4 +74,11 @@ export function lowesYtdRowsGzipPath(): string {
     process.env.AZURE_LOWES_YTD_BLOB_PREFIX?.trim() ||
     "sales-plan/lowes-ytd/latest";
   return `${prefix.replace(/\/$/, "")}/lowes_ytd_rows.json.gz`;
+}
+
+export function lowesYtdSkuCategoryMapPath(): string {
+  const prefix =
+    process.env.AZURE_LOWES_YTD_BLOB_PREFIX?.trim() ||
+    "sales-plan/lowes-ytd/latest";
+  return `${prefix.replace(/\/$/, "")}/lowes_sku_category_map.json`;
 }

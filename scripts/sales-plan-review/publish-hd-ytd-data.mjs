@@ -26,6 +26,9 @@ const metaPath = path.resolve(process.argv[2] || path.join(repoPublic, "hd_ytd_m
 const rowsPath = path.resolve(
   process.argv[3] || path.join(repoPublic, "hd_ytd_rows.json.gz"),
 );
+const catMapPath = path.resolve(
+  process.argv[4] || path.join(repoPublic, "hd_sku_category_map.json"),
+);
 
 if (!fs.existsSync(metaPath) || !fs.existsSync(rowsPath)) {
   console.error("Missing meta or rows file:", metaPath, rowsPath);
@@ -46,4 +49,15 @@ async function upload(localPath, blobName, contentType) {
 
 await upload(metaPath, "hd_ytd_meta.json", "application/json; charset=utf-8");
 await upload(rowsPath, "hd_ytd_rows.json.gz", "application/gzip");
+if (fs.existsSync(catMapPath)) {
+  await upload(
+    catMapPath,
+    "hd_sku_category_map.json",
+    "application/json; charset=utf-8",
+  );
+} else {
+  console.warn(
+    "No hd_sku_category_map.json — run build_ytd_sku_category_map.py (Plant Category from HD xref).",
+  );
+}
 console.log("HD YTD Blob publish complete.");
