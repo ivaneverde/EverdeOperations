@@ -407,22 +407,21 @@ export function formatNurserySupplyQuery(
     requireReadyDate: true,
   }).sort((a, b) => String(a.readyDate).localeCompare(String(b.readyDate)));
 
-  const onHandTotals = onHand.reduce(
-    (acc, r) => {
-      acc.graded += Number(r.graded) || 0;
-      const saleable = Number(r.saleable) || 0;
-      acc.saleable += saleable;
-      acc.available +=
-        r.available != null ? Number(r.available) || 0 : Math.max(0, saleable);
-      return acc;
-    },
-    { graded: 0, saleable: 0, available: 0 },
-  );
+  let onHandGraded = 0;
+  let onHandSaleable = 0;
+  let onHandAvailable = 0;
+  for (const r of onHand) {
+    onHandGraded += Number(r.graded) || 0;
+    const saleable = Number(r.saleable) || 0;
+    onHandSaleable += saleable;
+    onHandAvailable +=
+      r.available != null ? Number(r.available) || 0 : Math.max(0, saleable);
+  }
 
-  const comingReadyUnits = comingReady.reduce(
-    (s, r) => s + (Number(r.graded) || 0),
-    0,
-  );
+  let comingReadyUnits = 0;
+  for (const r of comingReady) {
+    comingReadyUnits += Number(r.graded) || 0;
+  }
 
   return truncateText(
     JSON.stringify({
@@ -444,9 +443,9 @@ export function formatNurserySupplyQuery(
         grades: onHandGrades ?? "all matched",
         matched_lines: onHand.length,
         totals: {
-          graded_on_hand: Math.round(onHandTotals.graded * 100) / 100,
-          saleable_net: Math.round(onHandTotals.saleable * 100) / 100,
-          available_to_sell: Math.round(onHandTotals.available * 100) / 100,
+          graded_on_hand: Math.round(onHandGraded * 100) / 100,
+          saleable_net: Math.round(onHandSaleable * 100) / 100,
+          available_to_sell: Math.round(onHandAvailable * 100) / 100,
         },
         by_region_grade: aggregateNurserySupplyDetail(onHand),
         rows: mapRows(onHand).slice(0, 40),
