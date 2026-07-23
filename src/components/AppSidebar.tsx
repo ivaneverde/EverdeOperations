@@ -42,7 +42,7 @@ function sectionHasActiveReport(
   });
 }
 
-export function AppSidebar() {
+export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   const { activeSectionId, activeReportSlug } = useMemo(() => {
@@ -94,22 +94,34 @@ export function AppSidebar() {
   );
 
   return (
-    <aside className="flex h-full max-h-full w-60 shrink-0 flex-col overflow-hidden border-r border-[var(--everde-border)] bg-[var(--everde-sidebar)] text-[var(--everde-sidebar-fg)]">
+    <aside className="flex h-full max-h-full w-60 max-w-full shrink-0 flex-col overflow-hidden border-r border-[var(--everde-border)] bg-[var(--everde-sidebar)] text-[var(--everde-sidebar-fg)]">
       <div className="shrink-0 border-b border-[var(--everde-border)] px-3 py-2">
-        <Link href="/" className="block">
-          <p className="flex flex-wrap items-baseline gap-x-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--everde-gold)]">
-            <span>Everde</span>
-            <span
-              className="font-mono text-[9px] font-medium normal-case tracking-normal text-zinc-500"
-              title={`Portal version ${packageJson.version}`}
+        <div className="flex items-start justify-between gap-2">
+          <Link href="/" className="block min-w-0" onClick={() => onNavigate?.()}>
+            <p className="flex flex-wrap items-baseline gap-x-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--everde-gold)]">
+              <span>Everde</span>
+              <span
+                className="font-mono text-[9px] font-medium normal-case tracking-normal text-zinc-500"
+                title={`Portal version ${packageJson.version}`}
+              >
+                v{packageJson.version}
+              </span>
+            </p>
+            <p className="text-base font-semibold leading-tight text-white">
+              AI Operations
+            </p>
+          </Link>
+          {onNavigate ? (
+            <button
+              type="button"
+              onClick={onNavigate}
+              className="shrink-0 rounded px-2 py-1 text-xs text-zinc-400 hover:bg-white/10 hover:text-white md:hidden"
+              aria-label="Close navigation"
             >
-              v{packageJson.version}
-            </span>
-          </p>
-          <p className="text-base font-semibold leading-tight text-white">
-            AI Operations
-          </p>
-        </Link>
+              Close
+            </button>
+          ) : null}
+        </div>
         <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-zinc-400">
           Executive dashboards migrated from Excel prototypes.
         </p>
@@ -118,6 +130,10 @@ export function AppSidebar() {
         className="portal-sidebar-nav min-h-0 flex-1 px-1.5 py-1.5 text-[11px] leading-tight"
         aria-label="Portal sections"
         onWheel={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          const el = e.target as HTMLElement | null;
+          if (el?.closest("a")) onNavigate?.();
+        }}
       >
         <ol className="space-y-0.5 pb-2">
           {PORTAL_SECTIONS.map((section) => {
@@ -223,8 +239,7 @@ export function AppSidebar() {
           })}
         </ol>
       </nav>
-      <div
-        className="shrink-0 border-t border-[var(--everde-border)] px-2 py-1.5 text-[9px] leading-tight text-zinc-500"
+      <div className="hidden shrink-0 border-t border-[var(--everde-border)] px-2 py-1.5 text-[9px] leading-tight text-zinc-500 sm:block"
         title="\\192.168.190.10\\Claude Sandbox\\DataDrops"
       >
         <span className="font-medium text-zinc-400">Source: </span>

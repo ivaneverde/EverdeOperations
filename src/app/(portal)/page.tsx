@@ -8,13 +8,13 @@ import {
 
 export default function PortalHomePage() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-[var(--everde-canvas)] p-8">
-      <div className="mx-auto w-full max-w-5xl space-y-8">
-        <header className="everde-strip rounded-lg px-8 py-8 text-white shadow">
+    <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-[var(--everde-canvas)] p-4 sm:p-8">
+      <div className="mx-auto w-full max-w-5xl space-y-6 sm:space-y-8">
+        <header className="everde-strip rounded-lg px-5 py-6 text-white shadow sm:px-8 sm:py-8">
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--everde-gold)]">
             Everde Growers
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
             AI Operations Portal
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-200">
@@ -32,7 +32,8 @@ export default function PortalHomePage() {
             <span className="font-semibold text-[var(--everde-gold)]">
               @everde.com
             </span>{" "}
-            account; use a desktop or tablet for the best experience.
+            account. Use the menu button to open sections on a phone; larger
+            screens work best for wide grids.
           </p>
         </header>
         <CeoBriefingPanel />
