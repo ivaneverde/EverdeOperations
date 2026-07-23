@@ -66,7 +66,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_hd_ytd_following_week",
     description:
-      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps. No native Subclass column — Plant Category (e.g. SHRUB EVERGREEN) is joined from the HD Inventory Cross Reference (same as XXTT CATEGORY). Use focus=query with q= like 'market 48', 'district 25', 'store 614', 'shrub evergreen'.",
+      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps, AND retail on-hand: Curr Inventory Retail, LY Curr Inventory Retail, Current Inventory, Inventory LY. Query summary.inventory has FULL-store/match totals for on-hand $ and units TY vs LY — use those for 'total dollars on hand' / 'in hands vs last year'. No native Subclass — Plant Category joined from HD xref. focus=query with q= like 'store 6612', 'market 48 shrub evergreen'.",
     input_schema: {
       type: "object",
       properties: {

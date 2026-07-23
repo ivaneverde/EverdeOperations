@@ -322,12 +322,19 @@ export function summarizeYtdFilter(
   const storeI = colIndex(columns, "store nbr");
   const storeNameI = colIndex(columns, "store name");
   const skuI = colIndex(columns, "sku nbr", "item");
+  const skuNameI = colIndex(columns, "sku name", "item name", "desc");
   const salesI = colIndex(columns, "sales retail ytd");
   const lySalesI = colIndex(columns, "ly sales retail");
   const changeI = colIndex(columns, "sales change retail");
   const unitsI = colIndex(columns, "sales units");
   const lyUnitsI = colIndex(columns, "ly sales units");
   const unitsChangeI = colIndex(columns, "sales change units");
+  const invRetailI = colIndex(columns, "curr inventory retail");
+  const lyInvRetailI = colIndex(columns, "ly curr inventory retail");
+  const invRetailChgI = colIndex(columns, "curr inv. retail change", "curr inv retail change");
+  const invUnitsI = colIndex(columns, "current inventory");
+  const lyInvUnitsI = colIndex(columns, "inventory ly");
+  const invUnitsChgI = colIndex(columns, "curr inv. units change", "curr inv units change");
 
   const markets = new Set<string>();
   const districts = new Set<string>();
@@ -340,6 +347,27 @@ export function summarizeYtdFilter(
   let lyUnits = 0;
   let unitsChange = 0;
   let categoryHits = 0;
+
+  let invRetail = 0;
+  let lyInvRetail = 0;
+  let invRetailChange = 0;
+  let invUnits = 0;
+  let lyInvUnits = 0;
+  let invUnitsChange = 0;
+  let skusWithCurrOh = 0;
+  let skusWithLyOh = 0;
+  let invRetailRows = 0;
+  let lyInvRetailRows = 0;
+
+  type TopInv = {
+    sku: string;
+    name: string;
+    curr_inv_retail: number;
+    ly_inv_retail: number;
+    curr_units: number;
+    ly_units: number;
+  };
+  const topInvCandidates: TopInv[] = [];
 
   for (const row of rows) {
     if (marketI >= 0) markets.add(padHdCode(String(row[marketI] ?? "")));
@@ -363,9 +391,48 @@ export function summarizeYtdFilter(
     if (unitsI >= 0) units += num(row[unitsI]);
     if (lyUnitsI >= 0) lyUnits += num(row[lyUnitsI]);
     if (unitsChangeI >= 0) unitsChange += num(row[unitsChangeI]);
+
+    const curR = invRetailI >= 0 ? num(row[invRetailI]) : 0;
+    const lyR = lyInvRetailI >= 0 ? num(row[lyInvRetailI]) : 0;
+    const curU = invUnitsI >= 0 ? num(row[invUnitsI]) : 0;
+    const lyU = lyInvUnitsI >= 0 ? num(row[lyInvUnitsI]) : 0;
+    if (invRetailI >= 0 && row[invRetailI] != null && row[invRetailI] !== "") {
+      invRetail += curR;
+      invRetailRows += 1;
+    }
+    if (lyInvRetailI >= 0 && row[lyInvRetailI] != null && row[lyInvRetailI] !== "") {
+      lyInvRetail += lyR;
+      lyInvRetailRows += 1;
+    }
+    if (invRetailChgI >= 0) invRetailChange += num(row[invRetailChgI]);
+    if (invUnitsI >= 0 && row[invUnitsI] != null && row[invUnitsI] !== "") {
+      invUnits += curU;
+      if (curU > 0) skusWithCurrOh += 1;
+    }
+    if (lyInvUnitsI >= 0 && row[lyInvUnitsI] != null && row[lyInvUnitsI] !== "") {
+      lyInvUnits += lyU;
+      if (lyU > 0) skusWithLyOh += 1;
+    }
+    if (invUnitsChgI >= 0) invUnitsChange += num(row[invUnitsChgI]);
+
+    if (curR > 0 || curU > 0) {
+      topInvCandidates.push({
+        sku: skuI >= 0 ? String(row[skuI] ?? "") : "",
+        name: skuNameI >= 0 ? String(row[skuNameI] ?? "") : "",
+        curr_inv_retail: Math.round(curR * 100) / 100,
+        ly_inv_retail: Math.round(lyR * 100) / 100,
+        curr_units: Math.round(curU),
+        ly_units: Math.round(lyU),
+      });
+    }
   }
 
+  topInvCandidates.sort((a, b) => b.curr_inv_retail - a.curr_inv_retail);
   const compPct = lySales !== 0 ? (salesChange / lySales) * 100 : null;
+  const invRetailCompPct =
+    lyInvRetail !== 0
+      ? ((invRetail - lyInvRetail) / lyInvRetail) * 100
+      : null;
 
   return {
     parsed_filter: parsed,
@@ -396,9 +463,37 @@ export function summarizeYtdFilter(
       ly_sales_units: Math.round(lyUnits),
       sales_change_units: Math.round(unitsChange),
     },
+    /** FULL matched-row aggregates — use these for store/market totals, NOT the sample rows. */
+    inventory: {
+      scope: `All ${rows.length} matched rows (not the sample)`,
+      curr_inventory_retail: Math.round(invRetail * 100) / 100,
+      ly_curr_inventory_retail: Math.round(lyInvRetail * 100) / 100,
+      curr_inv_retail_change: Math.round(invRetailChange * 100) / 100,
+      inventory_retail_comp_pct:
+        invRetailCompPct != null
+          ? Math.round(invRetailCompPct * 100) / 100
+          : null,
+      current_inventory_units: Math.round(invUnits),
+      inventory_ly_units: Math.round(lyInvUnits),
+      curr_inv_units_change: Math.round(invUnitsChange),
+      skus_with_curr_on_hand: skusWithCurrOh,
+      skus_with_ly_on_hand: skusWithLyOh,
+      rows_with_curr_inv_retail: invRetailRows,
+      rows_with_ly_inv_retail: lyInvRetailRows,
+      top_skus_by_curr_inv_retail: topInvCandidates.slice(0, 15),
+      columns_used: [
+        "Curr Inventory Retail",
+        "LY Curr Inventory Retail",
+        "Current Inventory",
+        "Inventory LY",
+      ],
+      answer_hint:
+        "For 'total dollars on hand' / 'in hands this year vs last year' report inventory.curr_inventory_retail vs inventory.ly_curr_inventory_retail (and units). Do NOT say these columns are missing. Do NOT estimate from Sales÷Units. Do NOT use only the 50-row sample for store totals.",
+    },
     notes: [
       "Market Nbr / District Nbr / Store Nbr are 4-digit zero-padded (48 → 0048, 25 → 0025, 614 → 0614).",
       "YTD Following Week has no Subclass column — Plant Category is joined from the HD/Lowe's xref (e.g. SHRUB EVERGREEN). Filter with q= like 'shrub evergreen' or 'shrub'.",
+      "On-hand $ is Curr Inventory Retail / LY Curr Inventory Retail — summed in inventory.* across ALL matched rows.",
     ],
   };
 }
@@ -419,23 +514,35 @@ export function formatYtdSample(
     "Store Name",
     "SKU Nbr",
     "SKU Name",
+    "Curr Inventory Retail",
+    "LY Curr Inventory Retail",
+    "Curr Inv. Retail Change",
+    "Current Inventory",
+    "Inventory LY",
+    "Curr Inv. Units Change",
     "Sales Retail YTD",
     "LY Sales Retail",
     "Sales Change Retail",
     "Sales Units",
     "LY Sales Units",
     "Sales Change Units",
-    "Current Inventory",
     "Subregion",
   ];
   const showCols = [
     ...prefer.filter((c) => columns.includes(c)),
     ...columns.filter((c) => !prefer.includes(c)).slice(0, 8),
-  ].slice(0, 16);
+  ].slice(0, 18);
 
   const skuI = colIndex(columns, "sku nbr", "item");
+  const invRetailI = colIndex(columns, "curr inventory retail");
 
-  const sample = rows.slice(0, maxRows).map((row) => {
+  // Prefer highest on-hand $ rows in the sample when that column exists
+  const ordered =
+    invRetailI >= 0
+      ? [...rows].sort((a, b) => num(b[invRetailI]) - num(a[invRetailI]))
+      : rows;
+
+  const sample = ordered.slice(0, maxRows).map((row) => {
     const obj: Record<string, YtdCell> = {};
     for (const c of showCols) {
       const i = columns.indexOf(c);
@@ -449,14 +556,19 @@ export function formatYtdSample(
   });
 
   const payload: Record<string, unknown> = {
+    // summary FIRST so store inventory totals survive truncation
+    ...(q
+      ? { summary: summarizeYtdFilter(columns, rows, q, skuCategory) }
+      : {}),
     returned_sample: sample.length,
+    sample_note:
+      "Sample rows are illustrative (sorted by Curr Inventory Retail when available). Store/market TOTALS are only in summary.inventory / summary.comps across all matched rows.",
     columns_shown: [
       ...showCols,
       ...(skuCategory ? ["Plant Category (from xref)"] : []),
     ],
     rows: sample,
   };
-  if (q) payload.summary = summarizeYtdFilter(columns, rows, q, skuCategory);
 
   return truncateText(JSON.stringify(payload), maxChars);
 }
