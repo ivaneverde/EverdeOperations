@@ -114,7 +114,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_nursery_supply",
     description:
-      "Everde nursery Supply Inventory (XXTT price list — active graded/saleable by farm, region, grade, size, ready date). Use for 'how many do I have' Grade A/B questions. Prefer graded_on_hand for on-hand counts; saleable can be negative if oversold (not BO/CR). focus=summary or query with q=.",
+      "Everde nursery Supply Inventory from the XXTT inventory file (Sales Inventory Availability LANDSCAPE_INV_PL — graded/saleable/ready date by farm). Users call this the inventory file. Prefer graded_on_hand for on-hand; use readyDate for crop-ready timing. focus=summary or query with q= (e.g. 'japanese boxwood 1g a b norcal socal').",
     input_schema: {
       type: "object",
       properties: {

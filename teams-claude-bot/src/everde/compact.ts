@@ -123,7 +123,7 @@ export function compactNurseryJson(raw: string, maxChars: number): string {
   }
 }
 
-/** Compact nursery supply (price list) — never dump full SKU lines in snapshot. */
+/** Compact nursery supply (XXTT inventory) — never dump full SKU lines in snapshot. */
 export function compactNurserySupplyJson(
   raw: string,
   maxChars: number,
@@ -137,7 +137,7 @@ export function compactNurserySupplyJson(
       regions: p.regions ?? null,
       farmGradeMatrix: p.farmGradeMatrix ?? null,
       oversold: slimArray(p.oversold, 10),
-      note: "For Grade A/B × farm/region × product (e.g. Japanese Boxwood 1G), use get_nursery_supply with focus=query and q=.",
+      note: "Source is the XXTT inventory file (Sales Inventory Availability). READY DATE is in this file. For Grade A/B × farm/region × product (e.g. japanese boxwood 1g), use get_nursery_supply focus=query.",
     };
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {
