@@ -12,14 +12,22 @@ import {
 } from "../config/index.js";
 import { buildEverdeSnapshot } from "../everde/snapshot.js";
 import {
-  EVERDE_TOOL_DEFINITIONS,
   executeEverdeTool,
+  toolsForEmail,
 } from "../everde/tools.js";
+import {
+  buildViewRightsPromptBlock,
+  canAccessLowesAnalytics,
+} from "../everde/viewRights.js";
 import { logger } from "../utils/logger.js";
 import type { StoredTurn } from "./conversationStore.js";
 import { shouldEnableWebSearch } from "./webSearchDetect.js";
 
 const MAX_TOOL_ROUNDS = 6;
+
+export type ClaudeCompleteOptions = {
+  userEmail?: string | null;
+};
 
 export type ClaudeCompleteResult = {
   text: string;
@@ -29,7 +37,8 @@ export type ClaudeCompleteResult = {
 export class ClaudeService {
   private readonly client: Anthropic;
   private readonly config: AppConfig;
-  private everdeSnapshotCache: { at: number; block: string } | null = null;
+  private everdeSnapshotCache: Map<string, { at: number; block: string }> =
+    new Map();
 
   constructor(config?: AppConfig) {
     this.config = config ?? getConfig();
@@ -40,11 +49,13 @@ export class ClaudeService {
     history: StoredTurn[],
     userMessage: string,
     userTextForRouting?: string,
+    options?: ClaudeCompleteOptions,
   ): Promise<ClaudeCompleteResult> {
     return this.completeWithContent(
       history,
       userMessage,
       userTextForRouting ?? userMessage,
+      options,
     );
   }
 
@@ -52,15 +63,19 @@ export class ClaudeService {
     history: StoredTurn[],
     userContent: string | ContentBlockParam[],
     userTextForRouting = "",
+    options?: ClaudeCompleteOptions,
   ): Promise<ClaudeCompleteResult> {
     const routingText =
       userTextForRouting.trim() ||
       (typeof userContent === "string" ? userContent : "");
 
-    const everdeBlock = await this.getEverdeSnapshotBlock();
+    const userEmail = options?.userEmail ?? null;
+    const allowLowes = canAccessLowesAnalytics(userEmail);
+    const everdeBlock = await this.getEverdeSnapshotBlock(allowLowes);
+    const rightsBlock = buildViewRightsPromptBlock(userEmail);
     const baseSystem =
       this.config.CLAUDE_SYSTEM_PROMPT?.trim() || DEFAULT_SYSTEM_PROMPT;
-    const system = `${baseSystem}\n\n${everdeBlock}`;
+    const system = `${baseSystem}\n\n${rightsBlock}\n\n${everdeBlock}`;
 
     const messages: MessageParam[] = [
       ...history,
@@ -69,7 +84,7 @@ export class ClaudeService {
 
     const webSearchEnabled =
       this.config.ENABLE_WEB_SEARCH && shouldEnableWebSearch(routingText);
-    const tools = this.buildTools(routingText, webSearchEnabled);
+    const tools = this.buildTools(routingText, webSearchEnabled, userEmail);
     const hasDocuments = Array.isArray(userContent);
     const toolCalls: ClaudeCompleteResult["toolCalls"] = [];
 
@@ -77,8 +92,10 @@ export class ClaudeService {
       model: this.config.CLAUDE_MODEL,
       messageCount: messages.length,
       hasAttachments: hasDocuments,
-      everdeTools: EVERDE_TOOL_DEFINITIONS.length,
+      everdeTools: tools.filter((t) => t.name !== "web_search").length,
       webSearch: webSearchEnabled,
+      viewRoleAllowLowes: allowLowes,
+      userEmail: userEmail?.toLowerCase() ?? null,
     });
 
     try {
@@ -112,7 +129,9 @@ export class ClaudeService {
           const toolResults: ContentBlockParam[] = [];
           for (const block of response.content) {
             if (block.type !== "tool_use") continue;
-            const result = await executeEverdeTool(block.name, block.input);
+            const result = await executeEverdeTool(block.name, block.input, {
+              userEmail,
+            });
             toolCalls.push({
               name: block.name,
               input: block.input,
@@ -150,8 +169,12 @@ export class ClaudeService {
     }
   }
 
-  private buildTools(userText: string, webSearchEnabled: boolean): Tool[] {
-    const out: Tool[] = [...EVERDE_TOOL_DEFINITIONS];
+  private buildTools(
+    userText: string,
+    webSearchEnabled: boolean,
+    userEmail: string | null,
+  ): Tool[] {
+    const out: Tool[] = toolsForEmail(userEmail);
 
     if (webSearchEnabled) {
       const webTool: WebSearchTool20250305 = {
@@ -165,18 +188,17 @@ export class ClaudeService {
     return out;
   }
 
-  private async getEverdeSnapshotBlock(): Promise<string> {
+  private async getEverdeSnapshotBlock(allowLowes: boolean): Promise<string> {
     const ttlMs = this.config.EVERDE_SNAPSHOT_CACHE_MS;
     const now = Date.now();
-    if (
-      this.everdeSnapshotCache &&
-      now - this.everdeSnapshotCache.at < ttlMs
-    ) {
-      return this.everdeSnapshotCache.block;
+    const key = allowLowes ? "full" : "no-lowes";
+    const cached = this.everdeSnapshotCache.get(key);
+    if (cached && now - cached.at < ttlMs) {
+      return cached.block;
     }
 
-    const snap = await buildEverdeSnapshot();
-    this.everdeSnapshotCache = { at: now, block: snap.systemBlock };
+    const snap = await buildEverdeSnapshot({ allowLowes });
+    this.everdeSnapshotCache.set(key, { at: now, block: snap.systemBlock });
     return snap.systemBlock;
   }
 

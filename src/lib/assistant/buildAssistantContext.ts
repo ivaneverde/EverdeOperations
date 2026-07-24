@@ -28,12 +28,19 @@ import { loadWeatherDashboardJson } from "@/lib/weather/loadWeatherDashboardJson
 import { loadYtdMeta } from "@/lib/hdYtd/loadHdYtdData";
 import { buildPortalCatalogSummary } from "@/lib/assistant/portalCatalog";
 import { truncateForContext } from "@/lib/assistant/truncateForContext";
+import {
+  canAccessLowesAnalytics,
+  lowesDeniedMessage,
+  roleForEmail,
+} from "@/lib/auth/viewRights";
 
 export type AssistantRouteContext = {
   pathname: string;
   sectionId?: string;
   reportSlug?: string;
   provider?: AssistantProvider;
+  /** Signed-in portal user — drives Lowe's view rights. */
+  userEmail?: string | null;
 };
 
 export type AssistantDataContext = {
@@ -84,6 +91,8 @@ export async function buildAssistantContext(
 
   const provider = input.provider ?? "anthropic";
   const focus = contextFocusForPathname(input.pathname);
+  const allowLowes = canAccessLowesAnalytics(input.userEmail);
+  const viewRole = roleForEmail(input.userEmail);
   const datasets: AssistantDataContext["datasets"] = [];
   const compendiumMode =
     provider === "openai"
@@ -93,13 +102,19 @@ export async function buildAssistantContext(
     "You are the Everde AI Operations compendium analyst across all portal sections.",
     "Answer from the portal catalog and JSON datasets below. Cite specific numbers, names, carriers, farms, and key items.",
     "Retail and weather JSON are included when published to Blob or available locally.",
-    "HD and Lowe's Following Week YTD meta (totals/as-of) are included when published; full store×SKU grids are in-portal only.",
+    allowLowes
+      ? "HD and Lowe's Following Week YTD meta (totals/as-of) are included when published; full store×SKU grids are in-portal only."
+      : "HD Following Week YTD meta is included when published. Lowe's analytics are outside this user's view — do not invent Lowe's numbers.",
     `User is viewing: ${routeLabel}. Emphasize that section when applicable, but you may draw on any loaded dataset for cross-functional questions.`,
+    `Signed-in view role: ${viewRole}${input.userEmail ? ` (${input.userEmail})` : ""}.`,
+    allowLowes
+      ? null
+      : `VIEW RIGHTS: ${lowesDeniedMessage()} If asked about Lowe's, refuse politely and offer HD / farm / freight / weather instead.`,
     compendiumMode
-      ? `Context emphasis: ${focus} (compendium — freight, sales plan, HD/Lowe's YTD meta, nursery, retail, and weather when published; payloads compacted for API limits).`
+      ? `Context emphasis: ${focus} (compendium — freight, sales plan, HD${allowLowes ? "/Lowe's" : ""} YTD meta, nursery, retail, and weather when published; payloads compacted for API limits).`
       : `Context emphasis: ${focus} (focused mode — primary section + headlines only; set ${provider === "openai" ? "OPENAI" : "ANTHROPIC"}_ASSISTANT_COMPENDIUM=1 on the server for full cross-portal data).`,
     "Each dataset may include assistant_facts — prefer those for rankings and headlines, then supporting detail in the same block.",
-  ];
+  ].filter((n): n is string => Boolean(n));
 
   const pushDataset = (
     name: string,
@@ -153,14 +168,16 @@ export async function buildAssistantContext(
     "HD Sales YTD Following Week meta not available — run npm run sales-plan:hd-ytd-extract-publish.",
   );
 
-  const lowesMeta = await loadYtdMeta("lowes");
-  pushDataset(
-    "lowes_ytd_following_week",
-    lowesMeta ? JSON.stringify(lowesMeta) : null,
-    compactYtdFollowingWeekForAssistant,
-    "lowes_ytd",
-    "Lowe's Sales YTD Following Week meta not available — run npm run sales-plan:lowes-ytd-extract-publish.",
-  );
+  if (allowLowes) {
+    const lowesMeta = await loadYtdMeta("lowes");
+    pushDataset(
+      "lowes_ytd_following_week",
+      lowesMeta ? JSON.stringify(lowesMeta) : null,
+      compactYtdFollowingWeekForAssistant,
+      "lowes_ytd",
+      "Lowe's Sales YTD Following Week meta not available — run npm run sales-plan:lowes-ytd-extract-publish.",
+    );
+  }
 
   if (input.pathname.includes("or-forward-looking")) {
     const orPlan = await loadSalesPlanDashboardJson("or");

@@ -81,6 +81,7 @@ export async function POST(request: Request) {
     sectionId: body.sectionId,
     reportSlug: body.reportSlug,
     provider,
+    userEmail: gate.user.email,
   });
 
   const turns = messages

@@ -54,11 +54,14 @@ async function loadDataset(
   };
 }
 
-export async function buildEverdeSnapshot(): Promise<EverdeSnapshot> {
+export async function buildEverdeSnapshot(options?: {
+  allowLowes?: boolean;
+}): Promise<EverdeSnapshot> {
+  const allowLowes = options?.allowLowes !== false;
   const container = freightBlobContainer();
   const catalog = `${buildPortalCatalogSummary()}\n\n${buildGradeHierarchyBlock()}`;
 
-  const datasets = await Promise.all([
+  const loaders: Promise<EverdeDatasetSnapshot>[] = [
     loadDataset(
       "freight_dashboard",
       () => downloadJsonFromBlob(container, freightDashboardJsonPath()),
@@ -77,12 +80,20 @@ export async function buildEverdeSnapshot(): Promise<EverdeSnapshot> {
       compactYtdFollowingWeekMeta,
       "HD Sales YTD Following Week meta not in Blob — run npm run sales-plan:hd-ytd-extract-publish.",
     ),
-    loadDataset(
-      "lowes_ytd_following_week",
-      () => downloadJsonFromBlob(container, lowesYtdMetaJsonPath()),
-      compactYtdFollowingWeekMeta,
-      "Lowe's Sales YTD Following Week meta not in Blob — run npm run sales-plan:lowes-ytd-extract-publish.",
-    ),
+  ];
+
+  if (allowLowes) {
+    loaders.push(
+      loadDataset(
+        "lowes_ytd_following_week",
+        () => downloadJsonFromBlob(container, lowesYtdMetaJsonPath()),
+        compactYtdFollowingWeekMeta,
+        "Lowe's Sales YTD Following Week meta not in Blob — run npm run sales-plan:lowes-ytd-extract-publish.",
+      ),
+    );
+  }
+
+  loaders.push(
     loadDataset(
       "retail_opportunity",
       () => downloadJsonFromBlob(container, retailDashboardJsonPath()),
@@ -107,7 +118,9 @@ export async function buildEverdeSnapshot(): Promise<EverdeSnapshot> {
       compactNurseryJson,
       "Nursery demand not on Blob — run npm run nursery:publish-blob.",
     ),
-  ]);
+  );
+
+  const datasets = await Promise.all(loaders);
 
   const lines = [
     catalog,

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { FreightDashboardEmbed } from "@/components/reports/FreightDashboardEmbed";
 import { HdYtdGridEmbed } from "@/components/reports/HdYtdGridEmbed";
 import { RetailDashboardEmbed } from "@/components/reports/RetailDashboardEmbed";
@@ -9,6 +10,12 @@ import { FreightYtdSourcePage } from "@/components/reports/FreightYtdSourcePage"
 import { ReportPlaceholder } from "@/components/ReportPlaceholder";
 import { ReportShell } from "@/components/ReportShell";
 import { getReport } from "@/config/portal";
+import { PORTAL_SESSION_COOKIE } from "@/lib/auth/portalAuthConfig";
+import { verifyPortalSessionToken } from "@/lib/auth/portalSession";
+import {
+  canAccessLowesAnalytics,
+  isLowesRestrictedPath,
+} from "@/lib/auth/viewRights";
 import { salesPlanRegionFromSlug } from "@/lib/salesPlan/regionConfig";
 
 export default async function ReportPage(
@@ -27,6 +34,15 @@ export default async function ReportPage(
   if (!found) notFound();
 
   const { section: sec, report: rep } = found;
+
+  if (isLowesRestrictedPath(sec.id, rep.slug) || rep.lowesYtdGrid) {
+    const jar = await cookies();
+    const token = jar.get(PORTAL_SESSION_COOKIE)?.value;
+    const user = token ? await verifyPortalSessionToken(token) : null;
+    if (!canAccessLowesAnalytics(user?.email)) {
+      redirect("/");
+    }
+  }
 
   const navHref = rep.navHref?.trim();
   if (navHref) redirect(navHref);

@@ -33,6 +33,11 @@ import {
   type YtdKind,
 } from "./ytdFollowingWeek.js";
 import {
+  canAccessLowesAnalytics,
+  isLowesRestrictedTool,
+  lowesDeniedMessage,
+} from "./viewRights.js";
+import {
   formatNurserySupplyQuery,
   type NurserySupplyLine,
 } from "./nurserySupplyQuery.js";
@@ -270,10 +275,25 @@ async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
   ].join("\n");
 }
 
+export function toolsForEmail(email: string | null | undefined): Tool[] {
+  if (canAccessLowesAnalytics(email)) return [...EVERDE_TOOL_DEFINITIONS];
+  return EVERDE_TOOL_DEFINITIONS.filter(
+    (t) => !isLowesRestrictedTool(t.name),
+  );
+}
+
 export async function executeEverdeTool(
   name: string,
   input: unknown,
+  options?: { userEmail?: string | null },
 ): Promise<string> {
+  if (
+    isLowesRestrictedTool(name) &&
+    !canAccessLowesAnalytics(options?.userEmail)
+  ) {
+    return lowesDeniedMessage();
+  }
+
   const container = freightBlobContainer();
 
   switch (name) {

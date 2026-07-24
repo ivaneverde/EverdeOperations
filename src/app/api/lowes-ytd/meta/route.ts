@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
+import { guardPortalApi } from "@/lib/auth/guardApiRoute";
+import {
+  canAccessLowesAnalytics,
+  lowesDeniedMessage,
+} from "@/lib/auth/viewRights";
 import { loadYtdMeta } from "@/lib/hdYtd/loadHdYtdData";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const gate = await guardPortalApi(request);
+  if (!gate.ok) return gate.response;
+  if (!canAccessLowesAnalytics(gate.user.email)) {
+    return NextResponse.json(
+      { error: lowesDeniedMessage() },
+      { status: 403 },
+    );
+  }
+
   const meta = await loadYtdMeta("lowes");
   if (!meta) {
     return NextResponse.json(

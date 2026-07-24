@@ -10,6 +10,10 @@ import {
   PORTAL_SECTIONS,
   type PortalSection,
 } from "@/config/portal";
+import {
+  isLowesRestrictedPath,
+  type ViewRole,
+} from "@/lib/auth/viewRights";
 
 function pathForReport(sectionId: string, reportSlug: string) {
   return `/${sectionId}/${reportSlug}`;
@@ -42,9 +46,35 @@ function sectionHasActiveReport(
   });
 }
 
-export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = usePathname();
+function filterSectionsForRole(role: ViewRole): PortalSection[] {
+  const allowLowes = role !== "hd_rep";
+  return PORTAL_SECTIONS.map((section) => ({
+    ...section,
+    reports: section.reports.filter((r) => {
+      if (r.hideFromNav) return false;
+      if (!allowLowes && isLowesRestrictedPath(section.id, r.slug)) {
+        return false;
+      }
+      if (!allowLowes && (r.lowesYtdGrid || /lowes/i.test(r.slug))) {
+        return false;
+      }
+      return true;
+    }),
+  })).filter((s) => isSectionOnly(s) || s.reports.length > 0);
+}
 
+export function AppSidebar({
+  onNavigate,
+  viewRole = "full",
+}: {
+  onNavigate?: () => void;
+  viewRole?: ViewRole;
+}) {
+  const pathname = usePathname();
+  const sections = useMemo(
+    () => filterSectionsForRole(viewRole),
+    [viewRole],
+  );
   const { activeSectionId, activeReportSlug } = useMemo(() => {
     if (!pathname) return { activeSectionId: null, activeReportSlug: null };
     const parts = pathname.split("/").filter(Boolean);
@@ -136,7 +166,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
         }}
       >
         <ol className="space-y-0.5 pb-2">
-          {PORTAL_SECTIONS.map((section) => {
+          {sections.map((section) => {
             const only = isSectionOnly(section);
             const sectionHref = `/${section.id}`;
             const sectionActive =

@@ -24,6 +24,7 @@ import {
   isPersonalBotChat,
 } from "../utils/teamsConversationScope.js";
 import { getTeamsMessageText } from "../utils/teamsMessageText.js";
+import { resolveTeamsUserEmail } from "../everde/resolveTeamsUserEmail.js";
 
 const HELP_TEXT = `**Claude in Teams**
 
@@ -135,6 +136,8 @@ export class TeamsClaudeBot extends ActivityHandler {
 
     await context.sendActivity({ type: ActivityTypes.Typing });
 
+    const userEmail = await resolveTeamsUserEmail(context);
+
     try {
       const history = this.store.get(conversationId);
 
@@ -162,6 +165,7 @@ export class TeamsClaudeBot extends ActivityHandler {
           history,
           blocks,
           text,
+          { userEmail },
         );
 
         for (const call of toolCalls) {
@@ -228,6 +232,7 @@ export class TeamsClaudeBot extends ActivityHandler {
         history,
         userPayload,
         text,
+        { userEmail },
       );
 
       for (const call of toolCalls) {
