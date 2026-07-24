@@ -16,11 +16,24 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **Data / pipeline (planned):** Weekly import (and optional manual upload). Prefer **deterministic** code or existing Python (`Sales Plan Review` builders, etc.); **do not** depend on Claude tokens for runtime dashboard math. Optional LLM only for narratives/on-demand explanations.
 
+### Product goal — Jonathan (field / quick-answer) — 2026-07-24
+
+**Purpose:** Quick information **in the field** or general quick questions — not a replacement for full Excel workbooks.
+
+**Current priority scope (Jonathan):**
+- Retailers: **HD** and **LOW** only, **California** focus.
+- Geography grain: **stores, markets, or districts**.
+- Data today: **sales** and **on-hand** from uploads (Brent / Armando feeds via WeeklyDrop → Blob).
+- Coming next (Jonathan will supply files): **grouping** info, other related data, **suggested orders**.
+- North star: answer from **limited information we provide on the uploads** — do not invent outside those feeds.
+
+**Keep existing work:** Freight, nursery, weather, sales-plan dashboards, retail opportunity, CEO briefing, full ops portal sections, etc. stay implemented and maintained. Jonathan’s note is the **priority product lens** for field-facing HD/LOW Q&A (especially Teams + mobile), not a mandate to remove other features. Ops/admin users may still use the broader portal.
+
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
 **Snapshot 8.2.1 (portal app):** Mobile-friendly portal shell (hamburger nav) + Analyst assistant (keyboard-safe drawer). Teams bot: grade hierarchy/SS coming-ready, HD Plant Category join, full-store on-hand $ TY vs LY. **View rights:** Jae (`jmartin@everde.com`) HD-only (no Lowe’s); Cory (`cwible@everde.com`) HD+Lowe’s; others full. **8.1.8 lineage:** Lowe's YTD Following Week. Production: https://everde-operations.vercel.app .
 
-**Last session (2026-07-24):** Shipped role-based view rights (portal nav/API/assistant + Teams tool/prompt gate).
+**Last session (2026-07-24):** Shipped role-based view rights; recorded Jonathan’s field HD/LOW CA product goal (features retained).
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 
