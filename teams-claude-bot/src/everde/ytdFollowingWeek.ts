@@ -55,12 +55,96 @@ export async function loadYtdRowsCached(
 }
 
 function colIndex(columns: string[], ...needles: string[]): number {
-  const lower = columns.map((c) => c.toLowerCase());
+  const lower = columns.map((c) => c.toLowerCase().replace(/\s+/g, " ").trim());
+  // Prefer exact header matches first (avoids "store" hitting "store desc").
   for (const n of needles) {
-    const i = lower.findIndex((c) => c === n || c.includes(n));
+    const want = n.toLowerCase().replace(/\s+/g, " ").trim();
+    const i = lower.findIndex((c) => c === want);
+    if (i >= 0) return i;
+  }
+  for (const n of needles) {
+    const want = n.toLowerCase().replace(/\s+/g, " ").trim();
+    // Skip very short includes — too easy to false-match.
+    if (want.length < 6) continue;
+    const i = lower.findIndex((c) => c.includes(want));
     if (i >= 0) return i;
   }
   return -1;
+}
+
+/** List WKnn LY OH UNITS columns present in the workbook. */
+function listLyOhWeekColumns(columns: string[]): { week: number; index: number; name: string }[] {
+  const out: { week: number; index: number; name: string }[] = [];
+  columns.forEach((name, index) => {
+    const m = name.replace(/\s+/g, " ").trim().match(/^WK\s*(\d{1,2})\s+LY\s+OH\s+UNITS$/i);
+    if (m) out.push({ week: Number(m[1]), index, name });
+  });
+  return out.sort((a, b) => a.week - b.week);
+}
+
+/**
+ * Resolve Lowe's LY on-hand units column.
+ * Prefer requested week; else LY On Hand Units; else nearest available WKnn LY OH UNITS.
+ */
+function resolveLyOhUnitsCol(
+  columns: string[],
+  requestedWeek: number | null,
+): { index: number; label: string; week: number | null; note: string } {
+  const weeks = listLyOhWeekColumns(columns);
+  const generic = colIndex(columns, "ly on hand units", "inventory ly");
+
+  if (requestedWeek != null) {
+    const hit = weeks.find((w) => w.week === requestedWeek);
+    if (hit) {
+      return {
+        index: hit.index,
+        label: hit.name,
+        week: hit.week,
+        note: `Using ${hit.name} (store-level) for LY on-hand units.`,
+      };
+    }
+    // WK25 often missing in this extract — LY On Hand Units matches WK24 in current file.
+    if (generic >= 0) {
+      const nearest = weeks.reduce<{ week: number; name: string } | null>((best, w) => {
+        if (!best) return w;
+        return Math.abs(w.week - requestedWeek) < Math.abs(best.week - requestedWeek)
+          ? w
+          : best;
+      }, null);
+      return {
+        index: generic,
+        label: columns[generic],
+        week: null,
+        note: `WK${requestedWeek} LY OH UNITS is not a column in this Lowe's file. Using ${columns[generic]} (store-level)${nearest ? ` — nearest week column present is ${nearest.name}` : ""}.`,
+      };
+    }
+  }
+
+  if (generic >= 0) {
+    return {
+      index: generic,
+      label: columns[generic],
+      week: null,
+      note: `Using ${columns[generic]} (store-level LY on-hand units).`,
+    };
+  }
+
+  if (weeks.length) {
+    const last = weeks[weeks.length - 1]!;
+    return {
+      index: last.index,
+      label: last.name,
+      week: last.week,
+      note: `Using ${last.name} (store-level).`,
+    };
+  }
+
+  return {
+    index: -1,
+    label: "",
+    week: null,
+    note: "No LY on-hand units column found.",
+  };
 }
 
 /** Pad HD market/district/store codes to 4 digits when numeric. */
@@ -75,6 +159,8 @@ type StructuredFilter = {
   district?: string;
   store?: string;
   sku?: string;
+  /** Retail week for Lowe's WKnn LY OH comps (e.g. 25). */
+  week?: number;
   /** Plant Category needles from inventory/xref (e.g. shrub, evergreen). */
   categoryTokens: string[];
   textTokens: string[];
@@ -100,6 +186,12 @@ export function parseYtdQuery(q: string): StructuredFilter {
   take(/\bdistricts?\s*(?:nbr|number|#|:)?\s*(\d{1,4})\b/i, "district");
   take(/\bstores?\s*(?:nbr|number|#|:)?\s*(\d{1,4})\b/i, "store");
   take(/\bskus?\s*(?:nbr|number|#|:)?\s*(\d{4,8})\b/i, "sku");
+
+  const weekM = rest.match(/\b(?:week|wk)\s*#?\s*(\d{1,2})\b/i);
+  if (weekM) {
+    out.week = Number(weekM[1]);
+    rest = rest.replace(weekM[0], " ");
+  }
 
   // Bare leading codes when labeled elsewhere, e.g. "HD district 25"
   if (!out.district) {
@@ -241,10 +333,10 @@ export function filterYtdRows(
   const parsed = parseYtdQuery(q);
   const marketI = colIndex(columns, "market nbr", "market");
   const districtI = colIndex(columns, "district nbr", "district");
-  const storeI = colIndex(columns, "store nbr");
-  const storeNameI = colIndex(columns, "store name");
+  const storeI = colIndex(columns, "store nbr", "store");
+  const storeNameI = colIndex(columns, "store name", "store desc");
   const skuI = colIndex(columns, "sku nbr", "item");
-  const skuNameI = colIndex(columns, "sku name", "item name", "desc");
+  const skuNameI = colIndex(columns, "sku name", "item desc", "item name");
   const subregionI = colIndex(columns, "subregion");
   const keyI = colIndex(columns, "key");
 
@@ -319,11 +411,11 @@ export function summarizeYtdFilter(
   const parsed = parseYtdQuery(q);
   const marketI = colIndex(columns, "market nbr", "market");
   const districtI = colIndex(columns, "district nbr", "district");
-  const storeI = colIndex(columns, "store nbr");
-  const storeNameI = colIndex(columns, "store name");
+  const storeI = colIndex(columns, "store nbr", "store");
+  const storeNameI = colIndex(columns, "store name", "store desc");
   const skuI = colIndex(columns, "sku nbr", "item");
-  const skuNameI = colIndex(columns, "sku name", "item name", "desc");
-  const salesI = colIndex(columns, "sales retail ytd");
+  const skuNameI = colIndex(columns, "sku name", "item desc", "item name");
+  const salesI = colIndex(columns, "sales retail ytd", "sales retail");
   const lySalesI = colIndex(columns, "ly sales retail");
   const changeI = colIndex(columns, "sales change retail");
   const unitsI = colIndex(columns, "sales units");
@@ -331,10 +423,28 @@ export function summarizeYtdFilter(
   const unitsChangeI = colIndex(columns, "sales change units");
   const invRetailI = colIndex(columns, "curr inventory retail");
   const lyInvRetailI = colIndex(columns, "ly curr inventory retail");
-  const invRetailChgI = colIndex(columns, "curr inv. retail change", "curr inv retail change");
-  const invUnitsI = colIndex(columns, "current inventory");
-  const lyInvUnitsI = colIndex(columns, "inventory ly");
-  const invUnitsChgI = colIndex(columns, "curr inv. units change", "curr inv units change");
+  const invRetailChgI = colIndex(
+    columns,
+    "curr inv. retail change",
+    "curr inv retail change",
+  );
+  const invUnitsI = colIndex(
+    columns,
+    "curr inventory units",
+    "current inventory",
+  );
+  const lyOhResolved = resolveLyOhUnitsCol(columns, parsed.week ?? null);
+  const lyInvUnitsI = lyOhResolved.index;
+  const invUnitsChgI = colIndex(
+    columns,
+    "curr inv. units change",
+    "curr inv units change",
+  );
+  const avgPriceI = colIndex(columns, "avg retail price");
+  const isLowesLayout =
+    lyInvRetailI < 0 &&
+    (colIndex(columns, "ly on hand units") >= 0 ||
+      listLyOhWeekColumns(columns).length > 0);
 
   const markets = new Set<string>();
   const districts = new Set<string>();
@@ -350,6 +460,7 @@ export function summarizeYtdFilter(
 
   let invRetail = 0;
   let lyInvRetail = 0;
+  let lyInvRetailEstimated = 0;
   let invRetailChange = 0;
   let invUnits = 0;
   let lyInvUnits = 0;
@@ -358,6 +469,7 @@ export function summarizeYtdFilter(
   let skusWithLyOh = 0;
   let invRetailRows = 0;
   let lyInvRetailRows = 0;
+  let lyEstRows = 0;
 
   type TopInv = {
     sku: string;
@@ -393,9 +505,21 @@ export function summarizeYtdFilter(
     if (unitsChangeI >= 0) unitsChange += num(row[unitsChangeI]);
 
     const curR = invRetailI >= 0 ? num(row[invRetailI]) : 0;
-    const lyR = lyInvRetailI >= 0 ? num(row[lyInvRetailI]) : 0;
     const curU = invUnitsI >= 0 ? num(row[invUnitsI]) : 0;
     const lyU = lyInvUnitsI >= 0 ? num(row[lyInvUnitsI]) : 0;
+    let lyR = lyInvRetailI >= 0 ? num(row[lyInvRetailI]) : 0;
+
+    // Lowe's: no native LY OH retail $ — estimate store-level from LY OH units × price
+    if (lyInvRetailI < 0 && lyU > 0) {
+      let price = avgPriceI >= 0 ? num(row[avgPriceI]) : 0;
+      if (!(price > 0) && curU > 0 && curR > 0) price = curR / curU;
+      if (price > 0) {
+        lyR = lyU * price;
+        lyInvRetailEstimated += lyR;
+        lyEstRows += 1;
+      }
+    }
+
     if (invRetailI >= 0 && row[invRetailI] != null && row[invRetailI] !== "") {
       invRetail += curR;
       invRetailRows += 1;
@@ -427,12 +551,38 @@ export function summarizeYtdFilter(
     }
   }
 
+  // Prefer native HD LY retail; else Lowe's estimated LY OH $ (store-level only)
+  if (lyInvRetailI < 0 && lyInvUnits > 0) {
+    const avgTyUnitRetail = invUnits > 0 ? invRetail / invUnits : 0;
+    let coveredUnits = 0;
+    for (const row of rows) {
+      const lyU = num(row[lyInvUnitsI]);
+      if (!(lyU > 0)) continue;
+      let price = avgPriceI >= 0 ? num(row[avgPriceI]) : 0;
+      const curU = invUnitsI >= 0 ? num(row[invUnitsI]) : 0;
+      const curR = invRetailI >= 0 ? num(row[invRetailI]) : 0;
+      if (!(price > 0) && curU > 0 && curR > 0) price = curR / curU;
+      if (price > 0) coveredUnits += lyU;
+    }
+    const remainder = Math.max(0, lyInvUnits - coveredUnits);
+    if (lyInvRetailEstimated > 0 && avgTyUnitRetail > 0) {
+      lyInvRetail = lyInvRetailEstimated + remainder * avgTyUnitRetail;
+    } else if (lyInvRetailEstimated > 0) {
+      lyInvRetail = lyInvRetailEstimated;
+    } else if (avgTyUnitRetail > 0) {
+      lyInvRetail = lyInvUnits * avgTyUnitRetail;
+    }
+    lyInvRetailRows = lyEstRows;
+  }
+
   topInvCandidates.sort((a, b) => b.curr_inv_retail - a.curr_inv_retail);
   const compPct = lySales !== 0 ? (salesChange / lySales) * 100 : null;
   const invRetailCompPct =
     lyInvRetail !== 0
       ? ((invRetail - lyInvRetail) / lyInvRetail) * 100
       : null;
+
+  const lyRetailIsEstimated = isLowesLayout && lyInvRetailI < 0;
 
   return {
     parsed_filter: parsed,
@@ -466,8 +616,13 @@ export function summarizeYtdFilter(
     /** FULL matched-row aggregates — use these for store/market totals, NOT the sample rows. */
     inventory: {
       scope: `All ${rows.length} matched rows (not the sample)`,
+      retailer_layout: isLowesLayout ? "lowes" : "hd_or_generic",
       curr_inventory_retail: Math.round(invRetail * 100) / 100,
       ly_curr_inventory_retail: Math.round(lyInvRetail * 100) / 100,
+      ly_retail_is_estimated: lyRetailIsEstimated,
+      ly_retail_method: lyRetailIsEstimated
+        ? "Estimated store-level LY OH $ = sum(LY OH units × Avg Retail Price, or TY unit retail when avg missing). Native LY OH retail $ column does not exist on Lowe's — do NOT say LY dollars are unavailable."
+        : "Native LY Curr Inventory Retail column.",
       curr_inv_retail_change: Math.round(invRetailChange * 100) / 100,
       inventory_retail_comp_pct:
         invRetailCompPct != null
@@ -475,6 +630,11 @@ export function summarizeYtdFilter(
           : null,
       current_inventory_units: Math.round(invUnits),
       inventory_ly_units: Math.round(lyInvUnits),
+      ly_oh_units_column: lyOhResolved.label || null,
+      ly_oh_units_note: lyOhResolved.note,
+      ly_oh_week_columns_available: listLyOhWeekColumns(columns).map(
+        (w) => w.name,
+      ),
       curr_inv_units_change: Math.round(invUnitsChange),
       skus_with_curr_on_hand: skusWithCurrOh,
       skus_with_ly_on_hand: skusWithLyOh,
@@ -482,18 +642,20 @@ export function summarizeYtdFilter(
       rows_with_ly_inv_retail: lyInvRetailRows,
       top_skus_by_curr_inv_retail: topInvCandidates.slice(0, 15),
       columns_used: [
-        "Curr Inventory Retail",
-        "LY Curr Inventory Retail",
-        "Current Inventory",
-        "Inventory LY",
-      ],
-      answer_hint:
-        "For 'total dollars on hand' / 'in hands this year vs last year' report inventory.curr_inventory_retail vs inventory.ly_curr_inventory_retail (and units). Do NOT say these columns are missing. Do NOT estimate from Sales÷Units. Do NOT use only the 50-row sample for store totals.",
+        invRetailI >= 0 ? columns[invRetailI] : null,
+        lyInvRetailI >= 0 ? columns[lyInvRetailI] : null,
+        invUnitsI >= 0 ? columns[invUnitsI] : null,
+        lyOhResolved.label || null,
+        avgPriceI >= 0 ? columns[avgPriceI] : null,
+      ].filter(Boolean),
+      answer_hint: isLowesLayout
+        ? "Lead with inventory.curr_inventory_retail (TY OH $) and inventory.ly_curr_inventory_retail (estimated LY OH $) plus inventory.inventory_ly_units. Totals are FULL matched store rows — never network-wide week columns from a sample. If user asks week 25 and WK25 LY OH is missing, say so briefly and use LY On Hand Units / nearest week — still give the dollar estimate. Do NOT fight the user that dollars are impossible."
+        : "For 'total dollars on hand' TY vs LY report inventory.curr_inventory_retail vs inventory.ly_curr_inventory_retail (and units). Do NOT use only the 50-row sample for store totals.",
     },
     notes: [
-      "Market Nbr / District Nbr / Store Nbr are 4-digit zero-padded (48 → 0048, 25 → 0025, 614 → 0614).",
-      "YTD Following Week has no Subclass column — Plant Category is joined from the HD/Lowe's xref (e.g. SHRUB EVERGREEN). Filter with q= like 'shrub evergreen' or 'shrub'.",
-      "On-hand $ is Curr Inventory Retail / LY Curr Inventory Retail — summed in inventory.* across ALL matched rows.",
+      "HD Market/District/Store are 4-digit zero-padded. Lowe's Store is typically unpadded (774) — filter still matches.",
+      "Lowe's Assortment Desc is subclass-like. HD uses Plant Category from xref when available.",
+      "On-hand $: always use summary.inventory.* across ALL matched rows (store-level). Never invent network totals.",
     ],
   };
 }
@@ -512,15 +674,24 @@ export function formatYtdSample(
     "District Nbr",
     "Store Nbr",
     "Store Name",
+    "Store",
+    "Store Desc",
     "SKU Nbr",
     "SKU Name",
+    "Item",
+    "Item Desc",
+    "Assortment Desc",
     "Curr Inventory Retail",
     "LY Curr Inventory Retail",
     "Curr Inv. Retail Change",
+    "Curr Inventory Units",
     "Current Inventory",
+    "LY On Hand Units",
     "Inventory LY",
     "Curr Inv. Units Change",
+    "Avg Retail Price",
     "Sales Retail YTD",
+    "Sales Retail",
     "LY Sales Retail",
     "Sales Change Retail",
     "Sales Units",

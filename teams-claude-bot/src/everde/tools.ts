@@ -86,7 +86,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_lowes_ytd_following_week",
     description:
-      "Lowe's Sales YTD with Following Week Sales (YTD BY STORE SKU grid). Plant Category joined from Lowe's xref (same taxonomy as XXTT CATEGORY). Use focus=summary, sample, or query (q= store/item/category like 'shrub evergreen'). Never dumps the full ~300k-row grid.",
+      "Lowe's Sales YTD BY STORE SKU grid. Store / Store Desc / Item / Assortment Desc, Curr Inventory Retail (TY OH $), LY On Hand Units + WKnn LY OH UNITS (store-level), Avg Retail Price. summary.inventory has FULL-store TY OH $ and estimated LY OH $ (units×price) — use for on-hand TY vs LY in dollars. focus=query with q= like 'store 774', 'rancho cucamonga', 'week 25 store 774'. Never dump the full ~300k-row grid.",
     input_schema: {
       type: "object",
       properties: {
