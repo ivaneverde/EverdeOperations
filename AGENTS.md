@@ -31,8 +31,8 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 | Teams name | Endpoint | Scope |
 |------------|----------|--------|
 | **Claude** | `/api/messages` | Full ops (freight, weather, HD+Lowes, nursery, …) |
-| **Everde HD** | `/api/messages/hd` | HD YTD + farm inventory/demand only |
-| **Everde Lowes** | `/api/messages/lowes` | Lowe's YTD + farm inventory/demand only |
+| **Everde HD** (`@EverdeHD`) | `/api/messages/hd` | HD YTD + farm inventory/demand only |
+| **Everde Lowes** (`@EverdeLowes`) | `/api/messages/lowes` | Lowe's YTD + farm inventory/demand only |
 
 Same Blob publish; each profile loads only its datasets/tools (less bandwidth). Requires separate Entra + Azure Bot + Teams package per key-account bot — see `teams-claude-bot/docs/MULTI_BOT_PROFILES.md`. Email **view rights** still apply on Claude (Jae no Lowe's).
 

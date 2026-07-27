@@ -2,11 +2,13 @@
 
 One **Azure App Service** deploy (`everde-claude-teams-bot`) hosts three **visual** Teams bots. Data still comes from the same Blob feeds; each profile only **loads and exposes** its key-account slice (less snapshot bandwidth / fewer tools).
 
-| Teams display name | Profile | Messaging endpoint | Data |
-|--------------------|---------|--------------------|------|
-| **Claude** (existing) | `full` | `POST /api/messages` | Freight, sales plan, HD + Lowe's, retail, weather, nursery |
-| **Everde HD** | `hd` | `POST /api/messages/hd` | HD YTD + nursery supply/demand only |
-| **Everde Lowes** | `lowes` | `POST /api/messages/lowes` | Lowe's YTD + nursery supply/demand only |
+| Teams display / @mention | Profile | Messaging endpoint | Data |
+|--------------------------|---------|--------------------|------|
+| **Claude** | `full` | `POST /api/messages` | Freight, sales plan, HD + Lowe's, retail, weather, nursery |
+| **Everde HD** (`@EverdeHD`) | `hd` | `POST /api/messages/hd` | HD YTD + nursery supply/demand only |
+| **Everde Lowes** (`@EverdeLowes`) | `lowes` | `POST /api/messages/lowes` | Lowe's YTD + nursery supply/demand only |
+
+Manifest short names (what Teams @mention uses): `EverdeHD`, `EverdeLowes`. Full names: `Everde HD`, `Everde Lowes`.
 
 ## What Aaron / IT create (twice — HD and Lowes)
 

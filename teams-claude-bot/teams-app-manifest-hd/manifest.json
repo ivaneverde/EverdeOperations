@@ -10,12 +10,12 @@
     "termsOfUseUrl": "https://everde.com/terms"
   },
   "name": {
-    "short": "Everde HD",
-    "full": "Everde HD Key Account Assistant"
+    "short": "EverdeHD",
+    "full": "Everde HD"
   },
   "description": {
     "short": "Home Depot store / market / inventory quick answers",
-    "full": "Field assistant for Home Depot YTD sales & on-hand plus Everde farm inventory. Does not include Lowe's or freight. Powered by the same Everde operations backend as Claude."
+    "full": "Field assistant for Home Depot YTD sales & on-hand plus Everde farm inventory. Mention with @EverdeHD. Does not include Lowe's or freight."
   },
   "icons": {
     "outline": "outline.png",
