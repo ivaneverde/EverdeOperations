@@ -31,7 +31,10 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **Anti false data-denial:** Teams bot + portal Analyst must **not** say data is missing when Blob/snapshot shows it published. Zero filter matches = refine the query; only deny when a feed is truly unpublished. Prefer tool calls over “I can’t find it.”
 
-**Retail fiscal weeks (Jonathan 2026-07-24):** Monday–Sunday. FY2026 week 1 = Mon **2026-02-02**. Anchor: **week 25 = Mon 2026-07-20** (report-run Monday). Bot/Analyst inject current Pacific week + published YTD `asOf` → week number; default week questions to as-of week without making the user restate it.
+**Retail / accounting weeks:**
+- **Everde accounting calendar** (Marco, `docs/reference/2026-Accounting-Calendar-10.14.2025.xlsx` → JSON in `src/lib/retail/`): **Sunday–Saturday**; FY2026 week 1 = Sun **2025-12-28**.
+- **HD/Lowe's retailer weeks** (YTD column labels WK25 / Week 25 On Hands): **different numbering**. Jonathan: report Mon **2026-07-20** = retailer **week 25** = Everde accounting **week 30**.
+- Bot/Analyst inject both; “fiscal week” → accounting; YTD “week 25” → retailer columns.
 
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 

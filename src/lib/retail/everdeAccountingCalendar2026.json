@@ -1,0 +1,373 @@
+{
+  "source": "2026 Accounting Calendar - 10.14.2025.xlsx (Marco)",
+  "fiscalYearLabel": 2026,
+  "weekStartsOn": "Sunday",
+  "weekEndsOn": "Saturday",
+  "note": "Everde internal accounting weeks. HD/Lowe YTD WK## columns use retailer fiscal weeks (separate numbering).",
+  "weeks": [
+    {
+      "week": 1,
+      "accountingMonth": "January",
+      "sunday": "2025-12-28",
+      "monday": "2025-12-29",
+      "saturday": "2026-01-03"
+    },
+    {
+      "week": 2,
+      "accountingMonth": "January",
+      "sunday": "2026-01-04",
+      "monday": "2026-01-05",
+      "saturday": "2026-01-10"
+    },
+    {
+      "week": 3,
+      "accountingMonth": "January",
+      "sunday": "2026-01-11",
+      "monday": "2026-01-12",
+      "saturday": "2026-01-17"
+    },
+    {
+      "week": 4,
+      "accountingMonth": "January",
+      "sunday": "2026-01-18",
+      "monday": "2026-01-19",
+      "saturday": "2026-01-24"
+    },
+    {
+      "week": 5,
+      "accountingMonth": "February",
+      "sunday": "2026-01-25",
+      "monday": "2026-01-26",
+      "saturday": "2026-01-31"
+    },
+    {
+      "week": 6,
+      "accountingMonth": "February",
+      "sunday": "2026-02-01",
+      "monday": "2026-02-02",
+      "saturday": "2026-02-07"
+    },
+    {
+      "week": 7,
+      "accountingMonth": "February",
+      "sunday": "2026-02-08",
+      "monday": "2026-02-09",
+      "saturday": "2026-02-14"
+    },
+    {
+      "week": 8,
+      "accountingMonth": "February",
+      "sunday": "2026-02-15",
+      "monday": "2026-02-16",
+      "saturday": "2026-02-21"
+    },
+    {
+      "week": 9,
+      "accountingMonth": "March",
+      "sunday": "2026-02-22",
+      "monday": "2026-02-23",
+      "saturday": "2026-02-28"
+    },
+    {
+      "week": 10,
+      "accountingMonth": "March",
+      "sunday": "2026-03-01",
+      "monday": "2026-03-02",
+      "saturday": "2026-03-07"
+    },
+    {
+      "week": 11,
+      "accountingMonth": "March",
+      "sunday": "2026-03-08",
+      "monday": "2026-03-09",
+      "saturday": "2026-03-14"
+    },
+    {
+      "week": 12,
+      "accountingMonth": "March",
+      "sunday": "2026-03-15",
+      "monday": "2026-03-16",
+      "saturday": "2026-03-21"
+    },
+    {
+      "week": 13,
+      "accountingMonth": "March",
+      "sunday": "2026-03-22",
+      "monday": "2026-03-23",
+      "saturday": "2026-03-28"
+    },
+    {
+      "week": 14,
+      "accountingMonth": "April",
+      "sunday": "2026-03-29",
+      "monday": "2026-03-30",
+      "saturday": "2026-04-04"
+    },
+    {
+      "week": 15,
+      "accountingMonth": "April",
+      "sunday": "2026-04-05",
+      "monday": "2026-04-06",
+      "saturday": "2026-04-11"
+    },
+    {
+      "week": 16,
+      "accountingMonth": "April",
+      "sunday": "2026-04-12",
+      "monday": "2026-04-13",
+      "saturday": "2026-04-18"
+    },
+    {
+      "week": 17,
+      "accountingMonth": "April",
+      "sunday": "2026-04-19",
+      "monday": "2026-04-20",
+      "saturday": "2026-04-25"
+    },
+    {
+      "week": 18,
+      "accountingMonth": "May",
+      "sunday": "2026-04-26",
+      "monday": "2026-04-27",
+      "saturday": "2026-05-02"
+    },
+    {
+      "week": 19,
+      "accountingMonth": "May",
+      "sunday": "2026-05-03",
+      "monday": "2026-05-04",
+      "saturday": "2026-05-09"
+    },
+    {
+      "week": 20,
+      "accountingMonth": "May",
+      "sunday": "2026-05-10",
+      "monday": "2026-05-11",
+      "saturday": "2026-05-16"
+    },
+    {
+      "week": 21,
+      "accountingMonth": "May",
+      "sunday": "2026-05-17",
+      "monday": "2026-05-18",
+      "saturday": "2026-05-23"
+    },
+    {
+      "week": 22,
+      "accountingMonth": "June",
+      "sunday": "2026-05-24",
+      "monday": "2026-05-25",
+      "saturday": "2026-05-30"
+    },
+    {
+      "week": 23,
+      "accountingMonth": "June",
+      "sunday": "2026-05-31",
+      "monday": "2026-06-01",
+      "saturday": "2026-06-06"
+    },
+    {
+      "week": 24,
+      "accountingMonth": "June",
+      "sunday": "2026-06-07",
+      "monday": "2026-06-08",
+      "saturday": "2026-06-13"
+    },
+    {
+      "week": 25,
+      "accountingMonth": "June",
+      "sunday": "2026-06-14",
+      "monday": "2026-06-15",
+      "saturday": "2026-06-20"
+    },
+    {
+      "week": 26,
+      "accountingMonth": "June",
+      "sunday": "2026-06-21",
+      "monday": "2026-06-22",
+      "saturday": "2026-06-27"
+    },
+    {
+      "week": 27,
+      "accountingMonth": "July",
+      "sunday": "2026-06-28",
+      "monday": "2026-06-29",
+      "saturday": "2026-07-04"
+    },
+    {
+      "week": 28,
+      "accountingMonth": "July",
+      "sunday": "2026-07-05",
+      "monday": "2026-07-06",
+      "saturday": "2026-07-11"
+    },
+    {
+      "week": 29,
+      "accountingMonth": "July",
+      "sunday": "2026-07-12",
+      "monday": "2026-07-13",
+      "saturday": "2026-07-18"
+    },
+    {
+      "week": 30,
+      "accountingMonth": "July",
+      "sunday": "2026-07-19",
+      "monday": "2026-07-20",
+      "saturday": "2026-07-25"
+    },
+    {
+      "week": 31,
+      "accountingMonth": "August",
+      "sunday": "2026-07-26",
+      "monday": "2026-07-27",
+      "saturday": "2026-08-01"
+    },
+    {
+      "week": 32,
+      "accountingMonth": "August",
+      "sunday": "2026-08-02",
+      "monday": "2026-08-03",
+      "saturday": "2026-08-08"
+    },
+    {
+      "week": 33,
+      "accountingMonth": "August",
+      "sunday": "2026-08-09",
+      "monday": "2026-08-10",
+      "saturday": "2026-08-15"
+    },
+    {
+      "week": 34,
+      "accountingMonth": "August",
+      "sunday": "2026-08-16",
+      "monday": "2026-08-17",
+      "saturday": "2026-08-22"
+    },
+    {
+      "week": 35,
+      "accountingMonth": "September",
+      "sunday": "2026-08-23",
+      "monday": "2026-08-24",
+      "saturday": "2026-08-29"
+    },
+    {
+      "week": 36,
+      "accountingMonth": "September",
+      "sunday": "2026-08-30",
+      "monday": "2026-08-31",
+      "saturday": "2026-09-05"
+    },
+    {
+      "week": 37,
+      "accountingMonth": "September",
+      "sunday": "2026-09-06",
+      "monday": "2026-09-07",
+      "saturday": "2026-09-12"
+    },
+    {
+      "week": 38,
+      "accountingMonth": "September",
+      "sunday": "2026-09-13",
+      "monday": "2026-09-14",
+      "saturday": "2026-09-19"
+    },
+    {
+      "week": 39,
+      "accountingMonth": "September",
+      "sunday": "2026-09-20",
+      "monday": "2026-09-21",
+      "saturday": "2026-09-26"
+    },
+    {
+      "week": 40,
+      "accountingMonth": "October",
+      "sunday": "2026-09-27",
+      "monday": "2026-09-28",
+      "saturday": "2026-10-03"
+    },
+    {
+      "week": 41,
+      "accountingMonth": "October",
+      "sunday": "2026-10-04",
+      "monday": "2026-10-05",
+      "saturday": "2026-10-10"
+    },
+    {
+      "week": 42,
+      "accountingMonth": "October",
+      "sunday": "2026-10-11",
+      "monday": "2026-10-12",
+      "saturday": "2026-10-17"
+    },
+    {
+      "week": 43,
+      "accountingMonth": "October",
+      "sunday": "2026-10-18",
+      "monday": "2026-10-19",
+      "saturday": "2026-10-24"
+    },
+    {
+      "week": 44,
+      "accountingMonth": "November",
+      "sunday": "2026-10-25",
+      "monday": "2026-10-26",
+      "saturday": "2026-10-31"
+    },
+    {
+      "week": 45,
+      "accountingMonth": "November",
+      "sunday": "2026-11-01",
+      "monday": "2026-11-02",
+      "saturday": "2026-11-07"
+    },
+    {
+      "week": 46,
+      "accountingMonth": "November",
+      "sunday": "2026-11-08",
+      "monday": "2026-11-09",
+      "saturday": "2026-11-14"
+    },
+    {
+      "week": 47,
+      "accountingMonth": "November",
+      "sunday": "2026-11-15",
+      "monday": "2026-11-16",
+      "saturday": "2026-11-21"
+    },
+    {
+      "week": 48,
+      "accountingMonth": "December",
+      "sunday": "2026-11-22",
+      "monday": "2026-11-23",
+      "saturday": "2026-11-28"
+    },
+    {
+      "week": 49,
+      "accountingMonth": "December",
+      "sunday": "2026-11-29",
+      "monday": "2026-11-30",
+      "saturday": "2026-12-05"
+    },
+    {
+      "week": 50,
+      "accountingMonth": "December",
+      "sunday": "2026-12-06",
+      "monday": "2026-12-07",
+      "saturday": "2026-12-12"
+    },
+    {
+      "week": 51,
+      "accountingMonth": "December",
+      "sunday": "2026-12-13",
+      "monday": "2026-12-14",
+      "saturday": "2026-12-19"
+    },
+    {
+      "week": 52,
+      "accountingMonth": "December",
+      "sunday": "2026-12-20",
+      "monday": "2026-12-21",
+      "saturday": "2026-12-26"
+    }
+  ]
+}

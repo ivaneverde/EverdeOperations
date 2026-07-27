@@ -1,19 +1,28 @@
 /**
- * Everde / HD-LOW retail fiscal weeks — mirrored from teams-claude-bot.
- * Keep WEEK1_MONDAY_BY_FY and Monday–Sunday rule in sync.
+ * Everde accounting calendar + retailer (HD/LOW) week guidance.
+ * Mirrored with teams-claude-bot/src/everde/retailFiscalWeeks.ts — keep in sync.
  */
 
-export type RetailWeekInfo = {
-  fiscalYear: number;
+import calendarJson from "./everdeAccountingCalendar2026.json";
+
+export type AccountingWeekInfo = {
+  fiscalYearLabel: number;
   week: number;
+  accountingMonth: string | null;
   weekStart: string;
   weekEnd: string;
+  monday: string;
 };
 
-const WEEK1_MONDAY_BY_FY: Record<number, string> = {
-  2026: "2026-02-02",
-  2027: "2027-02-01",
+type WeekRow = {
+  week: number;
+  accountingMonth: string;
+  sunday: string;
+  monday: string;
+  saturday: string;
 };
+
+const WEEKS = (calendarJson as { weeks: WeekRow[] }).weeks;
 
 function parseYmd(ymd: string): Date {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -25,41 +34,6 @@ function formatYmd(d: Date): string {
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-function addDaysUtc(d: Date, days: number): Date {
-  const out = new Date(d.getTime());
-  out.setUTCDate(out.getUTCDate() + days);
-  return out;
-}
-
-export function mondayOnOrBefore(date: Date): Date {
-  const d = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
-  const dow = d.getUTCDay();
-  const back = dow === 0 ? 6 : dow - 1;
-  return addDaysUtc(d, -back);
-}
-
-function week1MondayForDate(date: Date): { fy: number; week1: Date } {
-  const y = date.getUTCFullYear();
-  const candidates = [y + 1, y, y - 1];
-  let best: { fy: number; week1: Date } | null = null;
-  for (const fy of candidates) {
-    const ymd = WEEK1_MONDAY_BY_FY[fy];
-    if (!ymd) continue;
-    const week1 = parseYmd(ymd);
-    if (date.getTime() >= week1.getTime()) {
-      if (!best || week1.getTime() > best.week1.getTime()) {
-        best = { fy, week1 };
-      }
-    }
-  }
-  if (best) return best;
-  const feb1 = new Date(Date.UTC(y, 1, 1));
-  const week1 = mondayOnOrBefore(addDaysUtc(feb1, 6));
-  return { fy: y, week1 };
 }
 
 export function pacificCalendarDate(now: Date = new Date()): Date {
@@ -75,34 +49,44 @@ export function pacificCalendarDate(now: Date = new Date()): Date {
   return new Date(Date.UTC(y, m - 1, d));
 }
 
-export function retailWeekForUtcDay(day: Date): RetailWeekInfo {
-  const { fy, week1 } = week1MondayForDate(day);
-  const weekStart = mondayOnOrBefore(day);
-  const days = Math.floor(
-    (weekStart.getTime() - week1.getTime()) / (24 * 60 * 60 * 1000),
-  );
-  const week = Math.floor(days / 7) + 1;
-  const weekEnd = addDaysUtc(weekStart, 6);
+function rowToInfo(row: WeekRow): AccountingWeekInfo {
   return {
-    fiscalYear: fy,
-    week,
-    weekStart: formatYmd(weekStart),
-    weekEnd: formatYmd(weekEnd),
+    fiscalYearLabel: 2026,
+    week: row.week,
+    accountingMonth: row.accountingMonth ?? null,
+    weekStart: row.sunday,
+    weekEnd: row.saturday,
+    monday: row.monday,
   };
 }
 
-export function retailWeekForDate(date: Date = new Date()): RetailWeekInfo {
-  return retailWeekForUtcDay(pacificCalendarDate(date));
-}
-
-export function retailWeekForIsoDate(
+export function accountingWeekForIsoDate(
   isoDate: string | null | undefined,
-): RetailWeekInfo | null {
+): AccountingWeekInfo | null {
   if (!isoDate) return null;
   const m = String(isoDate).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return null;
-  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-  return retailWeekForUtcDay(d);
+  const ymd = `${m[1]}-${m[2]}-${m[3]}`;
+  const t = parseYmd(ymd).getTime();
+  for (const row of WEEKS) {
+    const a = parseYmd(row.sunday).getTime();
+    const b = parseYmd(row.saturday).getTime();
+    if (t >= a && t <= b) return rowToInfo(row);
+  }
+  return null;
+}
+
+export function accountingWeekForDate(
+  date: Date = new Date(),
+): AccountingWeekInfo | null {
+  return accountingWeekForIsoDate(formatYmd(pacificCalendarDate(date)));
+}
+
+/** accounting week 30 on 2026-07-20 → retailer week 25 (Jonathan). */
+const RETAILER_WEEK_OFFSET_FROM_ACCOUNTING = 5;
+
+export function retailerWeekFromAccountingWeek(accountingWeek: number): number {
+  return accountingWeek - RETAILER_WEEK_OFFSET_FROM_ACCOUNTING;
 }
 
 export function buildRetailFiscalWeekPromptBlock(options?: {
@@ -111,29 +95,49 @@ export function buildRetailFiscalWeekPromptBlock(options?: {
 }): string {
   const now = options?.now ?? new Date();
   const pacificDay = pacificCalendarDate(now);
-  const current = retailWeekForUtcDay(pacificDay);
-  const asOfs = (options?.ytdAsOfDates ?? [])
-    .map((s) => String(s ?? "").trim())
-    .filter(Boolean);
-  const uniqueAsOf = [...new Set(asOfs)];
+  const todayYmd = formatYmd(pacificDay);
+  const current = accountingWeekForIsoDate(todayYmd);
+
+  const asOfs = [
+    ...new Set(
+      (options?.ytdAsOfDates ?? [])
+        .map((s) => String(s ?? "").trim().slice(0, 10))
+        .filter(Boolean),
+    ),
+  ];
+
   const reportLines =
-    uniqueAsOf.length === 0
+    asOfs.length === 0
       ? [
           "- Latest HD/Lowe's YTD as-of not in this prompt — use meta when available.",
         ]
-      : uniqueAsOf.map((asOf) => {
-          const w = retailWeekForIsoDate(asOf);
-          return w
-            ? `- Published YTD as-of **${asOf}** = fiscal **week ${w.week}** (${w.weekStart} → ${w.weekEnd}). Prefer this for “the report / this Monday’s file” unless another week is named.`
-            : `- Published YTD as-of **${asOf}**.`;
+      : asOfs.map((asOf) => {
+          const acct = accountingWeekForIsoDate(asOf);
+          if (!acct) return `- Published YTD as-of **${asOf}**.`;
+          const retailerWk = retailerWeekFromAccountingWeek(acct.week);
+          return [
+            `- Published YTD as-of **${asOf}**:`,
+            `  - Everde **accounting week ${acct.week}** (${acct.weekStart} Sun → ${acct.weekEnd} Sat).`,
+            `  - HD/Lowe's **retailer week ~${retailerWk}** (YTD WK${retailerWk} / Week ${retailerWk}).`,
+          ].join("\n");
         });
 
+  const todayLines = current
+    ? [
+        `- **Today (Pacific ${todayYmd}):** Everde accounting **week ${current.week}** (${current.weekStart} → ${current.weekEnd}); retailer week ~${retailerWeekFromAccountingWeek(current.week)}.`,
+      ]
+    : [`- **Today (Pacific ${todayYmd}):** outside loaded 2026 accounting calendar.`];
+
   return [
-    "## Retail fiscal weeks (Everde HD / Lowe's)",
-    "- Weeks are **Monday–Sunday** (Pacific).",
-    "- FY2026 week 1 starts **Monday 2026-02-02**. Anchor: week 25 = Monday 2026-07-20 (Jonathan).",
-    `- **Today (Pacific ${formatYmd(pacificDay)}):** fiscal **week ${current.week}** (${current.weekStart} → ${current.weekEnd}), FY${current.fiscalYear}.`,
+    "## Everde accounting calendar + retailer weeks",
+    "- **Everde accounting weeks** (Marco): **Sunday–Saturday**, FY2026 week 1 = Sun 2025-12-28. Source: 2026 Accounting Calendar.",
+    "- **HD/Lowe's retailer weeks** (YTD columns): different numbering. Mon 2026-07-20 = accounting **30** / retailer **25**.",
+    ...todayLines,
     ...reportLines,
-    "- When the user says “this week” / “latest report” without a week number: use the published YTD as-of week and state the week number.",
+    "- “Fiscal week” alone → Everde accounting. HD/LOW YTD “week 25” → retailer week columns.",
   ].join("\n");
+}
+
+export function retailWeekForDate(date?: Date) {
+  return accountingWeekForDate(date);
 }
