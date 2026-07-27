@@ -29,6 +29,8 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **Keep existing work:** Freight, nursery, weather, sales-plan dashboards, retail opportunity, CEO briefing, full ops portal sections, etc. stay implemented and maintained. Jonathan’s note is the **priority product lens** for field-facing HD/LOW Q&A (especially Teams + mobile), not a mandate to remove other features. Ops/admin users may still use the broader portal.
 
+**Anti false data-denial:** Teams bot + portal Analyst must **not** say data is missing when Blob/snapshot shows it published. Zero filter matches = refine the query; only deny when a feed is truly unpublished. Prefer tool calls over “I can’t find it.”
+
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
 **Snapshot 8.2.1 (portal app):** Mobile-friendly portal shell (hamburger nav) + Analyst assistant (keyboard-safe drawer). Teams bot: grade hierarchy/SS coming-ready, HD Plant Category join, full-store on-hand $ TY vs LY. **View rights:** Jae (`jmartin@everde.com`) HD-only (no Lowe’s); Cory (`cwible@everde.com`) HD+Lowe’s; others full. **8.1.8 lineage:** Lowe's YTD Following Week. Production: https://everde-operations.vercel.app .

@@ -261,6 +261,14 @@ async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
     return "focus=query requires q= (e.g. 'market 48', 'district 25', 'store 614', 'shrub evergreen'). Or use focus=summary|sample.";
   }
   const filtered = filterYtdRows(rows, columns, q, skuCategory);
+  if (filtered.length === 0) {
+    return [
+      `FILTER_MISS (not missing data): q=${JSON.stringify(q)} matched=0 of ${rows.length} published ${label} YTD rows.`,
+      `The ${label} store×SKU grid IS loaded (${meta.rowCount ?? rows.length} rows). Zero matches means the filter string did not hit — try again with a different q.`,
+      `Retry tips: store number alone (HD store 6612 / Lowe's store 774), store name fragment, market 48, district 25, or plant category / assortment words. Drop extra phrasing.`,
+      `Do NOT tell the user the data is unavailable. Call this tool again with a revised q, or focus=sample to inspect column values.`,
+    ].join("\n");
+  }
   return [
     `q=${JSON.stringify(q)} matched=${filtered.length} of ${rows.length}`,
     `plant_category_map=${skuCategory ? `${Object.keys(skuCategory).length} SKUs` : "unavailable — publish hd/lowes_sku_category_map.json"}`,

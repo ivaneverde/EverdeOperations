@@ -126,6 +126,7 @@ export async function buildEverdeSnapshot(options?: {
     catalog,
     "",
     "## Everde data snapshot (always available — prefer over web for internal metrics)",
+    "If a dataset below is present, call tools for drill-down — do not tell users the data is missing.",
     "",
   ];
 

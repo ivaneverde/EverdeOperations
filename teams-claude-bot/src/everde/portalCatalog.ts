@@ -13,5 +13,6 @@ export function buildPortalCatalogSummary(): string {
     "Prefer Everde JSON tools and the snapshot below for internal metrics. Use web search only for live public/external facts.",
     "Farm inventory / ready dates: **get_nursery_supply** on the XXTT inventory file (not HD YTD, not a separate price list). Example q: japanese boxwood 1g",
     "For HD/Lowe's Following Week store detail, use get_hd_ytd_following_week / get_lowes_ytd_following_week (summary, sample, or query with q=).",
+    "Anti-denial: if snapshot shows a dataset published, call tools before saying you cannot find data. Zero filter matches ≠ missing upload.",
   ].join("\n");
 }
