@@ -66,7 +66,7 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
   hd: {
     id: "hd",
     displayName: "Everde HD",
-    shortName: "EverdeHD",
+    shortName: "Everde HD",
     datasets: {
       freight: false,
       salesPlan: false,
@@ -86,7 +86,7 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
   lowes: {
     id: "lowes",
     displayName: "Everde Lowes",
-    shortName: "EverdeLowes",
+    shortName: "Everde Lowes",
     datasets: {
       freight: false,
       salesPlan: false,

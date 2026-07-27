@@ -10,12 +10,12 @@
     "termsOfUseUrl": "https://everde.com/terms"
   },
   "name": {
-    "short": "Claude Everde",
-    "full": "Claude Everde AI Assistant"
+    "short": "Claude",
+    "full": "Claude"
   },
   "description": {
-    "short": "Everde's Claude assistant in Microsoft Teams",
-    "full": "Enterprise Teams bot that routes messages to Anthropic Claude for multi-turn conversations and file analysis. Created by Ivan Sunderland for Everde."
+    "short": "Everde operations assistant in Microsoft Teams",
+    "full": "Everde's full Claude assistant for freight, sales plan, HD + Lowe's, nursery, retail, and weather. Mention with @Claude."
   },
   "icons": {
     "outline": "outline.png",

@@ -10,12 +10,12 @@
     "termsOfUseUrl": "https://everde.com/terms"
   },
   "name": {
-    "short": "EverdeLowes",
+    "short": "Everde Lowes",
     "full": "Everde Lowes"
   },
   "description": {
     "short": "Lowe's store inventory & sales quick answers",
-    "full": "Field assistant for Lowe's YTD sales & on-hand plus Everde farm inventory. Mention with @EverdeLowes. Does not include Home Depot or freight."
+    "full": "Field assistant for Lowe's YTD sales & on-hand plus Everde farm inventory. Does not include Home Depot or freight."
   },
   "icons": {
     "outline": "outline.png",
