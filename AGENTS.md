@@ -31,6 +31,8 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 **Anti false data-denial:** Teams bot + portal Analyst must **not** say data is missing when Blob/snapshot shows it published. Zero filter matches = refine the query; only deny when a feed is truly unpublished. Prefer tool calls over “I can’t find it.”
 
+**Retail fiscal weeks (Jonathan 2026-07-24):** Monday–Sunday. FY2026 week 1 = Mon **2026-02-02**. Anchor: **week 25 = Mon 2026-07-20** (report-run Monday). Bot/Analyst inject current Pacific week + published YTD `asOf` → week number; default week questions to as-of week without making the user restate it.
+
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
 **Snapshot 8.2.1 (portal app):** Mobile-friendly portal shell (hamburger nav) + Analyst assistant (keyboard-safe drawer). Teams bot: grade hierarchy/SS coming-ready, HD Plant Category join, full-store on-hand $ TY vs LY. **View rights:** Jae (`jmartin@everde.com`) HD-only (no Lowe’s); Cory (`cwible@everde.com`) HD+Lowe’s; others full. **8.1.8 lineage:** Lowe's YTD Following Week. Production: https://everde-operations.vercel.app .

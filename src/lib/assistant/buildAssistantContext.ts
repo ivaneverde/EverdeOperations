@@ -33,6 +33,7 @@ import {
   lowesDeniedMessage,
   roleForEmail,
 } from "@/lib/auth/viewRights";
+import { buildRetailFiscalWeekPromptBlock } from "@/lib/retail/retailFiscalWeeks";
 
 export type AssistantRouteContext = {
   pathname: string;
@@ -168,8 +169,13 @@ export async function buildAssistantContext(
     "HD Sales YTD Following Week meta not available — run npm run sales-plan:hd-ytd-extract-publish.",
   );
 
+  let lowesAsOf: string | null = null;
   if (allowLowes) {
     const lowesMeta = await loadYtdMeta("lowes");
+    lowesAsOf =
+      lowesMeta && typeof (lowesMeta as { asOf?: string }).asOf === "string"
+        ? String((lowesMeta as { asOf: string }).asOf).slice(0, 10)
+        : null;
     pushDataset(
       "lowes_ytd_following_week",
       lowesMeta ? JSON.stringify(lowesMeta) : null,
@@ -178,6 +184,16 @@ export async function buildAssistantContext(
       "Lowe's Sales YTD Following Week meta not available — run npm run sales-plan:lowes-ytd-extract-publish.",
     );
   }
+
+  const hdAsOf =
+    hdMeta && typeof (hdMeta as { asOf?: string }).asOf === "string"
+      ? String((hdMeta as { asOf: string }).asOf).slice(0, 10)
+      : null;
+  notes.push(
+    buildRetailFiscalWeekPromptBlock({
+      ytdAsOfDates: [hdAsOf, lowesAsOf],
+    }),
+  );
 
   if (input.pathname.includes("or-forward-looking")) {
     const orPlan = await loadSalesPlanDashboardJson("or");

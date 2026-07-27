@@ -33,6 +33,8 @@ export type EverdeSnapshot = {
   catalog: string;
   datasets: EverdeDatasetSnapshot[];
   systemBlock: string;
+  /** ISO as-of dates from HD / Lowe's YTD meta when published */
+  ytdAsOfDates: string[];
 };
 
 const PER_DATASET_CHARS = 2800;
@@ -122,6 +124,19 @@ export async function buildEverdeSnapshot(options?: {
 
   const datasets = await Promise.all(loaders);
 
+  const ytdAsOfDates: string[] = [];
+  for (const name of ["hd_ytd_following_week", "lowes_ytd_following_week"]) {
+    const d = datasets.find((x) => x.name === name);
+    if (!d?.available || !d.excerpt) continue;
+    try {
+      const parsed = JSON.parse(d.excerpt) as { asOf?: string };
+      if (parsed.asOf) ytdAsOfDates.push(String(parsed.asOf).slice(0, 10));
+    } catch {
+      const m = d.excerpt.match(/"asOf"\s*:\s*"([^"]+)"/);
+      if (m?.[1]) ytdAsOfDates.push(m[1].slice(0, 10));
+    }
+  }
+
   const lines = [
     catalog,
     "",
@@ -140,5 +155,10 @@ export async function buildEverdeSnapshot(options?: {
     lines.push("");
   }
 
-  return { catalog, datasets, systemBlock: lines.join("\n") };
+  return {
+    catalog,
+    datasets,
+    systemBlock: lines.join("\n"),
+    ytdAsOfDates: [...new Set(ytdAsOfDates)],
+  };
 }

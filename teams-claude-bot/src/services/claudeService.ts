@@ -19,6 +19,7 @@ import {
   buildViewRightsPromptBlock,
   canAccessLowesAnalytics,
 } from "../everde/viewRights.js";
+import { buildRetailFiscalWeekPromptBlock } from "../everde/retailFiscalWeeks.js";
 import { logger } from "../utils/logger.js";
 import type { StoredTurn } from "./conversationStore.js";
 import { shouldEnableWebSearch } from "./webSearchDetect.js";
@@ -37,8 +38,10 @@ export type ClaudeCompleteResult = {
 export class ClaudeService {
   private readonly client: Anthropic;
   private readonly config: AppConfig;
-  private everdeSnapshotCache: Map<string, { at: number; block: string }> =
-    new Map();
+  private everdeSnapshotCache: Map<
+    string,
+    { at: number; block: string; ytdAsOfDates: string[] }
+  > = new Map();
 
   constructor(config?: AppConfig) {
     this.config = config ?? getConfig();
@@ -71,11 +74,13 @@ export class ClaudeService {
 
     const userEmail = options?.userEmail ?? null;
     const allowLowes = canAccessLowesAnalytics(userEmail);
-    const everdeBlock = await this.getEverdeSnapshotBlock(allowLowes);
+    const { block: everdeBlock, ytdAsOfDates } =
+      await this.getEverdeSnapshotBlock(allowLowes);
     const rightsBlock = buildViewRightsPromptBlock(userEmail);
+    const fiscalBlock = buildRetailFiscalWeekPromptBlock({ ytdAsOfDates });
     const baseSystem =
       this.config.CLAUDE_SYSTEM_PROMPT?.trim() || DEFAULT_SYSTEM_PROMPT;
-    const system = `${baseSystem}\n\n${rightsBlock}\n\n${everdeBlock}`;
+    const system = `${baseSystem}\n\n${rightsBlock}\n\n${fiscalBlock}\n\n${everdeBlock}`;
 
     const messages: MessageParam[] = [
       ...history,
@@ -188,18 +193,24 @@ export class ClaudeService {
     return out;
   }
 
-  private async getEverdeSnapshotBlock(allowLowes: boolean): Promise<string> {
+  private async getEverdeSnapshotBlock(
+    allowLowes: boolean,
+  ): Promise<{ block: string; ytdAsOfDates: string[] }> {
     const ttlMs = this.config.EVERDE_SNAPSHOT_CACHE_MS;
     const now = Date.now();
     const key = allowLowes ? "full" : "no-lowes";
     const cached = this.everdeSnapshotCache.get(key);
     if (cached && now - cached.at < ttlMs) {
-      return cached.block;
+      return { block: cached.block, ytdAsOfDates: cached.ytdAsOfDates };
     }
 
     const snap = await buildEverdeSnapshot({ allowLowes });
-    this.everdeSnapshotCache.set(key, { at: now, block: snap.systemBlock });
-    return snap.systemBlock;
+    this.everdeSnapshotCache.set(key, {
+      at: now,
+      block: snap.systemBlock,
+      ytdAsOfDates: snap.ytdAsOfDates,
+    });
+    return { block: snap.systemBlock, ytdAsOfDates: snap.ytdAsOfDates };
   }
 
   private extractText(
