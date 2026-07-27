@@ -5,6 +5,10 @@ ClaudeTeamsBot.zip
 deploy*.zip
 teams-app-manifest/color.png
 teams-app-manifest/outline.png
+teams-app-manifest-hd/color.png
+teams-app-manifest-hd/outline.png
+teams-app-manifest-lowes/color.png
+teams-app-manifest-lowes/outline.png
 .env.local
 *.log
 .DS_Store

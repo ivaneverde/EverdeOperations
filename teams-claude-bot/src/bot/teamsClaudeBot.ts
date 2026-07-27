@@ -25,45 +25,31 @@ import {
 } from "../utils/teamsConversationScope.js";
 import { getTeamsMessageText } from "../utils/teamsMessageText.js";
 import { resolveTeamsUserEmail } from "../everde/resolveTeamsUserEmail.js";
-
-const HELP_TEXT = `**Claude in Teams**
-
-Chat naturally, or **attach files** for analysis (summaries, Q&A, light analytics).
-
-**Supported attachments**
-- PDF (charts, reports, scans)
-- Excel \`.xlsx\` (first sheets → table analysis)
-- Images (PNG, JPG, GIF, WebP)
-- Text / CSV / JSON / code files
-
-**Not supported in chat:** \`.xlsb\`, Word \`.docx\` (export to PDF or Excel first)
-
-**File uploads:** Works in **group chats**, **channels**, and **1:1** — attach with the paperclip and ask your question in the same message.
-
-**Everde Operations Portal**
-- Freight, sales plan, HD/Lowe's YTD Following Week, retail, weather, and nursery metrics are loaded from the portal — ask naturally (e.g. *"How is Encinitas doing on HD YTD?"*).
-- Portal data and uploaded files stay in context for follow-up questions in the same chat — keep discussing without re-stating stores, SKUs, or filters.
-- Type \`/reset\` if you want to clear that conversation memory.
-
-**Commands**
-- \`/help\` — this message
-- \`/reset\` — clear conversation history
-
-Tip: Add a short question with your file, e.g. *"What are the top freight risks in this workbook?"*`;
+import {
+  BOT_PROFILES,
+  helpTextForProfile,
+  type BotProfile,
+} from "../everde/botProfile.js";
 
 export class TeamsClaudeBot extends ActivityHandler {
   private readonly claude: ClaudeService;
   private readonly store: ConversationStore;
   private readonly fileStore: ConversationFileStore;
   private readonly everdeStore: ConversationEverdeStore;
+  private readonly profile: BotProfile;
+  private readonly helpText: string;
 
-  constructor() {
+  constructor(profile: BotProfile = "full") {
     super();
     const config = getConfig();
+    this.profile = profile;
+    this.helpText = helpTextForProfile(profile);
     this.claude = new ClaudeService(config);
     this.store = new ConversationStore(config.CONVERSATION_MAX_TURNS);
     this.fileStore = new ConversationFileStore();
     this.everdeStore = new ConversationEverdeStore();
+
+    const display = BOT_PROFILES[profile].displayName;
 
     this.onMembersAdded(async (context, next) => {
       const members = context.activity.membersAdded ?? [];
@@ -71,7 +57,7 @@ export class TeamsClaudeBot extends ActivityHandler {
         if (member.id !== context.activity.recipient?.id) {
           await context.sendActivity(
             MessageFactory.text(
-              "Hello — I am **Claude** in Teams. Ask questions, or **attach a file** (PDF, Excel, image) for analysis. Type `/help` for details.",
+              `Hello — I am **${display}**. Ask questions, or **attach a file** (PDF, Excel, image) for analysis. Type \`/help\` for details.`,
             ),
           );
         }
@@ -83,7 +69,6 @@ export class TeamsClaudeBot extends ActivityHandler {
       await this.handleMessage(context);
       await next();
     });
-
   }
 
   override async run(context: TurnContext): Promise<void> {
@@ -101,6 +86,7 @@ export class TeamsClaudeBot extends ActivityHandler {
     const personalChat = isPersonalBotChat(context);
 
     logger.info("bot.message", {
+      profile: this.profile,
       conversationType: context.activity.conversation?.conversationType,
       personalChat,
       textLen: text.length,
@@ -122,7 +108,7 @@ export class TeamsClaudeBot extends ActivityHandler {
     const command = text.toLowerCase();
 
     if (command === "/help" || command === "help") {
-      await context.sendActivity(MessageFactory.text(HELP_TEXT));
+      await context.sendActivity(MessageFactory.text(this.helpText));
       return;
     }
 
@@ -165,7 +151,7 @@ export class TeamsClaudeBot extends ActivityHandler {
           history,
           blocks,
           text,
-          { userEmail },
+          { userEmail, profile: this.profile },
         );
 
         for (const call of toolCalls) {
@@ -232,7 +218,7 @@ export class TeamsClaudeBot extends ActivityHandler {
         history,
         userPayload,
         text,
-        { userEmail },
+        { userEmail, profile: this.profile },
       );
 
       for (const call of toolCalls) {

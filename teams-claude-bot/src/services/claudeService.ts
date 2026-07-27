@@ -10,10 +10,15 @@ import {
   getConfig,
   type AppConfig,
 } from "../config/index.js";
+import {
+  BOT_PROFILES,
+  buildBotProfilePromptBlock,
+  type BotProfile,
+} from "../everde/botProfile.js";
 import { buildEverdeSnapshot } from "../everde/snapshot.js";
 import {
   executeEverdeTool,
-  toolsForEmail,
+  toolsForProfile,
 } from "../everde/tools.js";
 import {
   buildViewRightsPromptBlock,
@@ -28,6 +33,7 @@ const MAX_TOOL_ROUNDS = 6;
 
 export type ClaudeCompleteOptions = {
   userEmail?: string | null;
+  profile?: BotProfile;
 };
 
 export type ClaudeCompleteResult = {
@@ -73,14 +79,29 @@ export class ClaudeService {
       (typeof userContent === "string" ? userContent : "");
 
     const userEmail = options?.userEmail ?? null;
-    const allowLowes = canAccessLowesAnalytics(userEmail);
+    const profile = options?.profile ?? "full";
+    const profileCaps = BOT_PROFILES[profile];
+    const allowLowes =
+      profileCaps.datasets.lowesYtd &&
+      (profile !== "full" || canAccessLowesAnalytics(userEmail));
+
     const { block: everdeBlock, ytdAsOfDates } =
-      await this.getEverdeSnapshotBlock(allowLowes);
-    const rightsBlock = buildViewRightsPromptBlock(userEmail);
+      await this.getEverdeSnapshotBlock(profile, allowLowes);
+    const identityBlock = buildBotProfilePromptBlock(profile);
+    const rightsBlock =
+      profile === "full" ? buildViewRightsPromptBlock(userEmail) : "";
     const fiscalBlock = buildRetailFiscalWeekPromptBlock({ ytdAsOfDates });
     const baseSystem =
       this.config.CLAUDE_SYSTEM_PROMPT?.trim() || DEFAULT_SYSTEM_PROMPT;
-    const system = `${baseSystem}\n\n${rightsBlock}\n\n${fiscalBlock}\n\n${everdeBlock}`;
+    const system = [
+      baseSystem,
+      identityBlock,
+      rightsBlock,
+      fiscalBlock,
+      everdeBlock,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
     const messages: MessageParam[] = [
       ...history,
@@ -88,13 +109,20 @@ export class ClaudeService {
     ];
 
     const webSearchEnabled =
-      this.config.ENABLE_WEB_SEARCH && shouldEnableWebSearch(routingText);
-    const tools = this.buildTools(routingText, webSearchEnabled, userEmail);
+      profileCaps.enableWebSearch &&
+      this.config.ENABLE_WEB_SEARCH &&
+      shouldEnableWebSearch(routingText);
+    const tools = this.buildTools(
+      webSearchEnabled,
+      profile,
+      userEmail,
+    );
     const hasDocuments = Array.isArray(userContent);
     const toolCalls: ClaudeCompleteResult["toolCalls"] = [];
 
     logger.info("claude.request", {
       model: this.config.CLAUDE_MODEL,
+      profile,
       messageCount: messages.length,
       hasAttachments: hasDocuments,
       everdeTools: tools.filter((t) => t.name !== "web_search").length,
@@ -136,6 +164,7 @@ export class ClaudeService {
             if (block.type !== "tool_use") continue;
             const result = await executeEverdeTool(block.name, block.input, {
               userEmail,
+              profile,
             });
             toolCalls.push({
               name: block.name,
@@ -147,7 +176,11 @@ export class ClaudeService {
               tool_use_id: block.id,
               content: result,
             });
-            logger.info("everde.tool", { name: block.name, bytes: result.length });
+            logger.info("everde.tool", {
+              name: block.name,
+              profile,
+              bytes: result.length,
+            });
           }
 
           if (toolResults.length === 0) {
@@ -169,17 +202,17 @@ export class ClaudeService {
 
       throw new Error("Claude exceeded maximum tool rounds");
     } catch (err) {
-      logger.error("claude.error", { err });
+      logger.error("claude.error", { err, profile });
       throw err;
     }
   }
 
   private buildTools(
-    userText: string,
     webSearchEnabled: boolean,
+    profile: BotProfile,
     userEmail: string | null,
   ): Tool[] {
-    const out: Tool[] = toolsForEmail(userEmail);
+    const out: Tool[] = toolsForProfile(profile, userEmail);
 
     if (webSearchEnabled) {
       const webTool: WebSearchTool20250305 = {
@@ -194,17 +227,18 @@ export class ClaudeService {
   }
 
   private async getEverdeSnapshotBlock(
+    profile: BotProfile,
     allowLowes: boolean,
   ): Promise<{ block: string; ytdAsOfDates: string[] }> {
     const ttlMs = this.config.EVERDE_SNAPSHOT_CACHE_MS;
     const now = Date.now();
-    const key = allowLowes ? "full" : "no-lowes";
+    const key = `${profile}:${allowLowes ? "lowes" : "no-lowes"}`;
     const cached = this.everdeSnapshotCache.get(key);
     if (cached && now - cached.at < ttlMs) {
       return { block: cached.block, ytdAsOfDates: cached.ytdAsOfDates };
     }
 
-    const snap = await buildEverdeSnapshot({ allowLowes });
+    const snap = await buildEverdeSnapshot({ allowLowes, profile });
     this.everdeSnapshotCache.set(key, {
       at: now,
       block: snap.systemBlock,

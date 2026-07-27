@@ -38,6 +38,10 @@ import {
   lowesDeniedMessage,
 } from "./viewRights.js";
 import {
+  BOT_PROFILES,
+  type BotProfile,
+} from "./botProfile.js";
+import {
   formatNurserySupplyQuery,
   type NurserySupplyLine,
 } from "./nurserySupplyQuery.js";
@@ -283,19 +287,36 @@ async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
   ].join("\n");
 }
 
+export function toolsForProfile(
+  profile: BotProfile,
+  email: string | null | undefined,
+): Tool[] {
+  const allowed = BOT_PROFILES[profile].tools;
+  let tools = EVERDE_TOOL_DEFINITIONS.filter((t) => allowed.has(t.name));
+  // Full Claude bot still honors email view-rights (Jae: no Lowe's)
+  if (profile === "full" && !canAccessLowesAnalytics(email)) {
+    tools = tools.filter((t) => !isLowesRestrictedTool(t.name));
+  }
+  return tools;
+}
+
+/** @deprecated use toolsForProfile */
 export function toolsForEmail(email: string | null | undefined): Tool[] {
-  if (canAccessLowesAnalytics(email)) return [...EVERDE_TOOL_DEFINITIONS];
-  return EVERDE_TOOL_DEFINITIONS.filter(
-    (t) => !isLowesRestrictedTool(t.name),
-  );
+  return toolsForProfile("full", email);
 }
 
 export async function executeEverdeTool(
   name: string,
   input: unknown,
-  options?: { userEmail?: string | null },
+  options?: { userEmail?: string | null; profile?: BotProfile },
 ): Promise<string> {
+  const profile = options?.profile ?? "full";
+  const allowed = BOT_PROFILES[profile].tools;
+  if (!allowed.has(name)) {
+    return `Tool ${name} is not available on the ${BOT_PROFILES[profile].displayName} bot. Use the appropriate Everde bot for that data.`;
+  }
   if (
+    profile === "full" &&
     isLowesRestrictedTool(name) &&
     !canAccessLowesAnalytics(options?.userEmail)
   ) {
@@ -306,7 +327,7 @@ export async function executeEverdeTool(
 
   switch (name) {
     case "get_portal_catalog":
-      return `${buildPortalCatalogSummary()}\n\n${buildGradeHierarchyBlock()}`;
+      return `${buildPortalCatalogSummary(profile)}\n\n${buildGradeHierarchyBlock()}`;
 
     case "get_grade_definitions":
       return buildGradeHierarchyBlock();

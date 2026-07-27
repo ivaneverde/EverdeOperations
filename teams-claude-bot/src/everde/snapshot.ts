@@ -21,6 +21,10 @@ import {
 } from "./compact.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
 import { buildGradeHierarchyBlock } from "./gradeHierarchy.js";
+import {
+  BOT_PROFILES,
+  type BotProfile,
+} from "./botProfile.js";
 
 export type EverdeDatasetSnapshot = {
   name: string;
@@ -33,7 +37,6 @@ export type EverdeSnapshot = {
   catalog: string;
   datasets: EverdeDatasetSnapshot[];
   systemBlock: string;
-  /** ISO as-of dates from HD / Lowe's YTD meta when published */
   ytdAsOfDates: string[];
 };
 
@@ -58,32 +61,47 @@ async function loadDataset(
 
 export async function buildEverdeSnapshot(options?: {
   allowLowes?: boolean;
+  profile?: BotProfile;
 }): Promise<EverdeSnapshot> {
-  const allowLowes = options?.allowLowes !== false;
+  const profile = options?.profile ?? "full";
+  const caps = BOT_PROFILES[profile].datasets;
+  const allowLowes =
+    caps.lowesYtd && options?.allowLowes !== false;
   const container = freightBlobContainer();
-  const catalog = `${buildPortalCatalogSummary()}\n\n${buildGradeHierarchyBlock()}`;
+  const catalog = `${buildPortalCatalogSummary(profile)}\n\n${buildGradeHierarchyBlock()}`;
 
-  const loaders: Promise<EverdeDatasetSnapshot>[] = [
-    loadDataset(
-      "freight_dashboard",
-      () => downloadJsonFromBlob(container, freightDashboardJsonPath()),
-      compactFreightJson,
-      "Freight JSON not in Blob — run freight extract/publish.",
-    ),
-    loadDataset(
-      "sales_plan",
-      () => downloadJsonFromBlob(container, salesPlanDashboardJsonPath()),
-      compactSalesPlanJson,
-      "Sales plan JSON not in Blob.",
-    ),
-    loadDataset(
-      "hd_ytd_following_week",
-      () => downloadJsonFromBlob(container, hdYtdMetaJsonPath()),
-      compactYtdFollowingWeekMeta,
-      "HD Sales YTD Following Week meta not in Blob — run npm run sales-plan:hd-ytd-extract-publish.",
-    ),
-  ];
+  const loaders: Promise<EverdeDatasetSnapshot>[] = [];
 
+  if (caps.freight) {
+    loaders.push(
+      loadDataset(
+        "freight_dashboard",
+        () => downloadJsonFromBlob(container, freightDashboardJsonPath()),
+        compactFreightJson,
+        "Freight JSON not in Blob — run freight extract/publish.",
+      ),
+    );
+  }
+  if (caps.salesPlan) {
+    loaders.push(
+      loadDataset(
+        "sales_plan",
+        () => downloadJsonFromBlob(container, salesPlanDashboardJsonPath()),
+        compactSalesPlanJson,
+        "Sales plan JSON not in Blob.",
+      ),
+    );
+  }
+  if (caps.hdYtd) {
+    loaders.push(
+      loadDataset(
+        "hd_ytd_following_week",
+        () => downloadJsonFromBlob(container, hdYtdMetaJsonPath()),
+        compactYtdFollowingWeekMeta,
+        "HD Sales YTD Following Week meta not in Blob — run npm run sales-plan:hd-ytd-extract-publish.",
+      ),
+    );
+  }
   if (allowLowes) {
     loaders.push(
       loadDataset(
@@ -94,33 +112,46 @@ export async function buildEverdeSnapshot(options?: {
       ),
     );
   }
-
-  loaders.push(
-    loadDataset(
-      "retail_opportunity",
-      () => downloadJsonFromBlob(container, retailDashboardJsonPath()),
-      compactRetailJson,
-      "Retail opportunity JSON not in Blob.",
-    ),
-    loadDataset(
-      "weather",
-      () => downloadJsonFromBlob(container, weatherDashboardJsonPath()),
-      compactWeatherJson,
-      "Weather JSON not in Blob.",
-    ),
-    loadDataset(
-      "nursery_supply",
-      () => downloadJsonFromBlob(container, nurserySupplyJsonPath()),
-      compactNurserySupplyJson,
-      "Nursery supply not on Blob — run npm run nursery:publish-blob.",
-    ),
-    loadDataset(
-      "nursery_demand",
-      () => downloadJsonFromBlob(container, nurseryDemandJsonPath()),
-      compactNurseryJson,
-      "Nursery demand not on Blob — run npm run nursery:publish-blob.",
-    ),
-  );
+  if (caps.retail) {
+    loaders.push(
+      loadDataset(
+        "retail_opportunity",
+        () => downloadJsonFromBlob(container, retailDashboardJsonPath()),
+        compactRetailJson,
+        "Retail opportunity JSON not in Blob.",
+      ),
+    );
+  }
+  if (caps.weather) {
+    loaders.push(
+      loadDataset(
+        "weather",
+        () => downloadJsonFromBlob(container, weatherDashboardJsonPath()),
+        compactWeatherJson,
+        "Weather JSON not in Blob.",
+      ),
+    );
+  }
+  if (caps.nurserySupply) {
+    loaders.push(
+      loadDataset(
+        "nursery_supply",
+        () => downloadJsonFromBlob(container, nurserySupplyJsonPath()),
+        compactNurserySupplyJson,
+        "Nursery supply not on Blob — run npm run nursery:publish-blob.",
+      ),
+    );
+  }
+  if (caps.nurseryDemand) {
+    loaders.push(
+      loadDataset(
+        "nursery_demand",
+        () => downloadJsonFromBlob(container, nurseryDemandJsonPath()),
+        compactNurseryJson,
+        "Nursery demand not on Blob — run npm run nursery:publish-blob.",
+      ),
+    );
+  }
 
   const datasets = await Promise.all(loaders);
 
@@ -140,8 +171,9 @@ export async function buildEverdeSnapshot(options?: {
   const lines = [
     catalog,
     "",
-    "## Everde data snapshot (always available — prefer over web for internal metrics)",
+    `## Everde data snapshot (profile=${profile})`,
     "If a dataset below is present, call tools for drill-down — do not tell users the data is missing.",
+    "Datasets not listed are out of scope for this bot — do not invent them.",
     "",
   ];
 

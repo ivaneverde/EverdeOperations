@@ -1,0 +1,58 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "00000000-0000-0000-0000-000000000000",
+  "developer": {
+    "name": "Everde",
+    "websiteUrl": "https://everde.com",
+    "privacyUrl": "https://everde.com/privacy",
+    "termsOfUseUrl": "https://everde.com/terms"
+  },
+  "name": {
+    "short": "Everde Lowes",
+    "full": "Everde Lowes Key Account Assistant"
+  },
+  "description": {
+    "short": "Lowe's store inventory & sales quick answers",
+    "full": "Field assistant for Lowe's YTD sales & on-hand plus Everde farm inventory. Does not include Home Depot or freight. Powered by the same Everde operations backend as Claude."
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "accentColor": "#004990",
+  "bots": [
+    {
+      "botId": "00000000-0000-0000-0000-000000000000",
+      "scopes": ["personal", "team", "groupChat"],
+      "supportsFiles": true,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": ["personal", "team", "groupChat"],
+          "commands": [
+            { "title": "help", "description": "Show Everde Lowes commands" },
+            { "title": "reset", "description": "Clear conversation history" }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "ChatMessage.Read.Chat",
+          "type": "Application"
+        },
+        {
+          "name": "ChannelMessage.Read.Group",
+          "type": "Application"
+        }
+      ]
+    }
+  },
+  "validDomains": []
+}

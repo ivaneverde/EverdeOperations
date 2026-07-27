@@ -8,6 +8,12 @@ const envSchema = z.object({
   MicrosoftAppPassword: z.string().min(1, "MicrosoftAppPassword is required"),
   MicrosoftAppType: z.enum(["MultiTenant", "SingleTenant"]).optional(),
   MicrosoftAppTenantId: z.string().optional(),
+  /** Optional — Everde HD Teams bot (separate Entra app). Enables /api/messages/hd */
+  MicrosoftAppIdHd: z.string().optional(),
+  MicrosoftAppPasswordHd: z.string().optional(),
+  /** Optional — Everde Lowes Teams bot (separate Entra app). Enables /api/messages/lowes */
+  MicrosoftAppIdLowes: z.string().optional(),
+  MicrosoftAppPasswordLowes: z.string().optional(),
   PORT: z.coerce.number().int().positive().default(3978),
   ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
   CLAUDE_MODEL: z.string().default("claude-sonnet-4-6"),
