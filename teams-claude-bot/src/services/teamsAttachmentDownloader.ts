@@ -1,6 +1,8 @@
 import type { Attachment, TurnContext } from "botbuilder";
 import { downloadMessageFilesViaGraph } from "../graph/chatMessageFiles.js";
+import { resolveBotAppCredentials } from "../config/botCredentials.js";
 import { getConfig } from "../config/index.js";
+import type { BotProfile } from "../everde/botProfile.js";
 import { isPersonalBotChat } from "../utils/teamsConversationScope.js";
 import { getTeamsMessageText } from "../utils/teamsMessageText.js";
 import { logger } from "../utils/logger.js";
@@ -17,19 +19,20 @@ interface TeamsFileDownloadInfo {
   fileType?: string;
 }
 
-let cachedBotToken: { token: string; expiresAt: number } | null = null;
+const botTokenCache = new Map<string, { token: string; expiresAt: number }>();
 
-async function getBotFrameworkToken(): Promise<string> {
+async function getBotFrameworkToken(profile: BotProfile): Promise<string> {
+  const { appId, password } = resolveBotAppCredentials(profile);
   const now = Date.now();
-  if (cachedBotToken && cachedBotToken.expiresAt > now + 60_000) {
-    return cachedBotToken.token;
+  const cached = botTokenCache.get(appId);
+  if (cached && cached.expiresAt > now + 60_000) {
+    return cached.token;
   }
 
-  const { MicrosoftAppId, MicrosoftAppPassword } = getConfig();
   const body = new URLSearchParams({
     grant_type: "client_credentials",
-    client_id: MicrosoftAppId,
-    client_secret: MicrosoftAppPassword,
+    client_id: appId,
+    client_secret: password,
     scope: "https://api.botframework.com/.default",
   });
 
@@ -51,10 +54,10 @@ async function getBotFrameworkToken(): Promise<string> {
     expires_in: number;
   };
 
-  cachedBotToken = {
+  botTokenCache.set(appId, {
     token: json.access_token,
     expiresAt: now + json.expires_in * 1000,
-  };
+  });
 
   return json.access_token;
 }
@@ -153,10 +156,11 @@ export function activityHasUserFileAttachment(attachments: Attachment[]): boolea
 async function fetchBinary(
   url: string,
   useBotAuth: boolean,
+  profile: BotProfile,
 ): Promise<Buffer> {
   const headers: Record<string, string> = {};
   if (useBotAuth) {
-    headers.Authorization = `Bearer ${await getBotFrameworkToken()}`;
+    headers.Authorization = `Bearer ${await getBotFrameworkToken(profile)}`;
   }
 
   const res = await fetch(url, { headers });
@@ -173,6 +177,7 @@ async function fetchBinary(
  */
 export async function downloadMessageAttachments(
   context: TurnContext,
+  profile: BotProfile = "full",
 ): Promise<DownloadedFile[]> {
   const maxBytes = getConfig().ATTACHMENT_MAX_BYTES;
   const attachments = context.activity.attachments ?? [];
@@ -192,17 +197,19 @@ export async function downloadMessageAttachments(
 
     let buffer: Buffer;
     try {
-      buffer = await fetchBinary(url, false);
+      buffer = await fetchBinary(url, false, profile);
     } catch (firstErr) {
       logger.warn("attachment.download.retry_with_bot_auth", {
         fileName,
+        profile,
         err: firstErr,
       });
       try {
-        buffer = await fetchBinary(url, true);
+        buffer = await fetchBinary(url, true, profile);
       } catch (secondErr) {
         logger.error("attachment.download.failed", {
           fileName,
+          profile,
           urlHost: safeUrlHost(url),
           err: secondErr,
         });
@@ -260,18 +267,20 @@ export function shouldAttemptFileDownload(
  */
 export async function downloadAllMessageAttachments(
   context: TurnContext,
+  profile: BotProfile = "full",
 ): Promise<DownloadedFile[]> {
-  const botFiles = await downloadMessageAttachments(context);
+  const botFiles = await downloadMessageAttachments(context, profile);
   if (botFiles.length > 0) return botFiles;
 
   if (isPersonalBotChat(context)) return [];
 
   logger.info("graph.files.fallback", {
+    profile,
     conversationType: context.activity.conversation?.conversationType,
     messageId: context.activity.id,
   });
 
-  return downloadMessageFilesViaGraph(context);
+  return downloadMessageFilesViaGraph(context, profile);
 }
 
 function safeUrlHost(url: string): string {

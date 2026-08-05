@@ -10,25 +10,34 @@ One **Azure App Service** deploy (`everde-claude-teams-bot`) hosts three **visua
 
 Each bot has its own Teams @mention (Teams cannot share `@Claude` across three apps). Under the hood all three still call Anthropic Claude.
 
-## What Aaron / IT create (twice — HD and Lowes)
+## Provisioned (2026-07-28) — backend ready
 
-For each key-account bot:
+| Bot | Entra / botId | Azure Bot | Endpoint |
+|-----|---------------|-----------|----------|
+| Claude | `b19da2be-929f-4e71-b838-d65cf3e4cb4c` | `everde-teams-claude` | `/api/messages` |
+| Everde HD | `7cbf11e1-421e-46f4-873e-907e82eee39c` | `everde-teams-hd` | `/api/messages/hd` |
+| Everde Lowes | `ca57d85a-da20-4a99-9460-b2fe5e083ee0` | `everde-teams-lowes` | `/api/messages/lowes` |
 
-1. **Entra app registration** (single-tenant, same as Claude bot) → Application (client) ID + client secret.
-2. **Azure Bot** resource linked to that app ID.
-3. Set messaging endpoint to the shared App Service host:
-   - HD: `https://everde-claude-teams-bot.azurewebsites.net/api/messages/hd`
-   - Lowes: `https://everde-claude-teams-bot.azurewebsites.net/api/messages/lowes`
-4. Add App Service settings (same app as Claude):
-   - `MicrosoftAppIdHd` / `MicrosoftAppPasswordHd`
-   - `MicrosoftAppIdLowes` / `MicrosoftAppPasswordLowes`
-5. Restart the web app. `/health` should list `"hd"` / `"lowes"` in `profiles`.
-6. Build Teams packages from manifests:
-   - `teams-app-manifest-hd/` → replace GUID with HD app ID; zip with icons
-   - `teams-app-manifest-lowes/` → same for Lowes
-7. Upload packages in Teams Admin / sideload; grant users access.
+App Service `everde-claude-teams-bot` has `MicrosoftAppIdHd` / `MicrosoftAppPasswordHd` / `MicrosoftAppIdLowes` / `MicrosoftAppPasswordLowes`. Health lists `profiles: ["full","hd","lowes"]`.
 
-Reuse Claude’s Graph permissions pattern on the new apps if group-chat file attach is required (`ChatMessage.Read.Chat`, etc.).
+**Re-provision / rotate secrets:** `scripts/provision-hd-lowes-bots.ps1` (writes gitignored `.env.multi-bot.local`).
+
+**Build packages:**
+
+```powershell
+cd teams-claude-bot
+.\scripts\build-teams-package.ps1 -Profile hd -BotAppId 7cbf11e1-421e-46f4-873e-907e82eee39c
+.\scripts\build-teams-package.ps1 -Profile lowes -BotAppId ca57d85a-da20-4a99-9460-b2fe5e083ee0
+```
+
+Outputs: `EverdeHDTeamsBot.zip`, `EverdeLowesTeamsBot.zip` (gitignored).
+
+## Remaining: Teams install (Ivan or Aaron)
+
+1. **Teams Admin Center** → Manage apps → Upload custom app → upload each zip (or sideload via Teams desktop: Apps → Manage your apps → Upload a custom app).
+2. Assign / allow for the right users (HD crew vs Lowe’s crew vs everyone for Claude).
+3. In a chat: `@Everde HD` / `@Everde Lowes` / `@Claude` and smoke-test a simple inventory or YTD ask.
+4. **Aaron — Graph admin consent (group-chat file attach):** On Entra apps **Everde Teams HD Bot** and **Everde Teams Lowes Bot**, grant admin consent for Microsoft Graph application permissions **Chat.Read.All** and **Files.Read.All** (same as Claude). Until then, group-chat files fall back to Claude’s Graph identity when possible; 1:1 file attach works with the bot’s own credentials after the file-parity deploy.
 
 ## What we did **not** need
 

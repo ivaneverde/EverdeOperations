@@ -313,7 +313,7 @@ export async function executeEverdeTool(
   const profile = options?.profile ?? "full";
   const allowed = BOT_PROFILES[profile].tools;
   if (!allowed.has(name)) {
-    return `Tool ${name} is not available on the ${BOT_PROFILES[profile].displayName} bot. Use the appropriate Everde bot for that data.`;
+    return `That data is outside this ${BOT_PROFILES[profile].displayName} chat's scope. Ask about ${profile === "hd" ? "Home Depot" : "Lowe's"} stores, SKUs, on-hand, or farm inventory here.`;
   }
   if (
     profile === "full" &&

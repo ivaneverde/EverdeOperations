@@ -40,6 +40,10 @@
     }
   ],
   "permissions": ["identity", "messageTeamMembers"],
+  "webApplicationInfo": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "resource": "api://botid-00000000-0000-0000-0000-000000000000"
+  },
   "authorization": {
     "permissions": {
       "resourceSpecific": [

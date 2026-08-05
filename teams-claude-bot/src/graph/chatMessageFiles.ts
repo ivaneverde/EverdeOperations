@@ -1,5 +1,6 @@
 import type { TurnContext } from "botbuilder";
 import { getConfig } from "../config/index.js";
+import type { BotProfile } from "../everde/botProfile.js";
 import type { DownloadedFile } from "../services/teamsAttachmentDownloader.js";
 import { logger } from "../utils/logger.js";
 import { isPersonalBotChat } from "../utils/teamsConversationScope.js";
@@ -178,12 +179,14 @@ function hostedContentsPath(messagePath: string): string {
  */
 export async function downloadMessageFilesViaGraph(
   context: TurnContext,
+  profile: BotProfile = "full",
 ): Promise<DownloadedFile[]> {
   if (isPersonalBotChat(context)) return [];
 
   const messagePath = messageGraphPath(context);
   if (!messagePath) {
     logger.warn("graph.files.no_message_path", {
+      profile,
       conversationType: context.activity.conversation?.conversationType,
     });
     return [];
@@ -192,9 +195,9 @@ export async function downloadMessageFilesViaGraph(
   const maxBytes = getConfig().ATTACHMENT_MAX_BYTES;
   let token: string;
   try {
-    token = await getGraphAppToken();
+    token = await getGraphAppToken(profile);
   } catch (err) {
-    logger.error("graph.files.token", { err });
+    logger.error("graph.files.token", { profile, err });
     throw err;
   }
 

@@ -8,7 +8,7 @@ export function buildPortalCatalogSummary(profile: BotProfile = "full"): string 
       "- **Home Depot YTD Following Week** — store / market / district sales + on-hand (get_hd_ytd_following_week)",
       "- **Supply Inventory** — XXTT farm inventory + READY DATE (get_nursery_supply)",
       "- **Production & Demand** — Inventory Metrics (get_nursery_demand)",
-      "- Out of scope here: Lowe's, freight, weather, retail opportunity (use Everde Lowes or Claude).",
+      "- Out of scope here: Lowe's, freight, weather, retail opportunity — stay on HD questions.",
     ].join("\n");
   }
   if (profile === "lowes") {
@@ -17,7 +17,7 @@ export function buildPortalCatalogSummary(profile: BotProfile = "full"): string 
       "- **Lowe's YTD BY STORE SKU** — store sales + on-hand (get_lowes_ytd_following_week)",
       "- **Supply Inventory** — XXTT farm inventory + READY DATE (get_nursery_supply)",
       "- **Production & Demand** — Inventory Metrics (get_nursery_demand)",
-      "- Out of scope here: Home Depot, freight, weather, retail opportunity (use Everde HD or Claude).",
+      "- Out of scope here: Home Depot, freight, weather, retail opportunity — stay on Lowe's questions.",
     ].join("\n");
   }
   return [

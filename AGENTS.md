@@ -34,7 +34,7 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 | **Everde HD** (`@Everde HD`) | `/api/messages/hd` | HD YTD + farm inventory/demand only |
 | **Everde Lowes** (`@Everde Lowes`) | `/api/messages/lowes` | Lowe's YTD + farm inventory/demand only |
 
-Same Blob publish; each profile loads only its datasets/tools (less bandwidth). Requires separate Entra + Azure Bot + Teams package per key-account bot — see `teams-claude-bot/docs/MULTI_BOT_PROFILES.md`. Email **view rights** still apply on Claude (Jae no Lowe's).
+Same Blob publish; each profile loads only its datasets/tools (less bandwidth). **Backend provisioned** (Entra + Azure Bots + App Service secrets); `/health` lists `full`/`hd`/`lowes`. **Remaining:** upload `EverdeHDTeamsBot.zip` / `EverdeLowesTeamsBot.zip` in Teams — see `teams-claude-bot/docs/MULTI_BOT_PROFILES.md`. Email **view rights** still apply on Claude (Jae no Lowe's).
 
 **Keep existing work:** Freight, nursery, weather, sales-plan dashboards, retail opportunity, CEO briefing, full ops portal sections, etc. stay implemented and maintained. Jonathan’s note is the **priority product lens** for field-facing HD/LOW Q&A (especially Teams + mobile), not a mandate to remove other features. Ops/admin users may still use the broader portal / Claude bot.
 
@@ -49,7 +49,7 @@ Same Blob publish; each profile loads only its datasets/tools (less bandwidth). 
 
 **Snapshot 8.2.1 (portal app):** Mobile-friendly portal shell (hamburger nav) + Analyst assistant (keyboard-safe drawer). Teams bot: grade hierarchy/SS coming-ready, HD Plant Category join, full-store on-hand $ TY vs LY. **View rights:** Jae (`jmartin@everde.com`) HD-only (no Lowe’s); Cory (`cwible@everde.com`) HD+Lowe’s; others full. **8.1.8 lineage:** Lowe's YTD Following Week. Production: https://everde-operations.vercel.app .
 
-**Last session (2026-07-27):** Weekly drops published; fiscal weeks → Marco accounting calendar; anti false-denial; **Option A multi-bot** code (Claude / Everde HD / Everde Lowes endpoints) — Aaron still wires Entra + Teams packages for HD/Lowes.
+**Last session (2026-07-28):** Option A multi-bot **Azure wired** (HD/Lowes Entra apps, Azure Bots, App Service secrets, Teams channels); packages built under `teams-claude-bot/`. Next: Teams Admin / sideload install.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 

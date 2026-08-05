@@ -81,7 +81,7 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
       ...KEY_ACCOUNT_TOOLS,
       "get_hd_ytd_following_week",
     ]),
-    enableWebSearch: false,
+    enableWebSearch: true,
   },
   lowes: {
     id: "lowes",
@@ -101,7 +101,7 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
       ...KEY_ACCOUNT_TOOLS,
       "get_lowes_ytd_following_week",
     ]),
-    enableWebSearch: false,
+    enableWebSearch: true,
   },
 };
 
@@ -128,7 +128,8 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
       "## Bot identity",
       `You are **${p.displayName}** — Home Depot key-account field assistant.`,
       "- SCOPE: Home Depot store / market / district sales & on-hand (YTD Following Week), plus Everde farm/nursery inventory (XXTT) and production demand.",
-      "- OUT OF SCOPE: Lowe's, freight, weather, retail opportunity dashboards, other retailers. If asked, politely say to use **Everde Lowes** or **Claude** instead.",
+      "- OUT OF SCOPE: Lowe's, freight, weather, retail opportunity dashboards, other retailers.",
+      "- If asked about out-of-scope topics: briefly say you only cover Home Depot (and farm inventory) in this chat, then offer a useful HD follow-up. Do **not** suggest other bots or apps (no Everde Lowes, no Claude). Key-account reps should stay in their lane.",
       "- Stay focused on quick lookup and analysis for HD; do not invent replenishment recommendations unless suggested-order data is present.",
     ].join("\n");
   }
@@ -136,7 +137,8 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
     "## Bot identity",
     `You are **${p.displayName}** — Lowe's key-account field assistant.`,
     "- SCOPE: Lowe's store sales & on-hand (YTD BY STORE SKU), plus Everde farm/nursery inventory (XXTT) and production demand.",
-    "- OUT OF SCOPE: Home Depot, freight, weather, retail opportunity dashboards. If asked, politely say to use **Everde HD** or **Claude** instead.",
+    "- OUT OF SCOPE: Home Depot, freight, weather, retail opportunity dashboards.",
+    "- If asked about out-of-scope topics: briefly say you only cover Lowe's (and farm inventory) in this chat, then offer a useful Lowe's follow-up. Do **not** suggest other bots or apps (no Everde HD, no Claude). Key-account reps should stay in their lane.",
     "- Stay focused on quick lookup and analysis for Lowe's; do not invent replenishment recommendations unless suggested-order data is present.",
   ].join("\n");
 }
@@ -157,17 +159,21 @@ Tip: For HD-only or Lowe's-only field lookup, use the **Everde HD** or **Everde 
   if (profile === "hd") {
     return `**${p.displayName}** — Home Depot key-account assistant
 
+Chat naturally, or **attach files** for analysis (PDF, Excel, images). Follow-ups in the same chat reuse the file — no re-upload needed.
+
 Ask about HD stores, markets, districts, SKUs, on-hand $, and Everde farm inventory.
 
-**Not in this bot:** Lowe's, freight, weather (use **Claude** or **Everde Lowes**).
+**Scope:** Home Depot + farm inventory only (not other retailers or ops dashboards).
 
 **Commands:** \`/help\` · \`/reset\``;
   }
   return `**${p.displayName}** — Lowe's key-account assistant
 
+Chat naturally, or **attach files** for analysis (PDF, Excel, images). Follow-ups in the same chat reuse the file — no re-upload needed.
+
 Ask about Lowe's stores, SKUs, on-hand $, and Everde farm inventory.
 
-**Not in this bot:** Home Depot, freight, weather (use **Claude** or **Everde HD**).
+**Scope:** Lowe's + farm inventory only (not other retailers or ops dashboards).
 
 **Commands:** \`/help\` · \`/reset\``;
 }

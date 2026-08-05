@@ -127,8 +127,8 @@ export class TeamsClaudeBot extends ActivityHandler {
     try {
       const history = this.store.get(conversationId);
 
-      const files = tryFileDownload
-        ? await downloadAllMessageAttachments(context)
+        const files = tryFileDownload
+        ? await downloadAllMessageAttachments(context, this.profile)
         : [];
 
       if (files.length > 0) {
