@@ -2,8 +2,9 @@
   "snapshot": {
     "refresh": "5.29",
     "date": "2026-08-06",
-    "generated_at": "2026-08-07T22:30:25.446980+00:00",
-    "reports_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\_HANDOFF_WCRO_2026-08-06\\reports"
+    "generated_at": "2026-08-07T22:59:22.526115+00:00",
+    "reports_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\_HANDOFF_WCRO_2026-08-06\\reports",
+    "resolved_sets_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\_HANDOFF_WCRO_2026-08-06\\reports"
   },
   "four_numbers": {
     "ship_this_week": 1873239,

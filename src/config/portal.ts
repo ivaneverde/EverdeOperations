@@ -19,9 +19,10 @@ const FREIGHT_DASHBOARD_SOURCE =
  */
 const RETAIL_DROP_FOLDER = "SalesOpportunity";
 const RETAIL_WEEKLY_SOURCE = `${RETAIL_DROP_FOLDER}\\Sales Manager Summary - Wk29 2026.xlsx`;
-/** WCRO published reports (Jonathan engine outputs). */
-const WCRO_REPORTS_FOLDER =
-  "_HANDOFF_WCRO_2026-08-06\\reports";
+/** WCRO published reports + weekly drop. */
+const WCRO_ROOT = "_HANDOFF_WCRO_2026-08-06";
+const WCRO_REPORTS_FOLDER = `${WCRO_ROOT}\\reports`;
+const WCRO_WEEKLYDROP_FOLDER = `${WCRO_ROOT}\\WeeklyDrop`;
 const WCRO_COMBINED_SUMMARY =
   `${WCRO_REPORTS_FOLDER}\\Store Driven Sales Recommendation\\Store Driven Combined Summary (Refresh 5.29 - 2026-08-06).xlsx`;
 
@@ -203,9 +204,9 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     title: "WCRO",
     summary:
       "West Coast Retail Opportunity — weekly ship, transfer, net need, and rep orders from Jonathan's published sets.",
-    shareFolder: WCRO_REPORTS_FOLDER,
+    shareFolder: WCRO_WEEKLYDROP_FOLDER,
     sectionNotes:
-      "Run npm run wcro:extract after each WCRO refresh, then npm run publish:wcro-json so portal + Teams bots see the same snapshot.",
+      "Drop Jonathan's published set folders (or flat xlsx) into WeeklyDrop. Run npm run wcro:extract / scheduled Monday 11 AM; then publish:wcro-json for portal + Teams bots.",
     reports: [
       {
         slug: "wcro-store-rec",

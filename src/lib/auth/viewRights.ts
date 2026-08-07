@@ -67,7 +67,6 @@ const EMAIL_ROLES: Record<string, ViewRole> = {
   // Ops / admin — full portal + all three bots
   "isunderland@everde.com": "full",
   "jsaperstein@everde.com": "full",
-  "jsaperstien@everde.com": "full", // spelling variant
   "jcowham@everde.com": "full",
   "mcarrizales@everde.com": "full",
   "acowan@everde.com": "full",

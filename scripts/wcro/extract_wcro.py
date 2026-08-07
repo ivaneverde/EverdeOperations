@@ -34,11 +34,21 @@ TX_FL_ORGS = {"GFL", "MCR", "BNL", "OAS", "HOM"}
 AB_GRADES = {"A", "B"}
 QC_GRADES = {"SS", "SN", "S2N", "GS", "GN", "S"}
 
-DEFAULT_REPORTS = Path(
-    r"\\192.168.190.10\Claude Sandbox\DataDrops\_HANDOFF_WCRO_2026-08-06\reports"
+DEFAULT_HANDOFF = Path(
+    r"\\192.168.190.10\Claude Sandbox\DataDrops\_HANDOFF_WCRO_2026-08-06"
 )
+DEFAULT_WEEKLYDROP = DEFAULT_HANDOFF / "WeeklyDrop"
+DEFAULT_REPORTS = DEFAULT_HANDOFF / "reports"
 
-# §2 / handoff validation targets (5.29 / 2026-08-06)
+SET_FOLDER_NAMES = {
+    "set1": "Sales Variance and Allocation",
+    "set2": "Store Driven Sales Recommendation",
+    "set3": "On Hand and Register Sales Analysis",
+    "set4": "Transfers",
+    "set5": "Rep Orders",
+}
+
+# §2 / handoff validation targets (5.29 / 2026-08-06 only)
 TARGETS = {
     "ship_this_week": 1_873_239,
     "to_transfer": 585_910,
@@ -48,6 +58,7 @@ TARGETS = {
     # "NN Cust Store (units)" is ~380k and must NOT be used for this tile.
     "nn_cust_store": 150_293,
 }
+BASELINE_REFRESH = ("5.29", "2026-08-06")
 
 REFRESH_RE = re.compile(
     r"Refresh\s+(\d+\.\d+)\s*[-–—]\s*(\d{4}-\d{2}-\d{2})", re.I
@@ -141,6 +152,133 @@ def list_xlsx(folder: Path) -> list[Path]:
         for p in folder.glob("*.xlsx")
         if not p.name.startswith("~$") and "Archive" not in p.name
     )
+
+
+def list_xlsx_recursive(folder: Path) -> list[Path]:
+    if not folder.is_dir():
+        return []
+    return sorted(
+        p
+        for p in folder.rglob("*.xlsx")
+        if not p.name.startswith("~$") and "Archive" not in p.name
+    )
+
+
+def classify_flat_file(name: str) -> str | None:
+    """Map a flat WeeklyDrop filename to set1..set5."""
+    n = name.lower()
+    if " - orders (" in n or n.endswith(" - orders.xlsx") or " orders (refresh" in n:
+        return "set5"
+    if "on hand and register" in n:
+        return "set3"
+    if "transfer" in n and "store driven" not in n:
+        return "set4"
+    if "store driven" in n or "combined summary" in n:
+        return "set2"
+    if (
+        "sales variance" in n
+        or "sales manager summary" in n
+        or "actuals vs suggested" in n
+    ):
+        return "set1"
+    return None
+
+
+def materialize_flat_sets(root: Path, staging: Path) -> dict[str, Path]:
+    """Copy/classify flat xlsx into set subfolders under staging."""
+    import shutil
+
+    staging.mkdir(parents=True, exist_ok=True)
+    sets: dict[str, Path] = {}
+    for key, folder_name in SET_FOLDER_NAMES.items():
+        d = staging / folder_name
+        d.mkdir(parents=True, exist_ok=True)
+        # clear prior staged copies so deleted drops don't linger
+        for old in list_xlsx(d):
+            try:
+                old.unlink()
+            except OSError:
+                pass
+        sets[key] = d
+
+    for p in list_xlsx(root):
+        key = classify_flat_file(p.name)
+        if not key:
+            print(f"WARN: unclassified WeeklyDrop file skipped: {p.name}", file=sys.stderr)
+            continue
+        dest = sets[key] / p.name
+        shutil.copy2(p, dest)
+    return sets
+
+
+def resolve_set_dirs(reports_root: Path) -> tuple[Path, dict[str, Path]]:
+    """
+    Resolve the five set folders from either:
+      reports_root/<Set Name>/*.xlsx   (canonical)
+      reports_root/*.xlsx              (flat WeeklyDrop — staged under .wcro_extract_sets)
+    """
+    canonical = {
+        k: reports_root / name for k, name in SET_FOLDER_NAMES.items()
+    }
+    if all(d.is_dir() and list_xlsx(d) for d in [canonical["set2"], canonical["set5"]]):
+        # Prefer canonical when Set 2 + Rep Orders exist (minimum for Four Numbers + index)
+        if all(d.is_dir() for d in canonical.values()):
+            return reports_root, canonical
+
+    flat = list_xlsx(reports_root)
+    if flat:
+        staging = reports_root / ".wcro_extract_sets"
+        sets = materialize_flat_sets(reports_root, staging)
+        if not list_xlsx(sets["set2"]):
+            raise FileNotFoundError(
+                f"WeeklyDrop has xlsx but no Store Driven / Combined Summary files in {reports_root}"
+            )
+        return staging, sets
+
+    # Partial canonical (some folders only)
+    if any(d.is_dir() for d in canonical.values()):
+        missing = [k for k, d in canonical.items() if not d.is_dir()]
+        if missing:
+            raise FileNotFoundError(
+                f"Incomplete WCRO layout under {reports_root}; missing: "
+                + ", ".join(SET_FOLDER_NAMES[m] for m in missing)
+            )
+        return reports_root, canonical
+
+    raise FileNotFoundError(
+        f"No WCRO workbooks found under {reports_root}. "
+        "Drop the five set folders (or flat published xlsx) into WeeklyDrop."
+    )
+
+
+def pick_reports_root(weeklydrop: Path | None, reports: Path | None) -> Path:
+    """Prefer WeeklyDrop when it has content; else handoff reports\\; else explicit --reports."""
+    wd = weeklydrop or DEFAULT_WEEKLYDROP
+    rp = reports or DEFAULT_REPORTS
+
+    def has_content(p: Path) -> bool:
+        if not p.is_dir():
+            return False
+        if list_xlsx(p):
+            return True
+        return any(
+            (p / name).is_dir() and list_xlsx(p / name)
+            for name in SET_FOLDER_NAMES.values()
+        )
+
+    if has_content(wd):
+        return wd
+    if reports is not None and has_content(rp):
+        return rp
+    if has_content(rp):
+        print(
+            f"WeeklyDrop empty — using handoff reports folder: {rp}",
+            file=sys.stderr,
+        )
+        return rp
+    if weeklydrop is not None:
+        return wd
+    return rp
 
 
 # ── Combined Summary → Four Numbers ───────────────────────────────────────
@@ -850,26 +988,43 @@ def scan_org_leak(path: Path) -> list[str]:
 def validate(output: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     fn = output["four_numbers"]
-    checks = [
-        ("ship_this_week", TARGETS["ship_this_week"], 1000),
-        ("to_transfer", TARGETS["to_transfer"], 1000),
-        ("nn_plan", TARGETS["nn_plan"], 5000),
-        ("nn_cust_store", TARGETS["nn_cust_store"], 5000),
-    ]
-    for key, target, tol in checks:
-        val = fn.get(key)
-        if val is None:
-            errors.append(f"{key}: missing")
-            continue
-        if abs(val - target) >= tol:
-            errors.append(f"{key}: got {val}, expected ~{target} (±{tol})")
-    if len(output.get("rep_orders", [])) != 40:
-        errors.append(
-            f"rep_orders: got {len(output.get('rep_orders', []))}, expected 40"
-        )
+    snap = output.get("snapshot") or {}
+    refresh = str(snap.get("refresh") or "")
+    date = str(snap.get("date") or "")
+    is_baseline = (refresh, date) == BASELINE_REFRESH
+
+    if is_baseline:
+        checks = [
+            ("ship_this_week", TARGETS["ship_this_week"], 1000),
+            ("to_transfer", TARGETS["to_transfer"], 1000),
+            ("nn_plan", TARGETS["nn_plan"], 5000),
+            ("nn_cust_store", TARGETS["nn_cust_store"], 5000),
+        ]
+        for key, target, tol in checks:
+            val = fn.get(key)
+            if val is None:
+                errors.append(f"{key}: missing")
+                continue
+            if abs(val - target) >= tol:
+                errors.append(f"{key}: got {val}, expected ~{target} (±{tol})")
+    else:
+        for key in ("ship_this_week", "to_transfer", "nn_plan", "nn_cust_store"):
+            val = fn.get(key)
+            if val is None:
+                errors.append(f"{key}: missing")
+            elif not isinstance(val, (int, float)) or val < 0:
+                errors.append(f"{key}: invalid value {val}")
+        if (fn.get("ship_this_week") or 0) <= 0:
+            errors.append("ship_this_week: expected positive wholesale $")
+
+    rep_n = len(output.get("rep_orders", []))
+    if rep_n == 0:
+        errors.append("rep_orders: empty — expected published rep workbooks")
+    elif is_baseline and rep_n != 40:
+        errors.append(f"rep_orders: got {rep_n}, expected 40")
+
     if fn.get("nn_plan") == fn.get("nn_cust_store"):
         errors.append("NN Plan and NN Cust Store must not be equal")
-    # Build health must not be FAIL
     for bh in output.get("build_health", {}).get("store_driven", []):
         if bh.get("status") == "FAIL":
             errors.append(f"Build Health FAIL in {bh.get('file')}")
@@ -883,23 +1038,19 @@ def validate(output: dict[str, Any]) -> list[str]:
 
 
 def build_output(reports: Path) -> dict[str, Any]:
-    set1 = reports / "Sales Variance and Allocation"
-    set2 = reports / "Store Driven Sales Recommendation"
-    set3 = reports / "On Hand and Register Sales Analysis"
-    set4 = reports / "Transfers"
-    set5 = reports / "Rep Orders"
+    root, sets = resolve_set_dirs(reports)
+    set1, set2, set3, set4, set5 = (
+        sets["set1"],
+        sets["set2"],
+        sets["set3"],
+        sets["set4"],
+        sets["set5"],
+    )
 
-    for label, folder in [
-        ("Set1", set1),
-        ("Set2", set2),
-        ("Set3", set3),
-        ("Set4", set4),
-        ("Set5", set5),
-    ]:
-        if not folder.is_dir():
-            raise FileNotFoundError(f"Missing {label} folder: {folder}")
-
-    combined_path = next(set2.glob("*Combined Summary*.xlsx"))
+    combined_candidates = list(set2.glob("*Combined Summary*.xlsx"))
+    if not combined_candidates:
+        raise FileNotFoundError(f"No Combined Summary workbook in {set2}")
+    combined_path = combined_candidates[0]
     combined = extract_combined_summary(combined_path)
 
     hd_sd = next(set2.glob("HD Store Driven*.xlsx"))
@@ -929,7 +1080,6 @@ def build_output(reports: Path) -> dict[str, Any]:
     bh_hd = extract_build_health(hd_sd, "HD")
     bh_low = extract_build_health(low_sd, "LOW")
 
-    # Org leak scan on Set 2 By-Pool is N/A (no org column); scan Set 1 main if present
     leaks: list[str] = []
     for p in list_xlsx(set1):
         if "Store Detail" in p.name:
@@ -954,6 +1104,7 @@ def build_output(reports: Path) -> dict[str, Any]:
             "date": date,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "reports_root": str(reports),
+            "resolved_sets_root": str(root),
         },
         "four_numbers": combined["four_numbers"],
         "exec_summary": {
@@ -1040,7 +1191,18 @@ def build_output(reports: Path) -> dict[str, Any]:
 def parse_args() -> argparse.Namespace:
     repo = Path(__file__).resolve().parents[2]
     p = argparse.ArgumentParser(description="WCRO portal extractor")
-    p.add_argument("--reports", type=Path, default=DEFAULT_REPORTS)
+    p.add_argument(
+        "--weeklydrop",
+        type=Path,
+        default=None,
+        help=f"WeeklyDrop folder (default prefer: {DEFAULT_WEEKLYDROP})",
+    )
+    p.add_argument(
+        "--reports",
+        type=Path,
+        default=None,
+        help=f"Explicit reports root (fallback: {DEFAULT_REPORTS})",
+    )
     p.add_argument(
         "--out",
         type=Path,
@@ -1055,15 +1217,15 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--skip-validate",
         action="store_true",
-        help="Write even if Four Numbers gates fail (debug only)",
+        help="Write even if gates fail (debug only)",
     )
     return p.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    reports = args.reports
-    print(f"Reports: {reports}")
+    reports = pick_reports_root(args.weeklydrop, args.reports)
+    print(f"Reports root: {reports}")
     if not reports.is_dir():
         print(f"ERROR: reports folder not found: {reports}", file=sys.stderr)
         return 2

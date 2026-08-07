@@ -29,6 +29,7 @@ param(
   [string]$RetailTime = "10:00",
   [string]$WeatherTime = "09:30",
   [string]$NurseryTime = "13:30",
+  [string]$WcroTime = "11:00",
   [string]$AgentLabel = "",
   [switch]$Unregister
 )
@@ -72,6 +73,14 @@ $tasks = @(
     Script = "run-scheduled-nursery.ps1"
     Schedule = "Daily"
     Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
+  },
+  @{
+    Name = "Everde-WCRO-WeeklyCheck"
+    Time = $WcroTime
+    Script = "run-scheduled-wcro.ps1"
+    Schedule = "Weekly"
+    Day = "Monday"
+    Description = "Monday 11:00 AM: WCRO WeeklyDrop extract → data/wcro_data.json → Azure Blob (portal + Teams bots)."
   }
 )
 
@@ -83,7 +92,7 @@ $settings = New-ScheduledTaskSettingsSet `
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
-$legacyTaskNames = @("Everde-Freight-WeeklyCheck", "Everde-Nursery-DailyCheck", "Everde-Retail-WeeklyCheck", "Everde-Nursery-WeeklyCheck")
+$legacyTaskNames = @("Everde-Freight-WeeklyCheck", "Everde-Retail-WeeklyCheck", "Everde-Nursery-WeeklyCheck", "Everde-WCRO-WeeklyExtract")
 
 if ($Unregister) {
   foreach ($t in $tasks) {
@@ -148,5 +157,6 @@ Write-Host "  powershell -File scripts/windows/run-scheduled-freight.ps1 -Force"
 Write-Host "  powershell -File scripts/windows/run-scheduled-retail-build.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-weather.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-wcro.ps1 -Force" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "IT handoff: scripts/windows/WEEKLY_DROP_AGENT.md" -ForegroundColor Yellow

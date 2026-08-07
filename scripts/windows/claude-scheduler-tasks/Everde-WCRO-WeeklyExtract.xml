@@ -1,48 +1,35 @@
 <?xml version="1.0" encoding="UTF-16"?>
 <!--
-  Everde-WCRO-WeeklyExtract
-  ─────────────────────────
-  Machine  : VRD-8FQJYW3
-  Schedule : Monday 11:00 AM Pacific
-  Purpose  : Run extract_wcro.py against the latest WCRO published reports,
-             write data/wcro_data.json (+ public copy), then publish to Blob.
+  Prefer: npm run weekly:register-tasks  (registers Everde-WCRO-WeeklyCheck Mon 11:00)
 
-  Buffer after freight (9–10 AM) and before midday rep activity.
-  Jonathan's WCRO pipeline publishes Monday mornings.
+  This XML is a fallback import if you need a standalone task:
+    schtasks /Create /XML Everde-WCRO-WeeklyExtract.xml /TN "Everde-WCRO-WeeklyCheck" /F
 
-  Import (on agent PC):
-    schtasks /Create /XML Everde-WCRO-WeeklyExtract.xml /TN "Everde-WCRO-WeeklyExtract"
-
-  Adjust Command/Arguments paths to the local clone (example uses C:\Everde\everde-ai-operations).
+  Adjust WorkingDirectory to your local clone path.
 -->
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
     <Date>2026-08-07T00:00:00</Date>
     <Author>Everde Operations</Author>
-    <Description>Monday 11:00 AM — extract WCRO published reports to wcro_data.json and publish to Azure Blob for portal + Teams bots.</Description>
-    <URI>\Everde-WCRO-WeeklyExtract</URI>
+    <Description>Monday 11:00 AM — WCRO WeeklyDrop extract + Blob publish for portal and Teams bots.</Description>
+    <URI>\Everde-WCRO-WeeklyCheck</URI>
   </RegistrationInfo>
-
   <Triggers>
     <CalendarTrigger>
       <StartBoundary>2026-08-11T11:00:00</StartBoundary>
       <Enabled>true</Enabled>
       <ScheduleByWeek>
-        <DaysOfWeek>
-          <Monday />
-        </DaysOfWeek>
+        <DaysOfWeek><Monday /></DaysOfWeek>
         <WeeksInterval>1</WeeksInterval>
       </ScheduleByWeek>
     </CalendarTrigger>
   </Triggers>
-
   <Principals>
     <Principal id="Author">
       <LogonType>InteractiveToken</LogonType>
       <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>
-
   <Settings>
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
     <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
@@ -50,24 +37,16 @@
     <AllowHardTerminate>true</AllowHardTerminate>
     <StartWhenAvailable>true</StartWhenAvailable>
     <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
-    <IdleSettings>
-      <StopOnIdleEnd>false</StopOnIdleEnd>
-      <RestartOnIdle>false</RestartOnIdle>
-    </IdleSettings>
     <AllowStartOnDemand>true</AllowStartOnDemand>
     <Enabled>true</Enabled>
-    <Hidden>false</Hidden>
-    <RunOnlyIfIdle>false</RunOnlyIfIdle>
-    <WakeToRun>false</WakeToRun>
     <ExecutionTimeLimit>PT2H</ExecutionTimeLimit>
     <Priority>7</Priority>
   </Settings>
-
   <Actions Context="Author">
     <Exec>
-      <Command>cmd.exe</Command>
-      <Arguments>/C "cd /D C:\Everde\everde-ai-operations &amp;&amp; python scripts\wcro\extract_wcro.py &gt;&gt; \\192.168.190.10\Claude Sandbox\JS Files\logs\wcro_extract.log 2&gt;&amp;1 &amp;&amp; copy /Y data\wcro_data.json public\wcro_data.json &gt;&gt; \\192.168.190.10\Claude Sandbox\JS Files\logs\wcro_extract.log 2&gt;&amp;1 &amp;&amp; npm run publish:wcro-json -- data/wcro_data.json &gt;&gt; \\192.168.190.10\Claude Sandbox\JS Files\logs\wcro_extract.log 2&gt;&amp;1"</Arguments>
-      <WorkingDirectory>C:\Everde\everde-ai-operations</WorkingDirectory>
+      <Command>powershell.exe</Command>
+      <Arguments>-NoProfile -ExecutionPolicy Bypass -File "C:\Users\isunderland\everde-ai-operations\scripts\windows\run-scheduled-wcro.ps1"</Arguments>
+      <WorkingDirectory>C:\Users\isunderland\everde-ai-operations</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>

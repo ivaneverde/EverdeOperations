@@ -36,7 +36,7 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 Same Blob publish; each profile loads only its datasets/tools (less bandwidth). **Backend provisioned** (Entra + Azure Bots + App Service secrets); `/health` lists `full`/`hd`/`lowes`. **Teams install:** upload packages + assign per tester table — see `teams-claude-bot/docs/MULTI_BOT_PROFILES.md`.
 
-**View rights (Jonathan tester list — code-enforced portal + bots):** Unknown `@everde.com` → **full**. Explicit **full** admins: Ivan (`isunderland`), Jonathan (`jsaperstein`), Jason (`jcowham`), Marco (`mcarrizales`), Aaron (`acowan`). Key-account roles are retailer-slice only (no freight/weather/farm ops on Claude/portal).
+**View rights (Jonathan tester list — code-enforced portal + bots):** Unknown `@everde.com` → **full**. Explicit **full** admins: Ivan (`isunderland@everde.com`), Jonathan (`jsaperstein@everde.com`), Jason (`jcowham@everde.com`), Marco (`mcarrizales@everde.com`), Aaron (`acowan@everde.com`). Key-account roles are retailer-slice only (no freight/weather/farm ops on Claude/portal).
 
 | User | Email | Teams bots | Portal / Claude role |
 |------|-------|------------|----------------------|
