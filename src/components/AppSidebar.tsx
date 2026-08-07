@@ -11,7 +11,8 @@ import {
   type PortalSection,
 } from "@/config/portal";
 import {
-  isLowesRestrictedPath,
+  capabilitiesForRole,
+  isReportAllowedForCapabilities,
   type ViewRole,
 } from "@/lib/auth/viewRights";
 
@@ -47,18 +48,12 @@ function sectionHasActiveReport(
 }
 
 function filterSectionsForRole(role: ViewRole): PortalSection[] {
-  const allowLowes = role !== "hd_rep";
+  const caps = capabilitiesForRole(role);
   return PORTAL_SECTIONS.map((section) => ({
     ...section,
     reports: section.reports.filter((r) => {
       if (r.hideFromNav) return false;
-      if (!allowLowes && isLowesRestrictedPath(section.id, r.slug)) {
-        return false;
-      }
-      if (!allowLowes && (r.lowesYtdGrid || /lowes/i.test(r.slug))) {
-        return false;
-      }
-      return true;
+      return isReportAllowedForCapabilities(section.id, r.slug, caps);
     }),
   })).filter((s) => isSectionOnly(s) || s.reports.length > 0);
 }

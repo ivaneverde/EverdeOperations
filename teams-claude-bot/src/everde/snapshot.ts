@@ -61,18 +61,31 @@ async function loadDataset(
 
 export async function buildEverdeSnapshot(options?: {
   allowLowes?: boolean;
+  allowHd?: boolean;
+  allowFreight?: boolean;
+  allowWeather?: boolean;
+  allowFarm?: boolean;
+  allowSalesPlan?: boolean;
+  allowRetail?: boolean;
   profile?: BotProfile;
 }): Promise<EverdeSnapshot> {
   const profile = options?.profile ?? "full";
   const caps = BOT_PROFILES[profile].datasets;
-  const allowLowes =
-    caps.lowesYtd && options?.allowLowes !== false;
+  const allowLowes = caps.lowesYtd && options?.allowLowes !== false;
+  const allowHd = caps.hdYtd && options?.allowHd !== false;
+  const allowFreight = caps.freight && options?.allowFreight !== false;
+  const allowWeather = caps.weather && options?.allowWeather !== false;
+  const allowFarm =
+    (caps.nurserySupply || caps.nurseryDemand) &&
+    options?.allowFarm !== false;
+  const allowSalesPlan = caps.salesPlan && options?.allowSalesPlan !== false;
+  const allowRetail = caps.retail && options?.allowRetail !== false;
   const container = freightBlobContainer();
   const catalog = `${buildPortalCatalogSummary(profile)}\n\n${buildGradeHierarchyBlock()}`;
 
   const loaders: Promise<EverdeDatasetSnapshot>[] = [];
 
-  if (caps.freight) {
+  if (allowFreight) {
     loaders.push(
       loadDataset(
         "freight_dashboard",
@@ -82,7 +95,7 @@ export async function buildEverdeSnapshot(options?: {
       ),
     );
   }
-  if (caps.salesPlan) {
+  if (allowSalesPlan) {
     loaders.push(
       loadDataset(
         "sales_plan",
@@ -92,7 +105,7 @@ export async function buildEverdeSnapshot(options?: {
       ),
     );
   }
-  if (caps.hdYtd) {
+  if (allowHd) {
     loaders.push(
       loadDataset(
         "hd_ytd_following_week",
@@ -112,7 +125,7 @@ export async function buildEverdeSnapshot(options?: {
       ),
     );
   }
-  if (caps.retail) {
+  if (allowRetail) {
     loaders.push(
       loadDataset(
         "retail_opportunity",
@@ -122,7 +135,7 @@ export async function buildEverdeSnapshot(options?: {
       ),
     );
   }
-  if (caps.weather) {
+  if (allowWeather) {
     loaders.push(
       loadDataset(
         "weather",
@@ -132,7 +145,7 @@ export async function buildEverdeSnapshot(options?: {
       ),
     );
   }
-  if (caps.nurserySupply) {
+  if (allowFarm && caps.nurserySupply) {
     loaders.push(
       loadDataset(
         "nursery_supply",
@@ -142,7 +155,7 @@ export async function buildEverdeSnapshot(options?: {
       ),
     );
   }
-  if (caps.nurseryDemand) {
+  if (allowFarm && caps.nurseryDemand) {
     loaders.push(
       loadDataset(
         "nursery_demand",

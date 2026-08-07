@@ -22,7 +22,7 @@ import {
 } from "../everde/tools.js";
 import {
   buildViewRightsPromptBlock,
-  canAccessLowesAnalytics,
+  capabilitiesForEmail,
 } from "../everde/viewRights.js";
 import { buildRetailFiscalWeekPromptBlock } from "../everde/retailFiscalWeeks.js";
 import { logger } from "../utils/logger.js";
@@ -81,15 +81,42 @@ export class ClaudeService {
     const userEmail = options?.userEmail ?? null;
     const profile = options?.profile ?? "full";
     const profileCaps = BOT_PROFILES[profile];
+    const viewCaps = capabilitiesForEmail(userEmail);
     const allowLowes =
       profileCaps.datasets.lowesYtd &&
-      (profile !== "full" || canAccessLowesAnalytics(userEmail));
+      (profile !== "full" || viewCaps.lowesYtd);
+    const allowHd =
+      profileCaps.datasets.hdYtd && (profile !== "full" || viewCaps.hdYtd);
+    // Field bots keep nursery; Claude (full) honors retailer-slice caps.
+    const allowFreight =
+      profileCaps.datasets.freight &&
+      (profile !== "full" || viewCaps.freight);
+    const allowWeather =
+      profileCaps.datasets.weather &&
+      (profile !== "full" || viewCaps.weather);
+    const allowFarm =
+      (profileCaps.datasets.nurserySupply ||
+        profileCaps.datasets.nurseryDemand) &&
+      (profile !== "full" || viewCaps.farmInventory);
+    const allowSalesPlan =
+      profileCaps.datasets.salesPlan &&
+      (profile !== "full" || viewCaps.salesPlanOps);
+    const allowRetail =
+      profileCaps.datasets.retail &&
+      (profile !== "full" || viewCaps.hdYtd || viewCaps.lowesYtd);
 
     const { block: everdeBlock, ytdAsOfDates } =
-      await this.getEverdeSnapshotBlock(profile, allowLowes);
+      await this.getEverdeSnapshotBlock(profile, {
+        allowLowes,
+        allowHd,
+        allowFreight,
+        allowWeather,
+        allowFarm,
+        allowSalesPlan,
+        allowRetail,
+      });
     const identityBlock = buildBotProfilePromptBlock(profile);
-    const rightsBlock =
-      profile === "full" ? buildViewRightsPromptBlock(userEmail) : "";
+    const rightsBlock = buildViewRightsPromptBlock(userEmail);
     const fiscalBlock = buildRetailFiscalWeekPromptBlock({ ytdAsOfDates });
     const baseSystem =
       this.config.CLAUDE_SYSTEM_PROMPT?.trim() || DEFAULT_SYSTEM_PROMPT;
@@ -127,7 +154,9 @@ export class ClaudeService {
       hasAttachments: hasDocuments,
       everdeTools: tools.filter((t) => t.name !== "web_search").length,
       webSearch: webSearchEnabled,
-      viewRoleAllowLowes: allowLowes,
+      viewRole: viewCaps.role,
+      allowHd,
+      allowLowes,
       userEmail: userEmail?.toLowerCase() ?? null,
     });
 
@@ -228,17 +257,25 @@ export class ClaudeService {
 
   private async getEverdeSnapshotBlock(
     profile: BotProfile,
-    allowLowes: boolean,
+    flags: {
+      allowLowes: boolean;
+      allowHd: boolean;
+      allowFreight: boolean;
+      allowWeather: boolean;
+      allowFarm: boolean;
+      allowSalesPlan: boolean;
+      allowRetail: boolean;
+    },
   ): Promise<{ block: string; ytdAsOfDates: string[] }> {
     const ttlMs = this.config.EVERDE_SNAPSHOT_CACHE_MS;
     const now = Date.now();
-    const key = `${profile}:${allowLowes ? "lowes" : "no-lowes"}`;
+    const key = `${profile}:hd${flags.allowHd ? 1 : 0}:lo${flags.allowLowes ? 1 : 0}:f${flags.allowFreight ? 1 : 0}:w${flags.allowWeather ? 1 : 0}:n${flags.allowFarm ? 1 : 0}`;
     const cached = this.everdeSnapshotCache.get(key);
     if (cached && now - cached.at < ttlMs) {
       return { block: cached.block, ytdAsOfDates: cached.ytdAsOfDates };
     }
 
-    const snap = await buildEverdeSnapshot({ allowLowes, profile });
+    const snap = await buildEverdeSnapshot({ profile, ...flags });
     this.everdeSnapshotCache.set(key, {
       at: now,
       block: snap.systemBlock,

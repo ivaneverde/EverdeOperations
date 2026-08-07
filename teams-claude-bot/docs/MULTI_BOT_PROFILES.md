@@ -32,12 +32,32 @@ cd teams-claude-bot
 
 Outputs: `EverdeHDTeamsBot.zip`, `EverdeLowesTeamsBot.zip` (gitignored).
 
-## Remaining: Teams install (Ivan or Aaron)
+## Remaining: Teams install + assignment (Ivan or Aaron)
 
 1. **Teams Admin Center** → Manage apps → Upload custom app → upload each zip (or sideload via Teams desktop: Apps → Manage your apps → Upload a custom app).
-2. Assign / allow for the right users (HD crew vs Lowe’s crew vs everyone for Claude).
+2. **Assign apps per tester** (install-time gate; code still denies wrong bot):
+
+| User | Email | Claude | Everde HD | Everde Lowes |
+|------|-------|:------:|:---------:|:------------:|
+| Mark Berchiolli | `mberchiolli@everde.com` | ✓ | ✓ | ✓ |
+| Justin Keeler | `jkeeler@everde.com` | ✓ | ✓ | ✓ |
+| Jae Martin | `jmartin@everde.com` | — | ✓ | — |
+| Brian Wohlberg | `bwohlberg@everde.com` | — | ✓ | — |
+| John Gorosave | `jgorosave@everde.com` | — | — | ✓ |
+| Scott Bianucci | `sbianucci@everde.com` | — | ✓ | ✓ |
+| Cory Wible | `cwible@everde.com` | — | ✓ | ✓ |
+
+   Unknown Everde users (Ivan, Jonathan, ops) keep **full** in code; assign Claude + field bots as needed.
 3. In a chat: `@Everde HD` / `@Everde Lowes` / `@Claude` and smoke-test a simple inventory or YTD ask.
-4. **Aaron — Graph admin consent (group-chat file attach):** On Entra apps **Everde Teams HD Bot** and **Everde Teams Lowes Bot**, grant admin consent for Microsoft Graph application permissions **Chat.Read.All** and **Files.Read.All** (same as Claude). Until then, group-chat files fall back to Claude’s Graph identity when possible; 1:1 file attach works with the bot’s own credentials after the file-parity deploy.
+4. **Aaron — Graph admin consent:** Already granted for HD/Lowes Entra apps (**Chat.Read.All** / **Files.Read.All**). Re-check only if file attach regresses.
+
+## Code view-rights backstop
+
+Email → role maps in `src/everde/viewRights.ts` (mirror portal `src/lib/auth/viewRights.ts`):
+
+- Wrong bot profile → short denial (no cross-bot suggestion).
+- On Claude (`full`): strip HD/Lowe’s/freight/weather/farm tools per role.
+- Field bots keep nursery; still strip the other retailer’s YTD tools.
 
 ## What we did **not** need
 

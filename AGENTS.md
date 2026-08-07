@@ -34,7 +34,21 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 | **Everde HD** (`@Everde HD`) | `/api/messages/hd` | HD YTD + farm inventory/demand only |
 | **Everde Lowes** (`@Everde Lowes`) | `/api/messages/lowes` | Lowe's YTD + farm inventory/demand only |
 
-Same Blob publish; each profile loads only its datasets/tools (less bandwidth). **Backend provisioned** (Entra + Azure Bots + App Service secrets); `/health` lists `full`/`hd`/`lowes`. **Remaining:** upload `EverdeHDTeamsBot.zip` / `EverdeLowesTeamsBot.zip` in Teams — see `teams-claude-bot/docs/MULTI_BOT_PROFILES.md`. Email **view rights** still apply on Claude (Jae no Lowe's).
+Same Blob publish; each profile loads only its datasets/tools (less bandwidth). **Backend provisioned** (Entra + Azure Bots + App Service secrets); `/health` lists `full`/`hd`/`lowes`. **Teams install:** upload packages + assign per tester table — see `teams-claude-bot/docs/MULTI_BOT_PROFILES.md`.
+
+**View rights (Jonathan tester list — code-enforced portal + bots):** Unknown `@everde.com` → **full**. Key-account roles are retailer-slice only (no freight/weather/farm ops on Claude/portal).
+
+| User | Email | Teams bots | Portal / Claude role |
+|------|-------|------------|----------------------|
+| Mark Berchiolli | `mberchiolli@everde.com` | Claude + HD + Lowes | `full` |
+| Justin Keeler | `jkeeler@everde.com` | Claude + HD + Lowes | `full` |
+| Jae Martin | `jmartin@everde.com` | HD only | `hd_rep` |
+| Brian Wohlberg | `bwohlberg@everde.com` | HD only | `hd_rep` |
+| John Gorosave | `jgorosave@everde.com` | Lowes only | `lowes_rep` |
+| Scott Bianucci | `sbianucci@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` |
+| Cory Wible | `cwible@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` |
+
+Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewRights.ts` (keep in sync).
 
 **Keep existing work:** Freight, nursery, weather, sales-plan dashboards, retail opportunity, CEO briefing, full ops portal sections, etc. stay implemented and maintained. Jonathan’s note is the **priority product lens** for field-facing HD/LOW Q&A (especially Teams + mobile), not a mandate to remove other features. Ops/admin users may still use the broader portal / Claude bot.
 
@@ -47,9 +61,9 @@ Same Blob publish; each profile loads only its datasets/tools (less bandwidth). 
 
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
-**Snapshot 9.0.1 (portal app):** Tagged release backup of Option A multi-bot ship (Claude / Everde HD / Everde Lowes), file-attach parity, stay-in-lane key-account prompts, accounting calendar + anti false-deny, view rights (Jae HD-only; Cory HD+Lowe’s). Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
+**Snapshot 9.0.1 (portal app):** Tagged release backup of Option A multi-bot ship (Claude / Everde HD / Everde Lowes), file-attach parity, stay-in-lane key-account prompts, accounting calendar + anti false-deny. Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-07):** Released **v9.0.1** as remote git backup before WCRO handoff work. Jonathan’s `_HANDOFF_WCRO_2026-08-06` pack is analysis-only (no build engine); bot tester access list pending. Icons deferred.
+**Last session (2026-08-07):** Enforced Jonathan tester view rights (roles `full` / `hd_rep` / `lowes_rep` / `hd_lowes_rep`) in portal nav/APIs/assistant + Teams profile/tool gates. WCRO handoff pack remains analysis-only. Icons deferred.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 

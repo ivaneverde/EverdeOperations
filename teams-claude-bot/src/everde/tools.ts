@@ -33,8 +33,13 @@ import {
   type YtdKind,
 } from "./ytdFollowingWeek.js";
 import {
+  canAccessHdAnalytics,
   canAccessLowesAnalytics,
+  capabilitiesForEmail,
+  hdDeniedMessage,
+  isHdRestrictedTool,
   isLowesRestrictedTool,
+  isToolAllowedForCapabilities,
   lowesDeniedMessage,
 } from "./viewRights.js";
 import {
@@ -292,11 +297,22 @@ export function toolsForProfile(
   email: string | null | undefined,
 ): Tool[] {
   const allowed = BOT_PROFILES[profile].tools;
+  const caps = capabilitiesForEmail(email);
   let tools = EVERDE_TOOL_DEFINITIONS.filter((t) => allowed.has(t.name));
-  // Full Claude bot still honors email view-rights (Jae: no Lowe's)
-  if (profile === "full" && !canAccessLowesAnalytics(email)) {
-    tools = tools.filter((t) => !isLowesRestrictedTool(t.name));
-  }
+
+  tools = tools.filter((t) => {
+    if (isLowesRestrictedTool(t.name) && !caps.lowesYtd) return false;
+    if (isHdRestrictedTool(t.name) && !caps.hdYtd) return false;
+    // Farm inventory stays available on HD/Lowes field bots; strip on Claude for retailer-slice users.
+    if (profile === "full") {
+      return isToolAllowedForCapabilities(t.name, caps);
+    }
+    if (t.name === "get_freight_dashboard" && !caps.freight) return false;
+    if (t.name === "get_weather_dashboard" && !caps.weather) return false;
+    if (t.name === "get_sales_plan_dashboard" && !caps.salesPlanOps) return false;
+    return true;
+  });
+
   return tools;
 }
 
@@ -313,14 +329,18 @@ export async function executeEverdeTool(
   const profile = options?.profile ?? "full";
   const allowed = BOT_PROFILES[profile].tools;
   if (!allowed.has(name)) {
-    return `That data is outside this ${BOT_PROFILES[profile].displayName} chat's scope. Ask about ${profile === "hd" ? "Home Depot" : "Lowe's"} stores, SKUs, on-hand, or farm inventory here.`;
+    return `That data is outside this ${BOT_PROFILES[profile].displayName} chat's scope. Ask about ${profile === "hd" ? "Home Depot" : profile === "lowes" ? "Lowe's" : "Everde"} data available in this bot.`;
   }
-  if (
-    profile === "full" &&
-    isLowesRestrictedTool(name) &&
-    !canAccessLowesAnalytics(options?.userEmail)
-  ) {
+
+  const caps = capabilitiesForEmail(options?.userEmail);
+  if (isLowesRestrictedTool(name) && !canAccessLowesAnalytics(options?.userEmail)) {
     return lowesDeniedMessage();
+  }
+  if (isHdRestrictedTool(name) && !canAccessHdAnalytics(options?.userEmail)) {
+    return hdDeniedMessage();
+  }
+  if (profile === "full" && !isToolAllowedForCapabilities(name, caps)) {
+    return "That dataset is outside your assigned view. Ask about Home Depot or Lowe's store data you have access to.";
   }
 
   const container = freightBlobContainer();

@@ -13,8 +13,12 @@ import { getReport } from "@/config/portal";
 import { PORTAL_SESSION_COOKIE } from "@/lib/auth/portalAuthConfig";
 import { verifyPortalSessionToken } from "@/lib/auth/portalSession";
 import {
+  canAccessHdAnalytics,
   canAccessLowesAnalytics,
+  capabilitiesForEmail,
+  isHdRestrictedPath,
   isLowesRestrictedPath,
+  isReportAllowedForCapabilities,
 } from "@/lib/auth/viewRights";
 import { salesPlanRegionFromSlug } from "@/lib/salesPlan/regionConfig";
 
@@ -35,13 +39,25 @@ export default async function ReportPage(
 
   const { section: sec, report: rep } = found;
 
+  const jar = await cookies();
+  const token = jar.get(PORTAL_SESSION_COOKIE)?.value;
+  const user = token ? await verifyPortalSessionToken(token) : null;
+  const caps = capabilitiesForEmail(user?.email);
+
   if (isLowesRestrictedPath(sec.id, rep.slug) || rep.lowesYtdGrid) {
-    const jar = await cookies();
-    const token = jar.get(PORTAL_SESSION_COOKIE)?.value;
-    const user = token ? await verifyPortalSessionToken(token) : null;
     if (!canAccessLowesAnalytics(user?.email)) {
       redirect("/");
     }
+  }
+
+  if (isHdRestrictedPath(sec.id, rep.slug) || rep.hdYtdGrid) {
+    if (!canAccessHdAnalytics(user?.email)) {
+      redirect("/");
+    }
+  }
+
+  if (!isReportAllowedForCapabilities(sec.id, rep.slug, caps)) {
+    redirect("/");
   }
 
   const navHref = rep.navHref?.trim();

@@ -29,7 +29,8 @@ import { loadYtdMeta } from "@/lib/hdYtd/loadHdYtdData";
 import { buildPortalCatalogSummary } from "@/lib/assistant/portalCatalog";
 import { truncateForContext } from "@/lib/assistant/truncateForContext";
 import {
-  canAccessLowesAnalytics,
+  capabilitiesForEmail,
+  hdDeniedMessage,
   lowesDeniedMessage,
   roleForEmail,
 } from "@/lib/auth/viewRights";
@@ -40,7 +41,7 @@ export type AssistantRouteContext = {
   sectionId?: string;
   reportSlug?: string;
   provider?: AssistantProvider;
-  /** Signed-in portal user — drives Lowe's view rights. */
+  /** Signed-in portal user — drives retailer view rights. */
   userEmail?: string | null;
 };
 
@@ -92,27 +93,48 @@ export async function buildAssistantContext(
 
   const provider = input.provider ?? "anthropic";
   const focus = contextFocusForPathname(input.pathname);
-  const allowLowes = canAccessLowesAnalytics(input.userEmail);
+  const caps = capabilitiesForEmail(input.userEmail);
+  const allowLowes = caps.lowesYtd;
+  const allowHd = caps.hdYtd;
   const viewRole = roleForEmail(input.userEmail);
   const datasets: AssistantDataContext["datasets"] = [];
   const compendiumMode =
     provider === "openai"
       ? openAiCompendiumMode()
       : anthropicCompendiumMode();
+
+  const rightsNotes: string[] = [];
+  if (!allowLowes) {
+    rightsNotes.push(
+      `VIEW RIGHTS: ${lowesDeniedMessage()} If asked about Lowe's, refuse politely and stay on allowed retailers.`,
+    );
+  }
+  if (!allowHd) {
+    rightsNotes.push(
+      `VIEW RIGHTS: ${hdDeniedMessage()} If asked about Home Depot, refuse politely and stay on allowed retailers.`,
+    );
+  }
+  if (!caps.freight || !caps.weather || !caps.farmInventory) {
+    rightsNotes.push(
+      "VIEW RIGHTS: This user has a retailer-slice view — do not invent freight, weather, or farm inventory ops answers from missing datasets.",
+    );
+  }
+
   const notes = [
-    "You are the Everde AI Operations compendium analyst across all portal sections.",
+    "You are the Everde AI Operations compendium analyst across portal sections available to this user.",
     "Answer from the portal catalog and JSON datasets below. Cite specific numbers, names, carriers, farms, and key items.",
-    "Retail and weather JSON are included when published to Blob or available locally.",
-    allowLowes
+    allowHd && allowLowes
       ? "HD and Lowe's Following Week YTD meta (totals/as-of) are included when published; full store×SKU grids are in-portal only."
-      : "HD Following Week YTD meta is included when published. Lowe's analytics are outside this user's view — do not invent Lowe's numbers.",
+      : allowHd
+        ? "HD Following Week YTD meta is included when published. Lowe's analytics are outside this user's view."
+        : allowLowes
+          ? "Lowe's Following Week YTD meta is included when published. Home Depot analytics are outside this user's view."
+          : "No retailer YTD meta is included for this user.",
     `User is viewing: ${routeLabel}. Emphasize that section when applicable, but you may draw on any loaded dataset for cross-functional questions.`,
     `Signed-in view role: ${viewRole}${input.userEmail ? ` (${input.userEmail})` : ""}.`,
-    allowLowes
-      ? null
-      : `VIEW RIGHTS: ${lowesDeniedMessage()} If asked about Lowe's, refuse politely and offer HD / farm / freight / weather instead.`,
+    ...rightsNotes,
     compendiumMode
-      ? `Context emphasis: ${focus} (compendium — freight, sales plan, HD${allowLowes ? "/Lowe's" : ""} YTD meta, nursery, retail, and weather when published; payloads compacted for API limits).`
+      ? `Context emphasis: ${focus} (compendium — datasets below only; payloads compacted for API limits).`
       : `Context emphasis: ${focus} (focused mode — primary section + headlines only; set ${provider === "openai" ? "OPENAI" : "ANTHROPIC"}_ASSISTANT_COMPENDIUM=1 on the server for full cross-portal data).`,
     "Each dataset may include assistant_facts — prefer those for rankings and headlines, then supporting detail in the same block.",
   ].filter((n): n is string => Boolean(n));
@@ -144,30 +166,41 @@ export async function buildAssistantContext(
     excerpt: truncateForContext(catalog, catalogMaxChars(provider)),
   });
 
-  pushDataset(
-    "freight_dashboard_data",
-    await loadFreightJson(),
-    compactFreightForAssistant,
-    "freight",
-    "Freight dashboard_data.json not available.",
-  );
+  if (caps.freight) {
+    pushDataset(
+      "freight_dashboard_data",
+      await loadFreightJson(),
+      compactFreightForAssistant,
+      "freight",
+      "Freight dashboard_data.json not available.",
+    );
+  }
 
-  pushDataset(
-    "sales_plan_data",
-    await loadSalesPlanJson(),
-    compactSalesPlanForAssistant,
-    "sales_plan",
-    "Sales plan JSON not available (Blob, public/sales_plan_data.json, or HTML embed).",
-  );
+  if (caps.salesPlanOps) {
+    pushDataset(
+      "sales_plan_data",
+      await loadSalesPlanJson(),
+      compactSalesPlanForAssistant,
+      "sales_plan",
+      "Sales plan JSON not available (Blob, public/sales_plan_data.json, or HTML embed).",
+    );
+  }
 
-  const hdMeta = await loadYtdMeta("hd");
-  pushDataset(
-    "hd_ytd_following_week",
-    hdMeta ? JSON.stringify(hdMeta) : null,
-    compactYtdFollowingWeekForAssistant,
-    "hd_ytd",
-    "HD Sales YTD Following Week meta not available — run npm run sales-plan:hd-ytd-extract-publish.",
-  );
+  let hdAsOf: string | null = null;
+  if (allowHd) {
+    const hdMeta = await loadYtdMeta("hd");
+    hdAsOf =
+      hdMeta && typeof (hdMeta as { asOf?: string }).asOf === "string"
+        ? String((hdMeta as { asOf: string }).asOf).slice(0, 10)
+        : null;
+    pushDataset(
+      "hd_ytd_following_week",
+      hdMeta ? JSON.stringify(hdMeta) : null,
+      compactYtdFollowingWeekForAssistant,
+      "hd_ytd",
+      "HD Sales YTD Following Week meta not available — run npm run sales-plan:hd-ytd-extract-publish.",
+    );
+  }
 
   let lowesAsOf: string | null = null;
   if (allowLowes) {
@@ -185,17 +218,13 @@ export async function buildAssistantContext(
     );
   }
 
-  const hdAsOf =
-    hdMeta && typeof (hdMeta as { asOf?: string }).asOf === "string"
-      ? String((hdMeta as { asOf: string }).asOf).slice(0, 10)
-      : null;
   notes.push(
     buildRetailFiscalWeekPromptBlock({
       ytdAsOfDates: [hdAsOf, lowesAsOf],
     }),
   );
 
-  if (input.pathname.includes("or-forward-looking")) {
+  if (caps.salesPlanOps && input.pathname.includes("or-forward-looking")) {
     const orPlan = await loadSalesPlanDashboardJson("or");
     pushDataset(
       "or_sales_plan_data",
@@ -206,39 +235,45 @@ export async function buildAssistantContext(
     );
   }
 
-  pushDataset(
-    "nursery_demand_data",
-    await loadNurseryDemandJson(),
-    compactNurseryForAssistant,
-    "nursery_demand",
-    "Production & Demand (nursery DEMAND) not available — refresh public/nursery-inventory-dashboard.html or publish demand JSON to Blob.",
-  );
+  if (caps.farmInventory) {
+    pushDataset(
+      "nursery_demand_data",
+      await loadNurseryDemandJson(),
+      compactNurseryForAssistant,
+      "nursery_demand",
+      "Production & Demand (nursery DEMAND) not available — refresh public/nursery-inventory-dashboard.html or publish demand JSON to Blob.",
+    );
 
-  pushDataset(
-    "nursery_supply_data",
-    await loadNurserySupplyJson(),
-    compactNurserySupplyForAssistant,
-    "nursery_supply",
-    "Supply Inventory (nursery SUPPLY) not available — run npm run nursery:refresh-supply.",
-  );
+    pushDataset(
+      "nursery_supply_data",
+      await loadNurserySupplyJson(),
+      compactNurserySupplyForAssistant,
+      "nursery_supply",
+      "Supply Inventory (nursery SUPPLY) not available — run npm run nursery:refresh-supply.",
+    );
+  }
 
-  const retail = await loadRetailDashboardJson();
-  pushDataset(
-    "retail_opp_data",
-    retail?.json ?? null,
-    compactRetailForAssistant,
-    "retail",
-    "Retail opportunity JSON not available — run npm run retail:extract-publish on VPN.",
-  );
+  if (caps.hdYtd || caps.lowesYtd) {
+    const retail = await loadRetailDashboardJson();
+    pushDataset(
+      "retail_opp_data",
+      retail?.json ?? null,
+      compactRetailForAssistant,
+      "retail",
+      "Retail opportunity JSON not available — run npm run retail:extract-publish on VPN.",
+    );
+  }
 
-  const weather = await loadWeatherDashboardJson();
-  pushDataset(
-    "weather_dashboard_data",
-    weather?.json ?? null,
-    compactWeatherForAssistant,
-    "weather",
-    "Weather dashboard JSON not available — run npm run weather:publish.",
-  );
+  if (caps.weather) {
+    const weather = await loadWeatherDashboardJson();
+    pushDataset(
+      "weather_dashboard_data",
+      weather?.json ?? null,
+      compactWeatherForAssistant,
+      "weather",
+      "Weather dashboard JSON not available — run npm run weather:publish.",
+    );
+  }
 
   return { routeLabel, datasets, notes };
 }

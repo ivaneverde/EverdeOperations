@@ -30,6 +30,10 @@ import {
   helpTextForProfile,
   type BotProfile,
 } from "../everde/botProfile.js";
+import {
+  botProfileDeniedMessage,
+  canAccessBotProfile,
+} from "../everde/viewRights.js";
 
 export class TeamsClaudeBot extends ActivityHandler {
   private readonly claude: ClaudeService;
@@ -123,6 +127,17 @@ export class TeamsClaudeBot extends ActivityHandler {
     await context.sendActivity({ type: ActivityTypes.Typing });
 
     const userEmail = await resolveTeamsUserEmail(context);
+
+    if (!canAccessBotProfile(userEmail, this.profile)) {
+      logger.info("bot.profile.denied", {
+        profile: this.profile,
+        userEmail: userEmail?.toLowerCase() ?? null,
+      });
+      await context.sendActivity(
+        MessageFactory.text(botProfileDeniedMessage(this.profile)),
+      );
+      return;
+    }
 
     try {
       const history = this.store.get(conversationId);

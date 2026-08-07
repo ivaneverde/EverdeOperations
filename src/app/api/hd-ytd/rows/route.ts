@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import { guardPortalApi } from "@/lib/auth/guardApiRoute";
+import {
+  canAccessHdAnalytics,
+  hdDeniedMessage,
+} from "@/lib/auth/viewRights";
 import {
   filterHdYtdRows,
   loadHdYtdMeta,
@@ -11,6 +16,12 @@ export const runtime = "nodejs";
 const MAX_LIMIT = 2000;
 
 export async function GET(request: Request) {
+  const gate = await guardPortalApi(request);
+  if (!gate.ok) return gate.response;
+  if (!canAccessHdAnalytics(gate.user.email)) {
+    return NextResponse.json({ error: hdDeniedMessage() }, { status: 403 });
+  }
+
   const url = new URL(request.url);
   const start = Math.max(0, Number(url.searchParams.get("start") || "0") || 0);
   const limit = Math.min(
