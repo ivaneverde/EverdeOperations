@@ -64,6 +64,14 @@ const ROLE_CAPS: Record<ViewRole, Omit<ViewCapabilities, "role">> = {
 
 /** Lowercase emails → role. Everyone else → full. */
 const EMAIL_ROLES: Record<string, ViewRole> = {
+  // Ops / admin — full portal + all three bots
+  "isunderland@everde.com": "full",
+  "jsaperstein@everde.com": "full",
+  "jsaperstien@everde.com": "full", // spelling variant
+  "jcowham@everde.com": "full",
+  "mcarrizales@everde.com": "full",
+  "acowan@everde.com": "full",
+  // Jonathan tester list
   "mberchiolli@everde.com": "full",
   "jkeeler@everde.com": "full",
   "jmartin@everde.com": "hd_rep",
@@ -202,6 +210,11 @@ export function isReportAllowedForCapabilities(
       return true;
     }
     return caps.salesPlanOps;
+  }
+
+  if (sectionId === "wcro") {
+    // Key-account retailer slice + full ops
+    return caps.hdYtd || caps.lowesYtd;
   }
 
   if (sectionId === "retail-sales-opportunity") {

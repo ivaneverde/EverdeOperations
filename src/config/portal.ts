@@ -19,6 +19,11 @@ const FREIGHT_DASHBOARD_SOURCE =
  */
 const RETAIL_DROP_FOLDER = "SalesOpportunity";
 const RETAIL_WEEKLY_SOURCE = `${RETAIL_DROP_FOLDER}\\Sales Manager Summary - Wk29 2026.xlsx`;
+/** WCRO published reports (Jonathan engine outputs). */
+const WCRO_REPORTS_FOLDER =
+  "_HANDOFF_WCRO_2026-08-06\\reports";
+const WCRO_COMBINED_SUMMARY =
+  `${WCRO_REPORTS_FOLDER}\\Store Driven Sales Recommendation\\Store Driven Combined Summary (Refresh 5.29 - 2026-08-06).xlsx`;
 
 /** Weather dashboard + crosswalk (daily pipeline on share). */
 const WEATHER_DATA_ROOT = "Weather Data";
@@ -59,6 +64,17 @@ export type PortalReport = {
   hdYtdGrid?: boolean;
   /** When true, renders Lowe's Sales YTD Following Week virtualized grid. */
   lowesYtdGrid?: boolean;
+  /**
+   * When set, renders the WCRO React shell (`/api/wcro/data`) for that view id
+   * (exec | store-rec | onhand | transfers | rep-orders | build).
+   */
+  wcroView?:
+    | "exec"
+    | "store-rec"
+    | "onhand"
+    | "transfers"
+    | "rep-orders"
+    | "build";
   /** Optional hex color (no #) for a small sidebar dot, matching dashboard tab colors */
   navAccent?: string;
   /**
@@ -183,13 +199,74 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     ],
   },
   {
+    id: "wcro",
+    title: "WCRO",
+    summary:
+      "West Coast Retail Opportunity — weekly ship, transfer, net need, and rep orders from Jonathan's published sets.",
+    shareFolder: WCRO_REPORTS_FOLDER,
+    sectionNotes:
+      "Run npm run wcro:extract after each WCRO refresh, then npm run publish:wcro-json so portal + Teams bots see the same snapshot.",
+    reports: [
+      {
+        slug: "wcro-store-rec",
+        title: "Store Recommendation",
+        sourceRelativePath: WCRO_COMBINED_SUMMARY,
+        wcroView: "store-rec",
+        navAccent: "2F5233",
+        notes:
+          "Set 2 Store Driven + Combined Summary. Ship / Transfer / NN from extract_wcro.py.",
+      },
+      {
+        slug: "wcro-onhand",
+        title: "On Hand & Register",
+        sourceRelativePath: `${WCRO_REPORTS_FOLDER}\\On Hand and Register Sales Analysis`,
+        wcroView: "onhand",
+        navAccent: "1F3A5F",
+        notes: "Set 3 — 4 markets × Weekly/YTD. KPIs from published Exec Summary tabs.",
+      },
+      {
+        slug: "wcro-transfers",
+        title: "Transfers",
+        sourceRelativePath: `${WCRO_REPORTS_FOLDER}\\Transfers`,
+        wcroView: "transfers",
+        navAccent: "C49B3F",
+        notes: "Set 4 — cross-region ops moves (shelf next week).",
+      },
+      {
+        slug: "wcro-rep-orders",
+        title: "Rep Orders",
+        sourceRelativePath: `${WCRO_REPORTS_FOLDER}\\Rep Orders`,
+        wcroView: "rep-orders",
+        navAccent: "5B4F8A",
+        notes: "Set 5 — searchable index of 40 rep workbooks (UNC download).",
+      },
+      {
+        slug: "wcro-build",
+        title: "Build Health",
+        sourceRelativePath: WCRO_COMBINED_SUMMARY,
+        wcroView: "build",
+        navAccent: "404040",
+        notes: "Extractor validation + Store Driven Build Health PASS/FAIL.",
+      },
+      {
+        slug: "wcro-exec",
+        title: "Exec Summary (legacy Set 1)",
+        sourceRelativePath: `${WCRO_REPORTS_FOLDER}\\Sales Variance and Allocation`,
+        wcroView: "exec",
+        navAccent: "6B7280",
+        notes:
+          "Set 1 being phased toward retirement — stub / index only. Prefer Store Recommendation.",
+      },
+    ],
+  },
+  {
     id: "retail-sales-opportunity",
     title: "Retail Sales Opportunity",
     summary:
-      "West Coast retail opportunity, variance, and miss analysis with weather-informed context.",
+      "Legacy West Coast retail opportunity HTML dashboard, variance, and miss analysis.",
     shareFolder: RETAIL_DROP_FOLDER,
     sectionNotes:
-      "Drop the five weekly pipeline outputs here (Sales Manager Summary, HD/LOW variance, miss analysis, FOR source). Run npm run retail:extract-publish after each drop.",
+      "Drop the five weekly pipeline outputs here. Run npm run retail:extract-publish after each drop. For replenishment / ship recommendations use the WCRO section.",
     reports: [
       {
         slug: "west-coast-retail-dashboard",

@@ -17,8 +17,10 @@ import {
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
+  compactWcroJson,
   compactYtdFollowingWeekMeta,
 } from "./compact.js";
+import { loadWcroJsonRaw } from "./loadWcroJson.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
 import { buildGradeHierarchyBlock } from "./gradeHierarchy.js";
 import {
@@ -67,6 +69,7 @@ export async function buildEverdeSnapshot(options?: {
   allowFarm?: boolean;
   allowSalesPlan?: boolean;
   allowRetail?: boolean;
+  allowWcro?: boolean;
   profile?: BotProfile;
 }): Promise<EverdeSnapshot> {
   const profile = options?.profile ?? "full";
@@ -80,6 +83,7 @@ export async function buildEverdeSnapshot(options?: {
     options?.allowFarm !== false;
   const allowSalesPlan = caps.salesPlan && options?.allowSalesPlan !== false;
   const allowRetail = caps.retail && options?.allowRetail !== false;
+  const allowWcro = caps.wcro && options?.allowWcro !== false;
   const container = freightBlobContainer();
   const catalog = `${buildPortalCatalogSummary(profile)}\n\n${buildGradeHierarchyBlock()}`;
 
@@ -132,6 +136,18 @@ export async function buildEverdeSnapshot(options?: {
         () => downloadJsonFromBlob(container, retailDashboardJsonPath()),
         compactRetailJson,
         "Retail opportunity JSON not in Blob.",
+      ),
+    );
+  }
+  if (allowWcro) {
+    const channel: "HD" | "LOW" | "ALL" =
+      profile === "hd" ? "HD" : profile === "lowes" ? "LOW" : "ALL";
+    loaders.push(
+      loadDataset(
+        "wcro",
+        () => loadWcroJsonRaw(),
+        (raw, max) => compactWcroJson(raw, max, channel),
+        "WCRO JSON not available — run extract_wcro.py / publish wcro/latest/wcro_data.json.",
       ),
     );
   }

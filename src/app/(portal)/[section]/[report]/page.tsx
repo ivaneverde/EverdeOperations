@@ -7,6 +7,7 @@ import { SalesPlanDashboardEmbed } from "@/components/reports/SalesPlanDashboard
 import { SalesPlanOrPending } from "@/components/reports/SalesPlanOrPending";
 import { WeatherDashboardEmbed } from "@/components/reports/WeatherDashboardEmbed";
 import { FreightYtdSourcePage } from "@/components/reports/FreightYtdSourcePage";
+import { WCROPanel } from "@/components/wcro/WCROPanel";
 import { ReportPlaceholder } from "@/components/ReportPlaceholder";
 import { ReportShell } from "@/components/ReportShell";
 import { getReport } from "@/config/portal";
@@ -21,6 +22,7 @@ import {
   isReportAllowedForCapabilities,
 } from "@/lib/auth/viewRights";
 import { salesPlanRegionFromSlug } from "@/lib/salesPlan/regionConfig";
+import type { WcroViewId } from "@/lib/wcro/types";
 
 export default async function ReportPage(
   props: PageProps<"/[section]/[report]">,
@@ -79,6 +81,16 @@ export default async function ReportPage(
     return (
       <ReportShell section={sec} report={rep} embedBody>
         <HdYtdGridEmbed kind="lowes" />
+      </ReportShell>
+    );
+  }
+
+  if (rep.wcroView) {
+    return (
+      <ReportShell section={sec} report={rep} embedBody>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <WCROPanel view={rep.wcroView as WcroViewId} />
+        </div>
       </ReportShell>
     );
   }

@@ -13,7 +13,11 @@ This document describes the **on-premises “agent” machine** that watches `Da
 | **1:30 PM** | `Everde-Nursery-DailyCheck` | `Inventory Metrics\*.xlsb` | `public/nursery-inventory-dashboard.html` + **git push** |
 | **2:30 PM** | *(all daily tasks above)* | Same WeeklyDrop folders | **Catch-up run** — picks up Tue/Wed drops missed by the morning job |
 
+| **11:00 AM Mon** | `Everde-WCRO-WeeklyExtract` | WCRO published reports (`_HANDOFF_WCRO_*` / live refresh folder) | `data/wcro_data.json` → Blob `wcro/latest/wcro_data.json` |
+
 Each job **skips** if no new file since last success (state under `.everde-scheduler/`). A second **2:30 PM** run catches files that land after the morning check (common when reports finish Tuesday or Wednesday). Logs: `.everde-scheduler/logs/`.
+
+**WCRO** runs **Monday 11:00 AM** (see `scripts/windows/claude-scheduler-tasks/Everde-WCRO-WeeklyExtract.xml`): extractor validates Four Numbers then publishes JSON for portal + Teams bots.
 
 **Freight** runs **daily** (morning + 2:30 PM catch-up): the job first copies the newest `Everde Freight Data*.xlsb` from Juanita's Load Board folder (`\\VRD-AWSECS\Everde Central Share\Farms\Performance Reports\Freight Load Board Reports\Load Board Reports\2026`, override with `FREIGHT_SOURCE_DROP` in `.env.local`) into `Freight\WeeklyDrop\`, then runs the pipeline if the raw or dashboard changed. If the Load Board share is unreachable, the job still processes files already in WeeklyDrop (including manual copies). Uses `update.py --skip-fuel-check` so Task Scheduler never waits at `Proceed with current fuel_data.py values? [y/N]`. **Production & Demand (Inventory Metrics)** runs **daily** when a new xlsb appears.
 

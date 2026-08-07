@@ -82,3 +82,10 @@ export function lowesYtdSkuCategoryMapPath(): string {
     "sales-plan/lowes-ytd/latest";
   return `${prefix.replace(/\/$/, "")}/lowes_sku_category_map.json`;
 }
+
+export function wcroDashboardJsonPath(): string {
+  return (
+    process.env.AZURE_WCRO_DASHBOARD_JSON_BLOB?.trim() ||
+    "wcro/latest/wcro_data.json"
+  );
+}

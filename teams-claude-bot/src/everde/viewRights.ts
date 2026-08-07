@@ -57,6 +57,14 @@ const ROLE_CAPS: Record<ViewRole, Omit<ViewCapabilities, "role">> = {
 };
 
 const EMAIL_ROLES: Record<string, ViewRole> = {
+  // Ops / admin — full portal + all three bots
+  "isunderland@everde.com": "full",
+  "jsaperstein@everde.com": "full",
+  "jsaperstien@everde.com": "full", // spelling variant
+  "jcowham@everde.com": "full",
+  "mcarrizales@everde.com": "full",
+  "acowan@everde.com": "full",
+  // Jonathan tester list
   "mberchiolli@everde.com": "full",
   "jkeeler@everde.com": "full",
   "jmartin@everde.com": "hd_rep",
@@ -215,6 +223,9 @@ export function isToolAllowedForCapabilities(
   if (FARM_TOOLS.has(name) && !caps.farmInventory) return false;
   if (SALES_PLAN_OPS_TOOLS.has(name) && !caps.salesPlanOps) return false;
   if (name === "get_retail_opportunity" && !caps.hdYtd && !caps.lowesYtd) {
+    return false;
+  }
+  if (name === "get_wcro_dashboard" && !caps.hdYtd && !caps.lowesYtd) {
     return false;
   }
   return true;

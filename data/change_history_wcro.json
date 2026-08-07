@@ -1,0 +1,20 @@
+{
+  "seeded_from": {
+    "refresh": "5.29",
+    "date": "2026-08-06",
+    "generated_at": "2026-08-07T22:30:25.446980+00:00",
+    "reports_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\_HANDOFF_WCRO_2026-08-06\\reports"
+  },
+  "entries": [
+    {
+      "refresh": "5.29",
+      "date": "2026-08-06",
+      "source": "extractor seed",
+      "notes": [
+        "Mid-week data refresh 5.29 / 2026-08-06; version unchanged.",
+        "Ship/Transfer from Combined Summary (5.28 definition)."
+      ]
+    }
+  ],
+  "note": "Seed only \u2014 enrich from workbook Change Log tabs in later sprints."
+}

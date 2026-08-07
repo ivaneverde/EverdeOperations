@@ -130,14 +130,94 @@ export function compactNurserySupplyJson(
 ): string {
   try {
     const p = JSON.parse(raw) as Record<string, unknown>;
-    const meta = (p.meta ?? {}) as Record<string, unknown>;
+    const payload = pickKeys(p, ["meta", "headline", "summary", "grades"]);
+    payload.lines = slimArray(p.lines, 30);
+    return truncateText(JSON.stringify(payload), maxChars);
+  } catch {
+    return truncateText(raw, maxChars);
+  }
+}
+
+/** Compact WCRO extract for bot snapshot / tool (Four Numbers + segment rollups). */
+export function compactWcroJson(
+  raw: string,
+  maxChars: number,
+  channel?: "HD" | "LOW" | "ALL",
+): string {
+  try {
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    const snap = (p.snapshot as Record<string, unknown>) ?? {};
+    const four = (p.four_numbers as Record<string, unknown>) ?? {};
+    const segments =
+      (
+        (p.exec_summary as { combined_summary?: { segments?: unknown[] } })
+          ?.combined_summary?.segments ?? []
+      ).filter((s) => {
+        if (!channel || channel === "ALL") return true;
+        const seg = String((s as { segment?: string }).segment ?? "");
+        if (channel === "HD") {
+          return seg.startsWith("HD") || seg.startsWith("Combined");
+        }
+        return (
+          seg.toLowerCase().startsWith("lowes") ||
+          seg.startsWith("Combined")
+        );
+      });
+
+    const reps = Array.isArray(p.rep_orders) ? p.rep_orders : [];
+    const filteredReps = reps
+      .filter((r) => {
+        if (!channel || channel === "ALL") return true;
+        const chans = (r as { channels?: string[]; channel?: string }).channels
+          ?.length
+          ? (r as { channels: string[] }).channels
+          : [(r as { channel?: string }).channel].filter(Boolean);
+        return chans.includes(channel === "LOW" ? "LOW" : "HD");
+      })
+      .slice(0, 15)
+      .map((r) => {
+        const row = r as Record<string, unknown>;
+        return {
+          rep_name: row.rep_name,
+          channels: row.channels ?? row.channel,
+          regions: row.regions ?? row.region,
+          store_count: row.store_count,
+          total_ship: row.total_ship,
+          total_for: row.total_for,
+          filename: row.filename,
+        };
+      });
+
+    const transfers = Array.isArray(p.transfers) ? p.transfers : [];
+    const xfer = transfers
+      .filter((t) => {
+        if (!channel || channel === "ALL") return true;
+        return (t as { channel?: string }).channel === channel;
+      })
+      .map((t) => {
+        const row = t as Record<string, unknown>;
+        return {
+          channel: row.channel,
+          total_transfer_u: row.total_transfer_u,
+          total_transfer_$: row.total_transfer_$,
+        };
+      });
+
     const payload = {
-      meta,
-      grades: p.grades ?? null,
-      regions: p.regions ?? null,
-      farmGradeMatrix: p.farmGradeMatrix ?? null,
-      oversold: slimArray(p.oversold, 10),
-      note: "Source is the XXTT inventory file (Sales Inventory Availability). READY DATE is in this file. For Grade A/B × farm/region × product (e.g. japanese boxwood 1g), use get_nursery_supply focus=query.",
+      snapshot: snap,
+      four_numbers: four,
+      segments,
+      transfers: xfer,
+      rep_orders_sample: filteredReps,
+      rep_orders_count: reps.length,
+      rules: [
+        "Report published WCRO figures only — never invent or adjust ship recommendations.",
+        "Ship This Week = in-region + FOR-direct; To Transfer = next-week shelf.",
+        "NN Plan ≠ NN Cust Store (different methodologies).",
+        "Plan variance = Plan − Actual; positive = behind plan.",
+        "LOW S.CA is not comparable to HD S.CA (LOW includes AZ/NV/NM/UT).",
+        "HD on-hand is sales-gated (~12% fill) — caveat HD ship recs.",
+      ],
     };
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {

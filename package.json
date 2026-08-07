@@ -36,6 +36,8 @@
     "retail:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/retail-opportunity/run-extract-and-publish.ps1",
     "retail:publish-blob": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/retail-opportunity/run-publish-only.ps1",
     "retail:full-pipeline": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/retail-opportunity/run-full-pipeline.ps1",
+    "wcro:extract": "python scripts/wcro/extract_wcro.py",
+    "publish:wcro-json": "node scripts/wcro/publish-dashboard-data.mjs",
     "publish:weather-json": "node scripts/weather/publish-dashboard-data.mjs",
     "weather:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/run-publish.ps1",
     "weather:sync-weeklydrop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/weather/sync-weeklydrop.ps1",

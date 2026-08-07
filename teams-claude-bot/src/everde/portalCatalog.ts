@@ -6,18 +6,20 @@ export function buildPortalCatalogSummary(profile: BotProfile = "full"): string 
     return [
       "## Everde HD — key-account scope",
       "- **Home Depot YTD Following Week** — store / market / district sales + on-hand (get_hd_ytd_following_week)",
+      "- **WCRO** — published West Coast ship / transfer / NN (get_wcro_dashboard; HD slice)",
       "- **Supply Inventory** — XXTT farm inventory + READY DATE (get_nursery_supply)",
       "- **Production & Demand** — Inventory Metrics (get_nursery_demand)",
-      "- Out of scope here: Lowe's, freight, weather, retail opportunity — stay on HD questions.",
+      "- Out of scope here: Lowe's, freight, weather — stay on HD questions.",
     ].join("\n");
   }
   if (profile === "lowes") {
     return [
       "## Everde Lowes — key-account scope",
       "- **Lowe's YTD BY STORE SKU** — store sales + on-hand (get_lowes_ytd_following_week)",
+      "- **WCRO** — published West Coast ship / transfer / NN (get_wcro_dashboard; Lowe's slice)",
       "- **Supply Inventory** — XXTT farm inventory + READY DATE (get_nursery_supply)",
       "- **Production & Demand** — Inventory Metrics (get_nursery_demand)",
-      "- Out of scope here: Home Depot, freight, weather, retail opportunity — stay on Lowe's questions.",
+      "- Out of scope here: Home Depot, freight, weather — stay on Lowe's questions.",
     ].join("\n");
   }
   return [
@@ -28,6 +30,7 @@ export function buildPortalCatalogSummary(profile: BotProfile = "full"): string 
     "- **Supply Inventory** — XXTT inventory file (LANDSCAPE_INV_PL) with graded on-hand + READY DATE via get_nursery_supply",
     "- **Production & Demand Plan** — Inventory Metrics BO/CR via get_nursery_demand",
     "- **West Coast Retail Opportunity** — HD / Lowe's retail performance and action buckets",
+    "- **WCRO** — Store Driven ship / transfer / NN Plan vs NN Cust Store (get_wcro_dashboard)",
     "- **Weather** — regional weather dashboard snapshot (when published)",
     "",
     "Prefer Everde JSON tools and the snapshot below for internal metrics. Use web search only for live public/external facts.",

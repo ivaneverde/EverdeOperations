@@ -21,8 +21,10 @@ import {
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
+  compactWcroJson,
   compactYtdFollowingWeekMeta,
 } from "./compact.js";
+import { loadWcroJsonRaw } from "./loadWcroJson.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
 import { buildGradeHierarchyBlock } from "./gradeHierarchy.js";
 import {
@@ -122,6 +124,21 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
     description:
       "Fetch West Coast retail opportunity JSON (HD, Lowe's, action buckets, region crosstab).",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_wcro_dashboard",
+    description:
+      "WCRO (West Coast Retail Opportunity) published extract: Ship This Week, To Transfer, NN Plan, NN Cust Store, Combined Summary segments, transfers, and rep-order index. Report figures only — never invent recommendations. Prefer this for ship-this-week / transfer / net-need questions.",
+    input_schema: {
+      type: "object",
+      properties: {
+        focus: {
+          type: "string",
+          enum: ["summary", "reps", "transfers", "full"],
+          description: "Default summary (Four Numbers + segments).",
+        },
+      },
+    },
   },
   {
     name: "get_weather_dashboard",
@@ -385,6 +402,18 @@ export async function executeEverdeTool(
       );
       if (!raw) return "Retail opportunity JSON not available in Blob storage.";
       return compactRetailJson(raw, getConfig().EVERDE_RETAIL_TOOL_MAX_CHARS);
+    }
+
+    case "get_wcro_dashboard": {
+      const raw = await loadWcroJsonRaw();
+      if (!raw) {
+        return "WCRO data not available — run python scripts/wcro/extract_wcro.py and publish wcro/latest/wcro_data.json.";
+      }
+      const channel: "HD" | "LOW" | "ALL" =
+        profile === "hd" ? "HD" : profile === "lowes" ? "LOW" : "ALL";
+      const focus = toolFocus(input);
+      const body = compactWcroJson(raw, TOOL_MAX_CHARS, channel);
+      return `focus=${focus} channel=${channel}\n${body}`;
     }
 
     case "get_weather_dashboard": {

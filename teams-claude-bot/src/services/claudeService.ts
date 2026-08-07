@@ -104,6 +104,9 @@ export class ClaudeService {
     const allowRetail =
       profileCaps.datasets.retail &&
       (profile !== "full" || viewCaps.hdYtd || viewCaps.lowesYtd);
+    const allowWcro =
+      profileCaps.datasets.wcro &&
+      (profile !== "full" || viewCaps.hdYtd || viewCaps.lowesYtd);
 
     const { block: everdeBlock, ytdAsOfDates } =
       await this.getEverdeSnapshotBlock(profile, {
@@ -114,6 +117,7 @@ export class ClaudeService {
         allowFarm,
         allowSalesPlan,
         allowRetail,
+        allowWcro,
       });
     const identityBlock = buildBotProfilePromptBlock(profile);
     const rightsBlock = buildViewRightsPromptBlock(userEmail);
@@ -265,11 +269,12 @@ export class ClaudeService {
       allowFarm: boolean;
       allowSalesPlan: boolean;
       allowRetail: boolean;
+      allowWcro: boolean;
     },
   ): Promise<{ block: string; ytdAsOfDates: string[] }> {
     const ttlMs = this.config.EVERDE_SNAPSHOT_CACHE_MS;
     const now = Date.now();
-    const key = `${profile}:hd${flags.allowHd ? 1 : 0}:lo${flags.allowLowes ? 1 : 0}:f${flags.allowFreight ? 1 : 0}:w${flags.allowWeather ? 1 : 0}:n${flags.allowFarm ? 1 : 0}`;
+    const key = `${profile}:hd${flags.allowHd ? 1 : 0}:lo${flags.allowLowes ? 1 : 0}:f${flags.allowFreight ? 1 : 0}:w${flags.allowWeather ? 1 : 0}:n${flags.allowFarm ? 1 : 0}:wcro${flags.allowWcro ? 1 : 0}`;
     const cached = this.everdeSnapshotCache.get(key);
     if (cached && now - cached.at < ttlMs) {
       return { block: cached.block, ytdAsOfDates: cached.ytdAsOfDates };

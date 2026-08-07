@@ -21,6 +21,8 @@ export type BotProfileConfig = {
     weather: boolean;
     nurserySupply: boolean;
     nurseryDemand: boolean;
+    /** WCRO published ship / transfer / NN extract */
+    wcro: boolean;
   };
   /** Tool names allowed (in addition to catalog/grades when nursery on) */
   tools: Set<string>;
@@ -48,6 +50,7 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
       weather: true,
       nurserySupply: true,
       nurseryDemand: true,
+      wcro: true,
     },
     tools: new Set([
       "get_freight_dashboard",
@@ -55,6 +58,7 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
       "get_hd_ytd_following_week",
       "get_lowes_ytd_following_week",
       "get_retail_opportunity",
+      "get_wcro_dashboard",
       "get_weather_dashboard",
       "get_nursery_supply",
       "get_nursery_demand",
@@ -76,10 +80,12 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
       weather: false,
       nurserySupply: true,
       nurseryDemand: true,
+      wcro: true,
     },
     tools: new Set([
       ...KEY_ACCOUNT_TOOLS,
       "get_hd_ytd_following_week",
+      "get_wcro_dashboard",
     ]),
     enableWebSearch: true,
   },
@@ -96,10 +102,12 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
       weather: false,
       nurserySupply: true,
       nurseryDemand: true,
+      wcro: true,
     },
     tools: new Set([
       ...KEY_ACCOUNT_TOOLS,
       "get_lowes_ytd_following_week",
+      "get_wcro_dashboard",
     ]),
     enableWebSearch: true,
   },
@@ -119,27 +127,31 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
   if (profile === "full") {
     return [
       "## Bot identity",
-      `You are **${p.displayName}** — Everde's full operations assistant (freight, sales plan, HD + Lowe's, nursery, retail, weather when published).`,
-      "Answer across datasets when useful. Still respect user view-rights for Lowe's when restricted.",
+      `You are **${p.displayName}** — Everde's full operations assistant (freight, sales plan, HD + Lowe's, nursery, retail, WCRO, weather when published).`,
+      "Answer across datasets when useful. Still respect user view-rights for Lowe's / HD when restricted.",
+      "WCRO: use get_wcro_dashboard; report published figures only; never invent ship advice; cite snapshot date.",
     ].join("\n");
   }
   if (profile === "hd") {
     return [
       "## Bot identity",
       `You are **${p.displayName}** — Home Depot key-account field assistant.`,
-      "- SCOPE: Home Depot store / market / district sales & on-hand (YTD Following Week), plus Everde farm/nursery inventory (XXTT) and production demand.",
-      "- OUT OF SCOPE: Lowe's, freight, weather, retail opportunity dashboards, other retailers.",
-      "- If asked about out-of-scope topics: briefly say you only cover Home Depot (and farm inventory) in this chat, then offer a useful HD follow-up. Do **not** suggest other bots or apps (no Everde Lowes, no Claude). Key-account reps should stay in their lane.",
-      "- Stay focused on quick lookup and analysis for HD; do not invent replenishment recommendations unless suggested-order data is present.",
+      "- SCOPE: Home Depot store / market / district sales & on-hand (YTD Following Week), Everde farm/nursery inventory (XXTT), and **WCRO** published ship / transfer / net-need figures for HD.",
+      "- OUT OF SCOPE: Lowe's, freight, weather, other retailers.",
+      "- WCRO: report published extract only (get_wcro_dashboard). Never invent or adjust a recommendation. Cite snapshot date. Ship This Week excludes transfers (next-week shelf). NN Plan ≠ NN Cust Store.",
+      "- HD on-hand in WCRO is sales-gated (~12% fill) — mention that caveat when citing HD ship figures.",
+      "- If asked about out-of-scope topics: briefly say you only cover Home Depot (and farm inventory / WCRO HD) in this chat, then offer a useful HD follow-up. Do **not** suggest other bots or apps.",
+      "- Stay descriptive; do not invent replenishment advice beyond what WCRO already published.",
     ].join("\n");
   }
   return [
     "## Bot identity",
     `You are **${p.displayName}** — Lowe's key-account field assistant.`,
-    "- SCOPE: Lowe's store sales & on-hand (YTD BY STORE SKU), plus Everde farm/nursery inventory (XXTT) and production demand.",
-    "- OUT OF SCOPE: Home Depot, freight, weather, retail opportunity dashboards.",
-    "- If asked about out-of-scope topics: briefly say you only cover Lowe's (and farm inventory) in this chat, then offer a useful Lowe's follow-up. Do **not** suggest other bots or apps (no Everde HD, no Claude). Key-account reps should stay in their lane.",
-    "- Stay focused on quick lookup and analysis for Lowe's; do not invent replenishment recommendations unless suggested-order data is present.",
+    "- SCOPE: Lowe's store sales & on-hand (YTD BY STORE SKU), Everde farm/nursery inventory (XXTT), and **WCRO** published ship / transfer / net-need figures for Lowe's.",
+    "- OUT OF SCOPE: Home Depot, freight, weather, other retailers.",
+    "- WCRO: report published extract only (get_wcro_dashboard). Never invent or adjust a recommendation. Cite snapshot date. Ship This Week excludes transfers. NN Plan ≠ NN Cust Store. LOW S.CA is not comparable to HD S.CA.",
+    "- If asked about out-of-scope topics: briefly say you only cover Lowe's (and farm inventory / WCRO LOW) in this chat, then offer a useful Lowe's follow-up. Do **not** suggest other bots or apps.",
+    "- Stay descriptive; do not invent replenishment advice beyond what WCRO already published.",
   ].join("\n");
 }
 
@@ -150,7 +162,7 @@ export function helpTextForProfile(profile: BotProfile): string {
 
 Chat naturally, or **attach files** for analysis.
 
-**Everde data:** freight, sales plan, HD + Lowe's YTD, retail, weather, nursery supply/demand.
+**Everde data:** freight, sales plan, HD + Lowe's YTD, retail, WCRO ship/transfer, weather, nursery supply/demand.
 
 **Commands:** \`/help\` · \`/reset\`
 
@@ -161,9 +173,9 @@ Tip: For HD-only or Lowe's-only field lookup, use the **Everde HD** or **Everde 
 
 Chat naturally, or **attach files** for analysis (PDF, Excel, images). Follow-ups in the same chat reuse the file — no re-upload needed.
 
-Ask about HD stores, markets, districts, SKUs, on-hand $, and Everde farm inventory.
+Ask about HD stores, markets, districts, SKUs, on-hand $, Everde farm inventory, and WCRO ship / transfer figures.
 
-**Scope:** Home Depot + farm inventory only (not other retailers or ops dashboards).
+**Scope:** Home Depot + farm inventory + WCRO HD (not other retailers or ops dashboards).
 
 **Commands:** \`/help\` · \`/reset\``;
   }
@@ -171,9 +183,9 @@ Ask about HD stores, markets, districts, SKUs, on-hand $, and Everde farm invent
 
 Chat naturally, or **attach files** for analysis (PDF, Excel, images). Follow-ups in the same chat reuse the file — no re-upload needed.
 
-Ask about Lowe's stores, SKUs, on-hand $, and Everde farm inventory.
+Ask about Lowe's stores, SKUs, on-hand $, Everde farm inventory, and WCRO ship / transfer figures.
 
-**Scope:** Lowe's + farm inventory only (not other retailers or ops dashboards).
+**Scope:** Lowe's + farm inventory + WCRO LOW (not other retailers or ops dashboards).
 
 **Commands:** \`/help\` · \`/reset\``;
 }

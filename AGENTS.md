@@ -36,10 +36,11 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 
 Same Blob publish; each profile loads only its datasets/tools (less bandwidth). **Backend provisioned** (Entra + Azure Bots + App Service secrets); `/health` lists `full`/`hd`/`lowes`. **Teams install:** upload packages + assign per tester table — see `teams-claude-bot/docs/MULTI_BOT_PROFILES.md`.
 
-**View rights (Jonathan tester list — code-enforced portal + bots):** Unknown `@everde.com` → **full**. Key-account roles are retailer-slice only (no freight/weather/farm ops on Claude/portal).
+**View rights (Jonathan tester list — code-enforced portal + bots):** Unknown `@everde.com` → **full**. Explicit **full** admins: Ivan (`isunderland`), Jonathan (`jsaperstein`), Jason (`jcowham`), Marco (`mcarrizales`), Aaron (`acowan`). Key-account roles are retailer-slice only (no freight/weather/farm ops on Claude/portal).
 
 | User | Email | Teams bots | Portal / Claude role |
 |------|-------|------------|----------------------|
+| Ivan / Jonathan / Jason / Marco / Aaron | (see above) | Claude + HD + Lowes | `full` |
 | Mark Berchiolli | `mberchiolli@everde.com` | Claude + HD + Lowes | `full` |
 | Justin Keeler | `jkeeler@everde.com` | Claude + HD + Lowes | `full` |
 | Jae Martin | `jmartin@everde.com` | HD only | `hd_rep` |
@@ -63,7 +64,7 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **Snapshot 9.0.1 (portal app):** Tagged release backup of Option A multi-bot ship (Claude / Everde HD / Everde Lowes), file-attach parity, stay-in-lane key-account prompts, accounting calendar + anti false-deny. Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-07):** Enforced Jonathan tester view rights (roles `full` / `hd_rep` / `lowes_rep` / `hd_lowes_rep`) in portal nav/APIs/assistant + Teams profile/tool gates. WCRO handoff pack remains analysis-only. Icons deferred.
+**Last session (2026-08-07):** WCRO section (nav under Main), extract + portal views + Teams `get_wcro_dashboard`, admin full-access list (Ivan / Jonathan / Jason / Marco / Aaron). Tester view-rights still enforced.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 
