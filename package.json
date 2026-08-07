@@ -1,6 +1,6 @@
 {
   "name": "everde-ai-operations",
-  "version": "8.2.1",
+  "version": "9.0.1",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
