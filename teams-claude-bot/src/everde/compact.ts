@@ -138,7 +138,7 @@ export function compactNurserySupplyJson(
   }
 }
 
-/** Compact WCRO extract for bot snapshot / tool (Four Numbers + segment rollups). */
+/** Compact WCRO extract for bot snapshot / tool (Four Numbers + segments + top pools). */
 export function compactWcroJson(
   raw: string,
   maxChars: number,
@@ -203,20 +203,76 @@ export function compactWcroJson(
         };
       });
 
+    // Top genus/form/size pools by NN Cust Store $ — answers "top pools for a spread"
+    const storeRec = Array.isArray(p.store_recommendation)
+      ? p.store_recommendation
+      : [];
+    const topPoolsByMarket: Array<{
+      channel: string;
+      market: string;
+      pool_count: number;
+      totals: unknown;
+      top_pools: unknown[];
+    }> = [];
+    for (const rec of storeRec) {
+      const row = rec as {
+        channel?: string;
+        markets?: Record<
+          string,
+          {
+            pool_count?: number;
+            totals?: unknown;
+            top_pools_by_nn_cust_store?: unknown[];
+          }
+        >;
+      };
+      const ch = String(row.channel ?? "");
+      if (channel === "HD" && ch !== "HD") continue;
+      if (channel === "LOW" && ch !== "LOW") continue;
+      const markets = row.markets ?? {};
+      for (const [market, m] of Object.entries(markets)) {
+        const pools = Array.isArray(m.top_pools_by_nn_cust_store)
+          ? m.top_pools_by_nn_cust_store.slice(0, 15)
+          : [];
+        topPoolsByMarket.push({
+          channel: ch,
+          market,
+          pool_count: Number(m.pool_count ?? 0),
+          totals: m.totals ?? null,
+          top_pools: pools,
+        });
+      }
+    }
+
     const payload = {
       snapshot: snap,
       four_numbers: four,
       segments,
+      top_pools_by_market: topPoolsByMarket,
       transfers: xfer,
       rep_orders_sample: filteredReps,
       rep_orders_count: reps.length,
+      glossary: {
+        NN: "Net Need — units/dollars still needed after current inventory and on-order.",
+        NN_Plan: "Plan-driven net need (sales plan catch-up).",
+        NN_Cust_Store:
+          "Demand-sensed net need computed store-by-store then summed (gross). Often larger than NN Pool.",
+        NN_Cust_Pool:
+          "Same demand-sensed math at pool grain — nets surplus stores against short stores. Four Numbers NN Cust Store tile uses this pool figure.",
+        maldistribution:
+          "Gap between NN Cust Store (gross) and NN Cust Pool ≈ stock at the wrong stores.",
+      },
       rules: [
-        "Report published WCRO figures only — never invent or adjust ship recommendations.",
-        "Ship This Week = in-region + FOR-direct; To Transfer = next-week shelf.",
-        "NN Plan ≠ NN Cust Store (different methodologies).",
+        "Lead with published WCRO figures you have (segments, top_pools_by_market, transfers, reps). Do not say pool data is missing when top_pools_by_market is present.",
+        "For 'top pools / what to prioritize in a spread': use top_pools_by_market (genus/form/size + nn_cust_store_gross_$ + ship_$).",
+        "Ship This Week = in-region + FOR-direct; To Transfer = next-week shelf (not this week's order).",
+        "NN Plan ≠ NN Cust Store ≠ NN Cust Pool — explain briefly if the user asks.",
+        "YTD store sales + farm supply may support a secondary cross-check; label that as hypothesis, not the official WCRO order.",
+        "Never invent store×SKU Write Order lines that are not in this extract.",
         "Plan variance = Plan − Actual; positive = behind plan.",
         "LOW S.CA is not comparable to HD S.CA (LOW includes AZ/NV/NM/UT).",
         "HD on-hand is sales-gated (~12% fill) — caveat HD ship recs.",
+        "Stay helpful: answer with the best grain available, cite snapshot date once, offer one clear next step — do not open with capability denials.",
       ],
     };
     return truncateText(JSON.stringify(payload), maxChars);

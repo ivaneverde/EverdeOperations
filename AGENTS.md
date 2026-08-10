@@ -62,9 +62,9 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
-**Snapshot 9.0.1 (portal app):** Tagged release backup of Option A multi-bot ship (Claude / Everde HD / Everde Lowes), file-attach parity, stay-in-lane key-account prompts, accounting calendar + anti false-deny. Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
+**Snapshot 9.0.2 (portal app):** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.” Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-07):** WCRO section (nav under Main), extract + portal views + Teams `get_wcro_dashboard`, admin full-access list (Ivan / Jonathan / Jason / Marco / Aaron). Tester view-rights still enforced.
+**Last session (2026-08-10):** 9.0.2 bot compact top-pools + NN (Net Need) glossary in tool rules. 9.0.1 lineage: Option A multi-bot + WCRO portal section + WeeklyDrop scheduler.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 

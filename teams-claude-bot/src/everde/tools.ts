@@ -128,7 +128,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_wcro_dashboard",
     description:
-      "WCRO (West Coast Retail Opportunity) published extract: Ship This Week, To Transfer, NN Plan, NN Cust Store, Combined Summary segments, transfers, and rep-order index. Report figures only — never invent recommendations. Prefer this for ship-this-week / transfer / net-need questions.",
+      "WCRO published extract: Four Numbers (Ship / Transfer / NN Plan / NN Cust), Combined Summary segments, top_pools_by_market (genus/form/size by NN Cust Store $), transfers, and rep-order index. Use for ship-this-week, net-need, top pools, and spread-prep questions. Lead with published figures; do not invent store×SKU Write Orders.",
     input_schema: {
       type: "object",
       properties: {
