@@ -6,6 +6,13 @@ import {
   lowesYtdRowsGzipPath,
 } from "../azure/blobPaths.js";
 import { truncateText } from "./compact.js";
+import {
+  describeHdGeoRules,
+  detectHdRegionAlias,
+  rowMatchesHdGeoRules,
+  stripHdRegionAliasText,
+  type HdGeoRule,
+} from "./hdGeography.js";
 
 export type YtdKind = "hd" | "lowes";
 
@@ -156,6 +163,12 @@ export function padHdCode(raw: string): string {
 
 type StructuredFilter = {
   market?: string;
+  /** Multi-market / region alias scope (SoCal, NorCal, 29A). */
+  geoRules?: HdGeoRule[];
+  geoLabel?: string;
+  geoNote?: string;
+  /** Jae SoCal/29A store allowlist (4-digit padded). */
+  storeAllowlist?: string[];
   district?: string;
   store?: string;
   sku?: string;
@@ -166,11 +179,22 @@ type StructuredFilter = {
   textTokens: string[];
 };
 
-/** Parse "market 48", "district 25", "store 614", free-text store/SKU names. */
+/** Parse "market 48", "so cal", "district 25", "store 614", free-text store/SKU names. */
 export function parseYtdQuery(q: string): StructuredFilter {
   const raw = q.trim();
   const out: StructuredFilter = { textTokens: [], categoryTokens: [] };
   let rest = raw;
+
+  const region = detectHdRegionAlias(rest);
+  if (region) {
+    out.geoRules = region.rules;
+    out.geoLabel = region.label;
+    out.geoNote = region.note;
+    if (region.storeAllowlist?.length) {
+      out.storeAllowlist = region.storeAllowlist;
+    }
+    rest = stripHdRegionAliasText(rest);
+  }
 
   const take = (
     re: RegExp,
@@ -181,6 +205,23 @@ export function parseYtdQuery(q: string): StructuredFilter {
     out[key] = padHdCode(m[1]);
     rest = rest.replace(m[0], " ");
   };
+
+  // Multiple markets: "markets 12,47,48"
+  const multiM = rest.match(
+    /\bmarkets?\s*(?:nbr|number|#|:)?\s*([\d,\s/]+)\b/i,
+  );
+  if (multiM && !out.geoRules) {
+    const codes = multiM[1]
+      .split(/[,\s/]+/)
+      .map((x) => x.trim())
+      .filter((x) => /^\d{1,4}$/.test(x))
+      .map(padHdCode);
+    if (codes.length > 1) {
+      out.geoRules = codes.map((market) => ({ market }));
+      out.geoLabel = `Markets ${codes.map((c) => Number(c)).join(", ")}`;
+      rest = rest.replace(multiM[0], " ");
+    }
+  }
 
   take(/\bmarkets?\s*(?:nbr|number|#|:)?\s*(\d{1,4})\b/i, "market");
   take(/\bdistricts?\s*(?:nbr|number|#|:)?\s*(\d{1,4})\b/i, "district");
@@ -253,6 +294,9 @@ export function parseYtdQuery(q: string): StructuredFilter {
     "category",
     "between",
     "with",
+    "area",
+    "region",
+    "california",
   ]);
 
   out.textTokens = rest
@@ -342,6 +386,8 @@ export function filterYtdRows(
 
   const hasStructured =
     Boolean(parsed.market) ||
+    Boolean(parsed.geoRules?.length) ||
+    Boolean(parsed.storeAllowlist?.length) ||
     Boolean(parsed.district) ||
     Boolean(parsed.store) ||
     Boolean(parsed.sku);
@@ -353,8 +399,19 @@ export function filterYtdRows(
     if (bare) bareCode = padHdCode(bare[1]);
   }
 
+  const allowSet = parsed.storeAllowlist?.length
+    ? new Set(parsed.storeAllowlist.map(padHdCode))
+    : null;
+
   return rows.filter((row) => {
-    if (parsed.market && marketI >= 0) {
+    if (allowSet) {
+      const storeNbr = storeI >= 0 ? padHdCode(String(row[storeI] ?? "")) : "";
+      if (!allowSet.has(storeNbr)) return false;
+    } else if (parsed.geoRules?.length) {
+      const m = marketI >= 0 ? String(row[marketI] ?? "") : "";
+      const d = districtI >= 0 ? String(row[districtI] ?? "") : "";
+      if (!rowMatchesHdGeoRules(m, d, parsed.geoRules)) return false;
+    } else if (parsed.market && marketI >= 0) {
       if (!cellEqCode(row[marketI], parsed.market)) return false;
     }
     if (parsed.district && districtI >= 0) {
@@ -587,6 +644,16 @@ export function summarizeYtdFilter(
   return {
     parsed_filter: parsed,
     matched_rows: rows.length,
+    geography: parsed.geoRules?.length || parsed.storeAllowlist?.length
+      ? {
+          label: parsed.geoLabel ?? null,
+          note: parsed.geoNote ?? null,
+          scope: parsed.geoRules?.length
+            ? describeHdGeoRules(parsed.geoRules)
+            : null,
+          store_roster_count: parsed.storeAllowlist?.length ?? null,
+        }
+      : null,
     markets: [...markets].sort(),
     districts: [...districts].sort(),
     store_count: stores.size,

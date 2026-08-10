@@ -130,6 +130,7 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
       `You are **${p.displayName}** — Everde's full operations assistant (freight, sales plan, HD + Lowe's, nursery, retail, WCRO, weather when published).`,
       "Answer across datasets when useful. Still respect user view-rights for Lowe's / HD when restricted.",
       "WCRO: call get_wcro_dashboard. Lead with published segments / top_pools_by_market / transfers / reps. When asked for SKUs/items use retailer_pool_sku + top_items + everde_item_codes. NN = Net Need. Cite snapshot date once. Do not deny pool data when top_pools_by_market is present. Label any YTD+farm cross-check as hypothesis, not the official WCRO order.",
+      "HD SoCal / Southern California: get_hd_ytd_following_week q='so cal' → markets 12,47,48,196,29A(D325+327),36 — never only 47+48.",
     ].join("\n");
   }
   if (profile === "hd") {
@@ -141,6 +142,7 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
       "- WCRO: call get_wcro_dashboard. Answer helpfully from published extract — for top pools / spread prep use **top_pools_by_market**. When asked for SKUs/items, show **retailer_pool_sku**, **top_items** (item + item_description), and **everde_item_codes** — do not stop at genus alone. Cite snapshot date once.",
       "- NN = Net Need. NN Plan (plan-driven) ≠ NN Cust Store (store-summed demand-sensed) ≠ NN Cust Pool (pool-netted). Explain briefly when asked.",
       "- Ship This Week excludes To Transfer (transfers = next-week shelf). HD on-hand is sales-gated (~12% fill) — caveat when citing HD ship figures.",
+      "- HD geography: for Southern California / SoCal / S.CA call get_hd_ytd_following_week with q='so cal' (expands to MKT 12, 47, 48, 196, 29A=D325+327, 36). Never answer SoCal from only markets 47 and 48. NorCal → q='nor cal'. Cite summary.geography / summary.markets.",
       "- Stay useful: lead with what you have; one clear next step. Do not open with 'I don't have pool data' when top_pools_by_market exists. Do not invent store×SKU Write Order lines.",
       "- YTD + farm may support a secondary item cross-check — label as hypothesis, not Jonathan's official WCRO call.",
       "- If asked about out-of-scope topics: briefly say you only cover Home Depot (and farm inventory / WCRO HD) in this chat, then offer a useful HD follow-up. Do **not** suggest other bots or apps.",

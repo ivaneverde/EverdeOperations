@@ -82,7 +82,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_hd_ytd_following_week",
     description:
-      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps, AND retail on-hand: Curr Inventory Retail, LY Curr Inventory Retail, Current Inventory, Inventory LY. Query summary.inventory has FULL-store/match totals for on-hand $ and units TY vs LY — use those for 'total dollars on hand' / 'in hands vs last year'. No native Subclass — Plant Category joined from HD xref. focus=query with q= like 'store 6612', 'market 48 shrub evergreen'.",
+      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps, AND retail on-hand. For Southern California use q='so cal' or 'socal' — expands to MKT 12,47,48,196,29A(D325+327),36 (NOT only 47/48). NorCal: q='nor cal'. Plant Category from HD xref. Examples: 'so cal', 'market 48 shrub evergreen', 'store 6612'.",
     input_schema: {
       type: "object",
       properties: {
@@ -94,7 +94,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
         q: {
           type: "string",
           description:
-            "Filter for focus=query. Prefer 'market 48', 'district 25', 'store 614', or store name. Avoid bare short numbers alone when possible.",
+            "Filter for focus=query. Prefer 'so cal' / 'nor cal' for region totals, or 'market 48', 'district 25', 'store 614', store name. HD SoCal is NOT only markets 47+48.",
         },
       },
     },

@@ -1,0 +1,1682 @@
+{
+  "source_file": "HD SO CAL AND MKT 29A TOTAL BRIAN PARKER STORES .xlsx",
+  "source_note": "Jae Martin \u2014 both tabs together = HD SoCal stores MKT 12,47,48,196,36 + 29A",
+  "generated_at": "2026-08-10T23:38:16.532506+00:00",
+  "markets": [
+    12,
+    47,
+    48,
+    196,
+    36,
+    "29A"
+  ],
+  "market_29a_districts": [
+    325,
+    327
+  ],
+  "store_count": 166,
+  "stores": [
+    {
+      "market": 47,
+      "district": 312,
+      "store": 601,
+      "store_name": "Corona",
+      "city": "CORONA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 603,
+      "store_name": "Tustin",
+      "city": "TUSTIN",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 606,
+      "store_name": "Santa Ana",
+      "city": "SANTA ANA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 607,
+      "store_name": "Industry",
+      "city": "CITY OF INDUSTRY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 608,
+      "store_name": "Cerritos",
+      "city": "CERRITOS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 609,
+      "store_name": "San Fernando",
+      "city": "SAN FERNANDO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 610,
+      "store_name": "S San Bernardino",
+      "city": "SAN BERNARDINO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 611,
+      "store_name": "Gardena",
+      "city": "GARDENA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 612,
+      "store_name": "Canoga Park",
+      "city": "CANOGA PARK",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 614,
+      "store_name": "Mission Viejo",
+      "city": "MISSION VIEJO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 615,
+      "store_name": "Orange, Ca",
+      "city": "ORANGE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 616,
+      "store_name": "Moreno Valley",
+      "city": "MORENO VALLEY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 618,
+      "store_name": "Torrance",
+      "city": "TORRANCE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 620,
+      "store_name": "Hawthorne",
+      "city": "HAWTHORNE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 325,
+      "store": 638,
+      "store_name": "Palmdale",
+      "city": "PALMDALE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 645,
+      "store_name": "Rancho Cucamonga",
+      "city": "RANCHO CUCAMONGA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 647,
+      "store_name": "Westminster",
+      "city": "WESTMINSTER",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 648,
+      "store_name": "Signal Hill",
+      "city": "SIGNAL HILL",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 649,
+      "store_name": "Glendale",
+      "city": "GLENDALE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 653,
+      "store_name": "Santa Clarita",
+      "city": "SANTA CLARITA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 654,
+      "store_name": "Commerce",
+      "city": "COMMERCE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 658,
+      "store_name": "Chula Vista",
+      "city": "CHULA VISTA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 659,
+      "store_name": "Lemon Grove",
+      "city": "LEMON GROVE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 660,
+      "store_name": "Encinitas",
+      "city": "ENCINITAS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 663,
+      "store_name": "Fresno",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 664,
+      "store_name": "Clovis",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 47,
+      "district": 325,
+      "store": 665,
+      "store_name": "Victorville",
+      "city": "VICTORVILLE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 196,
+      "district": 23,
+      "store": 667,
+      "store_name": "Rancho Mirage",
+      "city": "RANCHO MIRAGE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 668,
+      "store_name": "Murrieta",
+      "city": "MURRIETA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 669,
+      "store_name": "Carmel Mtn",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 671,
+      "store_name": "Imperial Beach",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 673,
+      "store_name": "Santee",
+      "city": "SANTEE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 674,
+      "store_name": "Sports Arena",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 679,
+      "store_name": "Oceanside",
+      "city": "OCEANSIDE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 680,
+      "store_name": "Genesee",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 683,
+      "store_name": "San Bernardino",
+      "city": "SAN BERNARDINO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 684,
+      "store_name": "La Mirada",
+      "city": "LA MIRADA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 687,
+      "store_name": "Upland",
+      "city": "UPLAND",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 1002,
+      "store_name": "Huntington Park",
+      "city": "HUNTINGTON PARK",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 1005,
+      "store_name": "San Pedro",
+      "city": "SAN PEDRO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 1010,
+      "store_name": "Inglewood",
+      "city": "INGLEWOOD",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 1012,
+      "store_name": "Camarillo",
+      "city": "CAMARILLO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 23,
+      "store": 1013,
+      "store_name": "Redlands",
+      "city": "REDLANDS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 1014,
+      "store_name": "N Fresno",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 1018,
+      "store_name": "N Oceanside",
+      "city": "OCEANSIDE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 1028,
+      "store_name": "Temecula",
+      "city": "TEMECULA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 1030,
+      "store_name": "Eastlake",
+      "city": "CHULA VISTA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 1031,
+      "store_name": "Atascadero",
+      "city": "ATASCADERO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 1032,
+      "store_name": "Imperial Marketplace",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 1034,
+      "store_name": "Otay Mesa",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 1037,
+      "store_name": "Paramount",
+      "city": "PARAMOUNT",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 1039,
+      "store_name": "Hyde Park",
+      "city": "LOS ANGELES",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 1040,
+      "store_name": "Oxnard",
+      "city": "OXNARD",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 1048,
+      "store_name": "Wilshire/Union",
+      "city": "LOS ANGELES",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 325,
+      "store": 1050,
+      "store_name": "Bakersfield Central",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 1052,
+      "store_name": "San Luis Obispo",
+      "city": "SAN LUIS OBISPO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 1053,
+      "store_name": "Escondido Ii",
+      "city": "ESCONDIDO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 1055,
+      "store_name": "Newhall",
+      "city": "SANTA CLARITA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 196,
+      "district": 23,
+      "store": 1059,
+      "store_name": "El Centro",
+      "city": "EL CENTRO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 325,
+      "store": 1060,
+      "store_name": "Ne Bakersfield",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 1061,
+      "store_name": "Ladera Heights",
+      "city": "LOS ANGELES",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 1062,
+      "store_name": "Long Beach",
+      "city": "SIGNAL HILL",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 325,
+      "store": 1064,
+      "store_name": "Nw Bakersfield",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 1070,
+      "store_name": "West Hills",
+      "city": "WEST HILLS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 1072,
+      "store_name": "East Brea",
+      "city": "BREA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 1073,
+      "store_name": "Hanford",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 1074,
+      "store_name": "Vista",
+      "city": "VISTA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 1077,
+      "store_name": "Laguna Niguel",
+      "city": "LAGUNA NIGUEL",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 1080,
+      "store_name": "Porterville",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 1083,
+      "store_name": "North Upland",
+      "city": "UPLAND",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 1084,
+      "store_name": "Eastvale",
+      "city": "MIRA LOMA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 1086,
+      "store_name": "S Fresno",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 1087,
+      "store_name": "Moreno Valley Ii",
+      "city": "MORENO VALLEY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 1088,
+      "store_name": "Madera",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 325,
+      "store": 1089,
+      "store_name": "Ridgecrest",
+      "city": "RIDGECREST",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 1840,
+      "store_name": "El Toro",
+      "city": "LAKE FOREST",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 325,
+      "store": 1844,
+      "store_name": "Nw Victorville",
+      "city": "VICTORVILLE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 1845,
+      "store_name": "Covina",
+      "city": "COVINA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 1848,
+      "store_name": "El Cajon (R676)",
+      "city": "EL CAJON",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 1857,
+      "store_name": "S Fontana",
+      "city": "FONTANA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 1858,
+      "store_name": "Compton",
+      "city": "COMPTON",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 2304,
+      "store_name": "Monterey Park (R0689)",
+      "city": "MONTEREY PARK",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3301,
+      "store_name": "Rainbow Rd",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3302,
+      "store_name": "Henderson",
+      "city": "HENDERSON",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3303,
+      "store_name": "E Las Vegas",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3305,
+      "store_name": "Centennial Parkway",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3306,
+      "store_name": "S Las Vegas",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3307,
+      "store_name": "N Las Vegas",
+      "city": "NORTH LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3308,
+      "store_name": "Rainbow-Arroyo Crossing",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3314,
+      "store_name": "Sw Las Vegas",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3315,
+      "store_name": "Summerlin",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3316,
+      "store_name": "Pecos",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3318,
+      "store_name": "W Central Las Vegas",
+      "city": "LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3322,
+      "store_name": "Pahrump",
+      "city": "PAHRUMP",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 36,
+      "district": 106,
+      "store": 3324,
+      "store_name": "Nv Aliante",
+      "city": "NORTH LAS VEGAS",
+      "state": "NV",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 6610,
+      "store_name": "Alhambra",
+      "city": "ALHAMBRA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 6611,
+      "store_name": "Marina Del Rey",
+      "city": "LOS ANGELES",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 6612,
+      "store_name": "Escondido",
+      "city": "ESCONDIDO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 6613,
+      "store_name": "N Hollywood",
+      "city": "NORTH HOLLYWOOD",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 6614,
+      "store_name": "Lakewood, Ca",
+      "city": "LAKEWOOD",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 6615,
+      "store_name": "Visalia",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 6616,
+      "store_name": "Sunset",
+      "city": "HOLLYWOOD",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 6617,
+      "store_name": "Glendora",
+      "city": "GLENDORA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 6618,
+      "store_name": "Merced",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 6619,
+      "store_name": "Riverside",
+      "city": "RIVERSIDE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 6623,
+      "store_name": "Goleta",
+      "city": "GOLETA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 6627,
+      "store_name": "Downey",
+      "city": "DOWNEY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 6628,
+      "store_name": "Laguna Hills",
+      "city": "LAGUNA HILLS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 6629,
+      "store_name": "Monrovia",
+      "city": "MONROVIA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 196,
+      "district": 23,
+      "store": 6630,
+      "store_name": "La Quinta",
+      "city": "LA QUINTA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 6632,
+      "store_name": "Woodland Hills",
+      "city": "WOODLAND HILLS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 199,
+      "store": 6634,
+      "store_name": "Fairmount Ave",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 23,
+      "store": 6637,
+      "store_name": "Hemet",
+      "city": "HEMET",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 6638,
+      "store_name": "Santa Maria",
+      "city": "SANTA MARIA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6639,
+      "store_name": "Garden Grove",
+      "city": "GARDEN GROVE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 6640,
+      "store_name": "Simi Valley",
+      "city": "SIMI VALLEY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6643,
+      "store_name": "Anaheim Hills",
+      "city": "ANAHEIM",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 6644,
+      "store_name": "Panorama City",
+      "city": "PANORAMA CITY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 6645,
+      "store_name": "Pomona",
+      "city": "POMONA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 6646,
+      "store_name": "Huntington Beach Ii",
+      "city": "HUNTINGTON BEACH",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6647,
+      "store_name": "Anaheim",
+      "city": "ANAHEIM",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6650,
+      "store_name": "Cypress",
+      "city": "CYPRESS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 325,
+      "store": 6651,
+      "store_name": "Lancaster",
+      "city": "LANCASTER",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 6654,
+      "store_name": "Burbank",
+      "city": "BURBANK",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 6656,
+      "store_name": "San Marcos",
+      "city": "SAN MARCOS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6657,
+      "store_name": "La Habra",
+      "city": "LA HABRA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 174,
+      "store": 6661,
+      "store_name": "Van Nuys",
+      "city": "VAN NUYS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 6662,
+      "store_name": "Thousand Oaks",
+      "city": "THOUSAND OAKS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 6663,
+      "store_name": "Baldwin Park",
+      "city": "BALDWIN PARK",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 6664,
+      "store_name": "Costa Mesa",
+      "city": "COSTA MESA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 6665,
+      "store_name": "S Corona",
+      "city": "CORONA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 6668,
+      "store_name": "Lake Forest",
+      "city": "LAKE FOREST",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 62,
+      "store": 6670,
+      "store_name": "Carson",
+      "city": "CARSON",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 6673,
+      "store_name": "El Monte",
+      "city": "EL MONTE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 6679,
+      "store_name": "Mira Mesa",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 6680,
+      "store_name": "N Santa Ana",
+      "city": "SANTA ANA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 224,
+      "store": 6681,
+      "store_name": "Lompoc",
+      "city": "LOMPOC",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 6683,
+      "store_name": "Rialto",
+      "city": "RIALTO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 74,
+      "store": 6684,
+      "store_name": "Whittier",
+      "city": "WHITTIER",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 325,
+      "store": 6687,
+      "store_name": "Sw Bakersfield",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 6689,
+      "store_name": "Cypress Park",
+      "city": "LOS ANGELES",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 325,
+      "store": 6834,
+      "store_name": "Apple Valley,Ca",
+      "city": "APPLE VALLEY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 325,
+      "store": 6835,
+      "store_name": "Tehachapi",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 223,
+      "store": 6855,
+      "store_name": "W Inglewood",
+      "city": "INGLEWOOD",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 196,
+      "district": 23,
+      "store": 6874,
+      "store_name": "Indio",
+      "city": "INDIO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 6875,
+      "store_name": "Perris",
+      "city": "PERRIS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 6876,
+      "store_name": "South Chino",
+      "city": "CHINO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 325,
+      "store": 6883,
+      "store_name": "E Palmdale",
+      "city": "PALMDALE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 6884,
+      "store_name": "Ontario,Ca",
+      "city": "ONTARIO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6893,
+      "store_name": "Fullerton (Relo 682)",
+      "city": "FULLERTON",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 6946,
+      "store_name": "Tulare",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6952,
+      "store_name": "Stanton",
+      "city": "STANTON",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 67,
+      "store": 6960,
+      "store_name": "North Fontana",
+      "city": "FONTANA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 6963,
+      "store_name": "Huntington Beach",
+      "city": "HUNTINGTON BEACH",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 171,
+      "store": 6965,
+      "store_name": "Orange (K)",
+      "city": "ORANGE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 23,
+      "store": 6971,
+      "store_name": "Yucca Valley",
+      "city": "YUCCA VALLEY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 325,
+      "store": 6972,
+      "store_name": "Barstow",
+      "city": "BARSTOW",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 8426,
+      "store_name": "Delano",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 8427,
+      "store_name": "Los Banos",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 48,
+      "district": 26,
+      "store": 8463,
+      "store_name": "West Covina",
+      "city": "WEST COVINA",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 48,
+      "district": 25,
+      "store": 8525,
+      "store_name": "East Irvine",
+      "city": "IRVINE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 196,
+      "district": 23,
+      "store": 8526,
+      "store_name": "Palm Springs",
+      "city": "PALM SPRINGS",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 29,
+      "district": 327,
+      "store": 8529,
+      "store_name": "Selma",
+      "city": "",
+      "state": "CA",
+      "segment": "HD_29A"
+    },
+    {
+      "market": 12,
+      "district": 21,
+      "store": 8949,
+      "store_name": "Poway",
+      "city": "POWAY",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 23,
+      "store": 8987,
+      "store_name": "Beaumont, Ca",
+      "city": "BEAUMONT",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    },
+    {
+      "market": 47,
+      "district": 312,
+      "store": 8988,
+      "store_name": "Lake Elsinore",
+      "city": "LAKE ELSINORE",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE"
+    }
+  ],
+  "store_nbrs": [
+    601,
+    603,
+    606,
+    607,
+    608,
+    609,
+    610,
+    611,
+    612,
+    614,
+    615,
+    616,
+    618,
+    620,
+    638,
+    645,
+    647,
+    648,
+    649,
+    653,
+    654,
+    658,
+    659,
+    660,
+    663,
+    664,
+    665,
+    667,
+    668,
+    669,
+    671,
+    673,
+    674,
+    679,
+    680,
+    683,
+    684,
+    687,
+    1002,
+    1005,
+    1010,
+    1012,
+    1013,
+    1014,
+    1018,
+    1028,
+    1030,
+    1031,
+    1032,
+    1034,
+    1037,
+    1039,
+    1040,
+    1048,
+    1050,
+    1052,
+    1053,
+    1055,
+    1059,
+    1060,
+    1061,
+    1062,
+    1064,
+    1070,
+    1072,
+    1073,
+    1074,
+    1077,
+    1080,
+    1083,
+    1084,
+    1086,
+    1087,
+    1088,
+    1089,
+    1840,
+    1844,
+    1845,
+    1848,
+    1857,
+    1858,
+    2304,
+    3301,
+    3302,
+    3303,
+    3305,
+    3306,
+    3307,
+    3308,
+    3314,
+    3315,
+    3316,
+    3318,
+    3322,
+    3324,
+    6610,
+    6611,
+    6612,
+    6613,
+    6614,
+    6615,
+    6616,
+    6617,
+    6618,
+    6619,
+    6623,
+    6627,
+    6628,
+    6629,
+    6630,
+    6632,
+    6634,
+    6637,
+    6638,
+    6639,
+    6640,
+    6643,
+    6644,
+    6645,
+    6646,
+    6647,
+    6650,
+    6651,
+    6654,
+    6656,
+    6657,
+    6661,
+    6662,
+    6663,
+    6664,
+    6665,
+    6668,
+    6670,
+    6673,
+    6679,
+    6680,
+    6681,
+    6683,
+    6684,
+    6687,
+    6689,
+    6834,
+    6835,
+    6855,
+    6874,
+    6875,
+    6876,
+    6883,
+    6884,
+    6893,
+    6946,
+    6952,
+    6960,
+    6963,
+    6965,
+    6971,
+    6972,
+    8426,
+    8427,
+    8463,
+    8525,
+    8526,
+    8529,
+    8949,
+    8987,
+    8988
+  ]
+}
