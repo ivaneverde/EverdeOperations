@@ -569,8 +569,109 @@ def extract_transfers(path: Path, channel: str) -> dict[str, Any]:
 # ── Store Driven compact extract ──────────────────────────────────────────
 
 
+def _norm_size(v: Any) -> str:
+    s = str(v or "").strip().upper().replace(" ", "")
+    if not s:
+        return ""
+    if s.startswith("#"):
+        return s
+    if s.isdigit() or (len(s) <= 4 and s.replace(".", "").isdigit()):
+        return f"#{s.zfill(3)}" if s.isdigit() else f"#{s}"
+    return s
+
+
+def _parse_items_in_group(raw: Any, limit: int = 12) -> list[str]:
+    if raw is None:
+        return []
+    parts = [p.strip() for p in str(raw).split(",") if p.strip()]
+    return parts[:limit]
+
+
+def _pool_item_detail_index(
+    wb: Any, region: str
+) -> dict[tuple[str, str], dict[str, Any]]:
+    """
+    Index Pool Item Detail by (genus, size) → retailer Pool SKU + top Everde items.
+    Sheet title: 'Pool Item Detail S.CA' / 'Pool Item Detail N.CA'.
+    """
+    sheet = f"Pool Item Detail {region}"
+    if sheet not in wb.sheetnames:
+        return {}
+    ws = wb[sheet]
+    rows = [tuple(safe_read(c) for c in r) for r in ws.iter_rows(values_only=True)]
+    # Prefer exact header cell — title row also contains the words "Pool SKU".
+    hi: int | None = None
+    for i, row in enumerate(rows[:40]):
+        if row and isinstance(row[0], str) and norm_header(row[0]).lower() == "pool sku":
+            hi = i
+            break
+    if hi is None:
+        hi = find_header_row(rows, "Item Description")
+    if hi is None:
+        return {}
+    cmap = col_map(rows[hi])
+    i_psku = find_col(cmap, "Pool SKU")
+    i_pool = find_col(cmap, "Pool")
+    i_item = find_col(cmap, "Item")
+    i_desc = find_col(cmap, "Item Description")
+    i_size = find_col(cmap, "Size")
+    i_genus = find_col(cmap, "Genus")
+    i_ytd = find_col(cmap, "2026 YTD Ship (u)", "YTD Ship (u)")
+    if i_genus is None or i_size is None:
+        return {}
+
+    buckets: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in rows[hi + 1 :]:
+        if not row:
+            continue
+        genus = str(row[i_genus]).strip().upper() if row[i_genus] else ""
+        size = _norm_size(row[i_size])
+        if not genus or not size:
+            continue
+        key = (genus, size)
+        bucket = buckets.get(key)
+        if bucket is None:
+            bucket = {
+                "pool_sku": str(row[i_psku]).strip()
+                if i_psku is not None and row[i_psku] is not None
+                else None,
+                "pool_label": row[i_pool] if i_pool is not None else None,
+                "items": [],
+            }
+            buckets[key] = bucket
+        ytd = as_float(row[i_ytd]) if i_ytd is not None else 0.0
+        bucket["items"].append(
+            {
+                "item": row[i_item] if i_item is not None else None,
+                "item_description": row[i_desc] if i_desc is not None else None,
+                "ytd_ship_u": ytd or 0.0,
+            }
+        )
+
+    for bucket in buckets.values():
+        items = bucket["items"]
+        items.sort(key=lambda x: float(x.get("ytd_ship_u") or 0), reverse=True)
+        bucket["items"] = items[:8]
+        for it in bucket["items"]:
+            it["ytd_ship_u"] = round(float(it["ytd_ship_u"] or 0), 1)
+
+    return buckets
+
+
 def extract_store_driven(path: Path, channel: str) -> dict[str, Any]:
     """Totals from By-Pool tabs + Build Health. Skip Oracle Order/FOR tabs."""
+    # Pass 1: Pool Item Detail first (read_only workbooks only allow forward sheet access).
+    detail_by_region: dict[str, dict[tuple[str, str], dict[str, Any]]] = {}
+    wb_detail = load_workbook(path, data_only=True, read_only=True)
+    try:
+        for sheet in wb_detail.sheetnames:
+            if not sheet.startswith("Pool Item Detail "):
+                continue
+            region = sheet.replace("Pool Item Detail ", "").strip()
+            detail_by_region[region] = _pool_item_detail_index(wb_detail, region)
+    finally:
+        wb_detail.close()
+
     wb = load_workbook(path, data_only=True, read_only=True)
     try:
         markets: dict[str, Any] = {}
@@ -599,6 +700,10 @@ def extract_store_driven(path: Path, channel: str) -> dict[str, Any]:
             i_genus = find_col(cmap, "Genus")
             i_form = find_col(cmap, "Form")
             i_size = find_col(cmap, "Size")
+            i_items = find_col(cmap, "Items in Group")
+            i_desc = find_col(cmap, "Description")
+
+            detail_idx = detail_by_region.get(region, {})
 
             sums = {
                 "ship_$": 0.0,
@@ -641,18 +746,32 @@ def extract_store_driven(path: Path, channel: str) -> dict[str, Any]:
                 add("gross_need_u", i_gross_u)
                 add("ab_on_hand_$", i_ab)
 
-                top.append(
-                    (
-                        nn_g,
-                        {
-                            "genus": row[i_genus] if i_genus is not None else None,
-                            "form": row[i_form] if i_form is not None else None,
-                            "size": row[i_size] if i_size is not None else None,
-                            "nn_cust_store_gross_$": nn_g,
-                            "ship_$": as_float(row[i_ship]) if i_ship is not None else None,
-                        },
-                    )
+                genus = row[i_genus] if i_genus is not None else None
+                size = row[i_size] if i_size is not None else None
+                items_raw = row[i_items] if i_items is not None else None
+                item_codes = _parse_items_in_group(items_raw)
+                detail = detail_idx.get(
+                    (str(genus or "").strip().upper(), _norm_size(size))
                 )
+
+                pool_row: dict[str, Any] = {
+                    "genus": genus,
+                    "form": row[i_form] if i_form is not None else None,
+                    "size": size,
+                    "description": row[i_desc] if i_desc is not None else None,
+                    "everde_item_codes": item_codes,
+                    "everde_item_code_count": len(str(items_raw).split(","))
+                    if items_raw
+                    else 0,
+                    "nn_cust_store_gross_$": nn_g,
+                    "ship_$": as_float(row[i_ship]) if i_ship is not None else None,
+                }
+                if detail:
+                    pool_row["retailer_pool_sku"] = detail.get("pool_sku")
+                    pool_row["pool_label"] = detail.get("pool_label")
+                    pool_row["top_items"] = detail.get("items") or []
+
+                top.append((nn_g, pool_row))
 
             top.sort(key=lambda t: t[0], reverse=True)
             markets[region] = {

@@ -261,10 +261,14 @@ export function compactWcroJson(
           "Same demand-sensed math at pool grain — nets surplus stores against short stores. Four Numbers NN Cust Store tile uses this pool figure.",
         maldistribution:
           "Gap between NN Cust Store (gross) and NN Cust Pool ≈ stock at the wrong stores.",
+        pool:
+          "WCRO pool = genus + form + size assortment. retailer_pool_sku = retailer SKU for that pool; everde_item_codes / top_items = member Everde items under the pool.",
       },
       rules: [
         "Lead with published WCRO figures you have (segments, top_pools_by_market, transfers, reps). Do not say pool data is missing when top_pools_by_market is present.",
-        "For 'top pools / what to prioritize in a spread': use top_pools_by_market (genus/form/size + nn_cust_store_gross_$ + ship_$).",
+        "For 'top pools': use genus/form/size + nn_cust_store_gross_$ + ship_$.",
+        "When the user asks for SKUs / items / what to put on a spread: prefer retailer_pool_sku + top_items (item + item_description) and everde_item_codes from top_pools — do not stop at genus alone.",
+        "Clarify: retailer_pool_sku = HD/Lowes pool SKU; Item codes like BOUBAF0405 = Everde item IDs; item_description = variety name.",
         "Ship This Week = in-region + FOR-direct; To Transfer = next-week shelf (not this week's order).",
         "NN Plan ≠ NN Cust Store ≠ NN Cust Pool — explain briefly if the user asks.",
         "YTD store sales + farm supply may support a secondary cross-check; label that as hypothesis, not the official WCRO order.",
