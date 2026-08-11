@@ -16,7 +16,11 @@ New-Item -ItemType Directory -Path $stage | Out-Null
 
 Copy-Item package.json, package-lock.json -Destination $stage
 Copy-Item dist -Destination (Join-Path $stage "dist") -Recurse
-Copy-Item node_modules -Destination (Join-Path $stage "node_modules") -Recurse
+# Robocopy avoids intermittent Copy-Item failures on locked/partial npm files
+$nmSrc = Join-Path $root "node_modules"
+$nmDst = Join-Path $stage "node_modules"
+robocopy $nmSrc $nmDst /E /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+if ($LASTEXITCODE -ge 8) { throw "robocopy node_modules failed with exit $LASTEXITCODE" }
 
 Push-Location $stage
 tar.exe -acf $zipPath *
