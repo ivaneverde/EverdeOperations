@@ -44,6 +44,13 @@ export function nurserySupplyJsonPath(): string {
   );
 }
 
+export function siteFocusJsonPath(): string {
+  return (
+    process.env.AZURE_SITE_FOCUS_JSON_BLOB?.trim() ||
+    "nursery/latest/site_focus_data.json"
+  );
+}
+
 export function hdYtdMetaJsonPath(): string {
   const prefix =
     process.env.AZURE_HD_YTD_BLOB_PREFIX?.trim() || "sales-plan/hd-ytd/latest";

@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { FreightDashboardEmbed } from "@/components/reports/FreightDashboardEmbed";
+import { NurseryDashboardEmbed } from "@/components/reports/NurseryDashboardEmbed";
+import { SiteFocusSummary } from "@/components/reports/SiteFocusSummary";
 import { HdYtdGridEmbed } from "@/components/reports/HdYtdGridEmbed";
 import { RetailDashboardEmbed } from "@/components/reports/RetailDashboardEmbed";
 import { SalesPlanDashboardEmbed } from "@/components/reports/SalesPlanDashboardEmbed";
@@ -29,11 +31,13 @@ export default async function ReportPage(
 ) {
   const { section, report } = await props.params;
   if (
-    (section === "supply-inventory" ||
-      section === "production-demand-plan") &&
+    section === "supply-inventory" &&
     report === "overview"
   ) {
     redirect(`/${section}`);
+  }
+  if (section === "production-demand-plan" && report === "overview") {
+    redirect("/production-demand-plan/inventory-metrics");
   }
 
   const found = getReport(section, report);
@@ -81,6 +85,22 @@ export default async function ReportPage(
     return (
       <ReportShell section={sec} report={rep} embedBody>
         <HdYtdGridEmbed kind="lowes" />
+      </ReportShell>
+    );
+  }
+
+  if (rep.siteFocus === true) {
+    return (
+      <ReportShell section={sec} report={rep}>
+        <SiteFocusSummary />
+      </ReportShell>
+    );
+  }
+
+  if (rep.nurseryPane) {
+    return (
+      <ReportShell section={sec} report={rep} embedBody>
+        <NurseryDashboardEmbed pane={rep.nurseryPane} />
       </ReportShell>
     );
   }

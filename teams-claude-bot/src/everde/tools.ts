@@ -10,6 +10,7 @@ import {
   lowesYtdSkuCategoryMapPath,
   nurseryDemandJsonPath,
   nurserySupplyJsonPath,
+  siteFocusJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
   weatherDashboardJsonPath,
@@ -21,6 +22,7 @@ import {
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
+  compactSiteFocusJson,
   compactWcroJson,
   compactYtdFollowingWeekMeta,
 } from "./compact.js";
@@ -171,6 +173,20 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
     description:
       "Fetch nursery Production & Demand (Inventory Metrics) JSON from Blob — BO/CR, farm YTD, demand windows.",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_site_focus_summary",
+    description:
+      "Weekly Inventory Metrics Site Focus Summary — farm-by-farm action items (BO/CR, cycle count, photos, ready dates, inventory accuracy) from the Word drop in Inventory Metrics.",
+    input_schema: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Optional farm code or region filter, e.g. 'ESC' or 'SO CAL'.",
+        },
+      },
+    },
   },
   {
     name: "get_portal_catalog",
@@ -458,6 +474,51 @@ export async function executeEverdeTool(
       const raw = await downloadJsonFromBlob(container, path);
       if (!raw) return "Nursery demand JSON not available in Blob storage.";
       return compactNurseryJson(raw, TOOL_MAX_CHARS);
+    }
+
+    case "get_site_focus_summary": {
+      const raw = await downloadJsonFromBlob(container, siteFocusJsonPath());
+      if (!raw) {
+        return "Site Focus Summary not in Blob — drop WkNN_Site_Focus*.docx in Inventory Metrics and run npm run nursery:extract-site-focus.";
+      }
+      const q = toolQuery(input).toLowerCase();
+      if (!q) return compactSiteFocusJson(raw, TOOL_MAX_CHARS);
+      try {
+        const parsed = JSON.parse(raw) as {
+          meta?: unknown;
+          closing?: unknown;
+          regions?: {
+            name?: string;
+            farms?: { code?: string; market?: string }[];
+          }[];
+        };
+        const regions = (parsed.regions ?? []).filter((r) => {
+          const name = String(r.name ?? "").toLowerCase();
+          if (name.includes(q)) return true;
+          return (r.farms ?? []).some((f) => {
+            const code = String(f.code ?? "").toLowerCase();
+            const market = String(f.market ?? "").toLowerCase();
+            return code === q || code.includes(q) || market.includes(q);
+          });
+        }).map((r) => ({
+          ...r,
+          farms: (r.farms ?? []).filter((f) => {
+            if (String(r.name ?? "").toLowerCase().includes(q)) return true;
+            const code = String(f.code ?? "").toLowerCase();
+            const market = String(f.market ?? "").toLowerCase();
+            return code === q || code.includes(q) || market.includes(q);
+          }),
+        }));
+        if (regions.every((r) => (r.farms ?? []).length === 0)) {
+          return `No Site Focus farms matched q=${q}. Try a farm code (ESC, GFL) or region (SO CAL, TX).`;
+        }
+        return compactSiteFocusJson(
+          JSON.stringify({ meta: parsed.meta, regions, closing: parsed.closing }),
+          TOOL_MAX_CHARS,
+        );
+      } catch {
+        return compactSiteFocusJson(raw, TOOL_MAX_CHARS);
+      }
     }
 
     default:

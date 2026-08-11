@@ -32,7 +32,7 @@ function dataAvailabilityForSection(sectionId: string): string {
     sectionId === "production-demand-plan" ||
     sectionId === "supply-inventory"
   ) {
-    return "[Data: nursery_demand_data when loaded.]";
+    return "[Data: nursery_demand_data + site_focus_data when loaded.]";
   }
   if (sectionId === "retail-sales-opportunity") {
     return "[Retail + weather: assistant loads retail_opp_data + weather_dashboard_data when published.]";

@@ -21,8 +21,10 @@ import {
   contextFocusForPathname,
   maxCharsForDataset,
 } from "@/lib/assistant/contextBudget";
+import { compactSiteFocusForAssistant } from "@/lib/assistant/compactSiteFocusForAssistant";
 import { loadNurseryDemandJson } from "@/lib/assistant/loadNurseryDemandJson";
 import { loadNurserySupplyJson } from "@/lib/assistant/loadNurserySupplyJson";
+import { loadSiteFocusJson } from "@/lib/nursery/loadSiteFocusJson";
 import { loadRetailDashboardJson } from "@/lib/retail/loadRetailDashboardJson";
 import { loadWeatherDashboardJson } from "@/lib/weather/loadWeatherDashboardJson";
 import { loadYtdMeta } from "@/lib/hdYtd/loadHdYtdData";
@@ -250,6 +252,15 @@ export async function buildAssistantContext(
       compactNurserySupplyForAssistant,
       "nursery_supply",
       "Supply Inventory (nursery SUPPLY) not available — run npm run nursery:refresh-supply.",
+    );
+
+    const siteFocus = await loadSiteFocusJson();
+    pushDataset(
+      "site_focus_data",
+      siteFocus?.json ?? null,
+      compactSiteFocusForAssistant,
+      "site_focus",
+      "Site Focus Summary not available — drop WkNN_Site_Focus*.docx in Inventory Metrics and run npm run nursery:extract-site-focus.",
     );
   }
 

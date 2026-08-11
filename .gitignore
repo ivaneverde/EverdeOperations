@@ -57,6 +57,7 @@ next-env.d.ts
 /public/weather_dashboard_data.json
 /public/nursery-supply-data.json
 /public/nursery-demand-data.json
+/public/site_focus_data.json
 
 # local freight JSON/CSV extraction (scripts/freight/extract_dashboard_html.py)
 /scripts/freight/out/

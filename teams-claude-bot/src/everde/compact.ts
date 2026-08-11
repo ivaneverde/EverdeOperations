@@ -285,6 +285,16 @@ export function compactWcroJson(
   }
 }
 
+/** Weekly Inventory Metrics Site Focus Summary (already compact narrative JSON). */
+export function compactSiteFocusJson(raw: string, maxChars: number): string {
+  try {
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    return truncateText(JSON.stringify(p), maxChars);
+  } catch {
+    return truncateText(raw, maxChars);
+  }
+}
+
 /** Compact HD / Lowe's Following Week YTD meta (never full row grids). */
 export function compactYtdFollowingWeekMeta(
   raw: string,

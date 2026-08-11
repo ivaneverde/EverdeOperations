@@ -34,6 +34,7 @@ const KEY_ACCOUNT_TOOLS = new Set([
   "get_grade_definitions",
   "get_nursery_supply",
   "get_nursery_demand",
+  "get_site_focus_summary",
 ]);
 
 export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
@@ -62,6 +63,7 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
       "get_weather_dashboard",
       "get_nursery_supply",
       "get_nursery_demand",
+      "get_site_focus_summary",
       "get_portal_catalog",
       "get_grade_definitions",
     ]),

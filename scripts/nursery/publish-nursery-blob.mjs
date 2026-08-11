@@ -126,4 +126,20 @@ console.log("Wrote", publicDemand, `(${demandText.length} chars)`);
 
 await uploadJson(container, supplyBlob, supplyText);
 await uploadJson(container, demandBlob, demandText);
+
+const siteFocusBlob =
+  process.env.AZURE_SITE_FOCUS_JSON_BLOB?.trim() ||
+  "nursery/latest/site_focus_data.json";
+const siteFocusLocal = [
+  path.join(repoRoot, "data", "site_focus_data.json"),
+  path.join(repoRoot, "public", "site_focus_data.json"),
+].find((p) => fs.existsSync(p));
+if (siteFocusLocal) {
+  const siteFocusText = fs.readFileSync(siteFocusLocal, "utf8");
+  JSON.parse(siteFocusText);
+  await uploadJson(container, siteFocusBlob, siteFocusText);
+} else {
+  console.log("No site_focus_data.json yet — skip Site Focus Blob upload.");
+}
+
 console.log("Nursery supply + demand published to Blob.");

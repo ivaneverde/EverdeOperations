@@ -198,6 +198,7 @@ export const WEATHER_TOOLS = new Set(["get_weather_dashboard"]);
 export const FARM_TOOLS = new Set([
   "get_nursery_supply",
   "get_nursery_demand",
+  "get_site_focus_summary",
   "get_grade_definitions",
 ]);
 export const SALES_PLAN_OPS_TOOLS = new Set(["get_sales_plan_dashboard"]);

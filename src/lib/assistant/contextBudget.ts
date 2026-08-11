@@ -11,6 +11,7 @@ export type AssistantDatasetId =
   | "lowes_ytd"
   | "nursery_demand"
   | "nursery_supply"
+  | "site_focus"
   | "retail"
   | "weather";
 
@@ -30,6 +31,9 @@ export function contextFocusForPathname(pathname: string): AssistantContextFocus
     p.includes("supply-inventory")
   ) {
     return "nursery_supply";
+  }
+  if (p.includes("site-focus")) {
+    return "site_focus";
   }
   if (p.includes("production-demand")) {
     return "nursery_demand";
@@ -73,6 +77,9 @@ function anthropicBudget(
   if (dataset === "nursery_supply") {
     return isPrimary ? 14_000 : 10_000;
   }
+  if (dataset === "site_focus") {
+    return isPrimary ? 16_000 : 8_000;
+  }
   if (dataset === "weather") {
     return isPrimary ? 12_000 : 6_000;
   }
@@ -93,6 +100,7 @@ function openAiFocusedBudget(
       if (dataset === "hd_ytd" || dataset === "lowes_ytd") return 2_500;
       if (dataset === "nursery_demand") return 6_000;
       if (dataset === "nursery_supply") return 6_000;
+      if (dataset === "site_focus") return 8_000;
       if (dataset === "weather") return 2_500;
     }
     return 0;
@@ -116,7 +124,10 @@ export function maxCharsForDataset(
     (focus === "portal" && dataset === "freight") ||
     (focus === "retail" && dataset === "retail") ||
     (focus === "weather" && dataset === "weather") ||
-    (focus === "nursery_demand" && dataset === "nursery_demand") ||
+    (focus === "nursery_demand" &&
+      (dataset === "nursery_demand" || dataset === "site_focus")) ||
+    (focus === "site_focus" &&
+      (dataset === "site_focus" || dataset === "nursery_demand")) ||
     (focus === "nursery_supply" && dataset === "nursery_supply") ||
     (focus === "hd_ytd" && dataset === "hd_ytd") ||
     (focus === "lowes_ytd" && dataset === "lowes_ytd") ||

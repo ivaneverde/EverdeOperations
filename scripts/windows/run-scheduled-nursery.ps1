@@ -43,15 +43,38 @@ try {
   $fp = Get-FileFingerprint $xlsb
   $prev = Get-PipelineState $RepoRoot "nursery"
 
-  if (-not $Force -and -not (Test-WeeklyDropNeedsProcessing $xlsb $prev $prev)) {
-    Write-Host "No new Inventory Metrics file since last run." -ForegroundColor Cyan
+  $focus = Get-ChildItem -LiteralPath $metricsDir -File -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.Extension -eq ".docx" -and
+      $_.Name -notlike "~$*" -and
+      $_.Name -match "site[_\s-]*focus"
+    } |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+  $focusPrev = Get-PipelineState $RepoRoot "site-focus"
+  $needDemand = $Force -or (Test-WeeklyDropNeedsProcessing $xlsb $prev $prev)
+  $needFocus = $false
+  if ($focus) {
+    $needFocus = $Force -or (Test-WeeklyDropNeedsProcessing $focus $focusPrev $focusPrev)
+  }
+
+  if (-not $needDemand -and -not $needFocus) {
+    Write-Host "No new Inventory Metrics or Site Focus file since last run." -ForegroundColor Cyan
     exit 0
   }
 
-  Write-Host "New file: $($xlsb.Name). Refreshing demand dashboard..." -ForegroundColor Green
   Push-Location $RepoRoot
-  & npm run nursery:refresh-demand
-  if ($LASTEXITCODE -ne 0) { throw "nursery:refresh-demand failed with exit $LASTEXITCODE" }
+  if ($needDemand) {
+    Write-Host "New file: $($xlsb.Name). Refreshing demand dashboard..." -ForegroundColor Green
+    & npm run nursery:refresh-demand
+    if ($LASTEXITCODE -ne 0) { throw "nursery:refresh-demand failed with exit $LASTEXITCODE" }
+  }
+
+  if ($needFocus -and $focus) {
+    Write-Host "Site Focus: $($focus.Name). Extracting..." -ForegroundColor Green
+    & python (Join-Path $RepoRoot "scripts\nursery\extract_site_focus.py") $focus.FullName
+    if ($LASTEXITCODE -ne 0) { Write-Warning "extract_site_focus.py exited $LASTEXITCODE" }
+  }
 
   Write-Host "Publishing nursery demand + supply JSON to Azure Blob..." -ForegroundColor Cyan
   & npm run nursery:publish-blob
@@ -69,10 +92,11 @@ try {
     if (-not $git) {
       Write-Warning "git not on PATH; HTML refreshed locally but not pushed."
     } else {
-      & git -C $RepoRoot add "public/nursery-inventory-dashboard.html"
-      $status = & git -C $RepoRoot status --porcelain "public/nursery-inventory-dashboard.html"
+      & git -C $RepoRoot add "public/nursery-inventory-dashboard.html" "data/site_focus_data.json"
+      $status = & git -C $RepoRoot status --porcelain -- "public/nursery-inventory-dashboard.html" "data/site_focus_data.json"
       if ($status) {
-        $msg = "chore(nursery): refresh Production and Demand Plan from $($xlsb.Name)"
+        $label = if ($needDemand) { $xlsb.Name } else { $focus.Name }
+        $msg = "chore(nursery): refresh Production and Demand Plan from $label"
         & git -C $RepoRoot commit -m $msg
         if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
         & git -C $RepoRoot push origin HEAD
@@ -84,12 +108,24 @@ try {
     }
   }
 
-  Set-PipelineState $RepoRoot "nursery" @{
-    path        = $fp.path
-    name        = $fp.name
-    lastWrite   = $fp.lastWrite
-    length      = $fp.length
-    processedAt = (Get-Date).ToUniversalTime().ToString("o")
+  if ($needDemand) {
+    Set-PipelineState $RepoRoot "nursery" @{
+      path        = $fp.path
+      name        = $fp.name
+      lastWrite   = $fp.lastWrite
+      length      = $fp.length
+      processedAt = (Get-Date).ToUniversalTime().ToString("o")
+    }
+  }
+  if ($needFocus -and $focus) {
+    $ff = Get-FileFingerprint $focus
+    Set-PipelineState $RepoRoot "site-focus" @{
+      path        = $ff.path
+      name        = $ff.name
+      lastWrite   = $ff.lastWrite
+      length      = $ff.length
+      processedAt = (Get-Date).ToUniversalTime().ToString("o")
+    }
   }
 } finally {
   Pop-Location -ErrorAction SilentlyContinue

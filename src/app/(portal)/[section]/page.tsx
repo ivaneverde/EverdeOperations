@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { NurseryDashboardEmbed } from "@/components/reports/NurseryDashboardEmbed";
 import { TeamsIntegrationPanel } from "@/components/teams/TeamsIntegrationPanel";
 import { ReportShell } from "@/components/ReportShell";
@@ -21,7 +21,7 @@ export default async function SectionPage(
 ) {
   const { section: sectionId } = await props.params;
   const section = getSection(sectionId);
-  if (!section || !isSectionOnly(section)) notFound();
+  if (!section) notFound();
 
   if (isNurserySectionOnly(section)) {
     const report = nurserySectionShellReport(section);
@@ -32,9 +32,20 @@ export default async function SectionPage(
     );
   }
 
-  return (
-    <ReportShell section={section} report={OVERVIEW}>
-      <TeamsIntegrationPanel />
-    </ReportShell>
-  );
+  if (isSectionOnly(section)) {
+    return (
+      <ReportShell section={section} report={OVERVIEW}>
+        <TeamsIntegrationPanel />
+      </ReportShell>
+    );
+  }
+
+  const first =
+    section.reports.find((r) => !r.hideFromNav) ?? section.reports[0];
+  if (first) {
+    const href = first.navHref?.trim() || `/${section.id}/${first.slug}`;
+    redirect(href);
+  }
+
+  notFound();
 }

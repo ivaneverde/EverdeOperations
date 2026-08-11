@@ -62,6 +62,10 @@ export type PortalReport = {
    * and calls iframe `activate(tab)` with this nav title.
    */
   weatherHtmlTab?: string;
+  /** When set, renders the nursery HTML embed for this pane. */
+  nurseryPane?: "supply" | "demand";
+  /** When true, renders the weekly Site Focus Summary (Inventory Metrics Word drop). */
+  siteFocus?: boolean;
   hdYtdGrid?: boolean;
   /** When true, renders Lowe's Sales YTD Following Week virtualized grid. */
   lowesYtdGrid?: boolean;
@@ -745,15 +749,32 @@ export const PORTAL_SECTIONS: PortalSection[] = [
     id: "production-demand-plan",
     title: "Production & Demand Plan",
     summary:
-      "Inventory metrics versus demand windows and plans (weekly drops on the share).",
+      "Inventory metrics versus demand windows, plus the weekly Site Focus Summary for farm action items.",
     shareFolder: "Inventory Metrics",
-    sectionOnly: true,
-    nurseryPane: "demand",
-    sectionSourceRelativePath:
-      "Inventory Metrics\\Inventory Metrics 07 20 26.xlsb",
     sectionNotes:
-      "Drop the latest Inventory Metrics workbook in Inventory Metrics (run npm run nursery:refresh-demand after each drop).",
-    reports: [],
+      "Drop Inventory Metrics *.xlsb and optional WkNN_Site_Focus_Summary*.docx in Inventory Metrics. Run npm run nursery:refresh-demand and npm run nursery:extract-site-focus after each drop.",
+    reports: [
+      {
+        slug: "inventory-metrics",
+        title: "Inventory Metrics",
+        sourceRelativePath:
+          "Inventory Metrics\\Inventory Metrics 08 10 26.xlsb",
+        nurseryPane: "demand",
+        navAccent: "2F5233",
+        notes:
+          "Production & Demand HTML from Inventory Metrics. Refresh: npm run nursery:refresh-demand then nursery:publish-blob.",
+      },
+      {
+        slug: "site-focus",
+        title: "Site Focus Summary",
+        sourceRelativePath:
+          "Inventory Metrics\\Wk32_Site_Focus_Summary_Final.docx",
+        siteFocus: true,
+        navAccent: "C49B3F",
+        notes:
+          "Weekly farm action narrative. Drop WkNN_Site_Focus*.docx in Inventory Metrics; run npm run nursery:extract-site-focus.",
+      },
+    ],
   },
   {
     id: "communication",

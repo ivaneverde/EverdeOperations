@@ -6,6 +6,7 @@ import {
   lowesYtdMetaJsonPath,
   nurseryDemandJsonPath,
   nurserySupplyJsonPath,
+  siteFocusJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
   weatherDashboardJsonPath,
@@ -17,6 +18,7 @@ import {
   compactRetailJson,
   compactSalesPlanJson,
   compactWeatherJson,
+  compactSiteFocusJson,
   compactWcroJson,
   compactYtdFollowingWeekMeta,
 } from "./compact.js";
@@ -178,6 +180,14 @@ export async function buildEverdeSnapshot(options?: {
         () => downloadJsonFromBlob(container, nurseryDemandJsonPath()),
         compactNurseryJson,
         "Nursery demand not on Blob — run npm run nursery:publish-blob.",
+      ),
+    );
+    loaders.push(
+      loadDataset(
+        "site_focus",
+        () => downloadJsonFromBlob(container, siteFocusJsonPath()),
+        compactSiteFocusJson,
+        "Site Focus Summary not on Blob — drop WkNN_Site_Focus*.docx in Inventory Metrics.",
       ),
     );
   }
