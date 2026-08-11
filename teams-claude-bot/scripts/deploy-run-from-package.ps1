@@ -35,7 +35,7 @@ if (-not (Test-Path -LiteralPath $zipPath)) {
 }
 $zipBytes = (Get-Item -LiteralPath $zipPath).Length
 if ($zipBytes -lt 20MB) {
-  throw "deploy-prod.zip is only $([math]::Round($zipBytes/1MB,2)) MB — refusing to publish a likely incomplete package."
+  throw "deploy-prod.zip is only $([math]::Round($zipBytes/1MB,2)) MB - refusing to publish a likely incomplete package."
 }
 
 $key = az storage account keys list -g $ResourceGroup -n $StorageAccount --query "[0].value" -o tsv
