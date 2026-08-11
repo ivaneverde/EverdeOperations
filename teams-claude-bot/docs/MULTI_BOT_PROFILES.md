@@ -35,17 +35,17 @@ Outputs: `EverdeHDTeamsBot.zip`, `EverdeLowesTeamsBot.zip` (gitignored).
 ## Remaining: Teams install + assignment (Ivan or Aaron)
 
 1. **Teams Admin Center** → Manage apps → Upload custom app → upload each zip (or sideload via Teams desktop: Apps → Manage your apps → Upload a custom app).
-2. **Assign apps per tester** (install-time gate; code still denies wrong bot):
+2. **Assign apps per tester** (install-time gate; code still denies wrong bot). Status **2026-08-11**: Mark B, Jae, Cory W live; others waiting on a meeting with Ivan.
 
-| User | Email | Claude | Everde HD | Everde Lowes |
-|------|-------|:------:|:---------:|:------------:|
-| Mark Berchiolli | `mberchiolli@everde.com` | ✓ | ✓ | ✓ |
-| Justin Keeler | `jkeeler@everde.com` | ✓ | ✓ | ✓ |
-| Jae Martin | `jmartin@everde.com` | — | ✓ | — |
-| Brian Wohlberg | `bwohlberg@everde.com` | — | ✓ | — |
-| John Gorosave | `jgorosave@everde.com` | — | — | ✓ |
-| Scott Bianucci | `sbianucci@everde.com` | — | ✓ | ✓ |
-| Cory Wible | `cwible@everde.com` | — | ✓ | ✓ |
+| User | Email | Claude | Everde HD | Everde Lowes | Install |
+|------|-------|:------:|:---------:|:------------:|---------|
+| Mark Berchiolli | `mberchiolli@everde.com` | ✓ | ✓ | ✓ | **live** (all 3) |
+| Justin Keeler | `jkeeler@everde.com` | ✓ | ✓ | ✓ | waiting on meeting |
+| Jae Martin | `jmartin@everde.com` | — | ✓ | — | **live** (HD) |
+| Brian Wohlberg | `bwohlberg@everde.com` | — | ✓ | — | waiting on meeting |
+| John Gorosave | `jgorosave@everde.com` | — | — | ✓ | waiting on meeting |
+| Scott Bianucci | `sbianucci@everde.com` | — | ✓ | ✓ | waiting on meeting |
+| Cory Wible | `cwible@everde.com` | — | ✓ | ✓ | **live** (HD + Lowes) |
 
    Unknown Everde users (Ivan, Jonathan, ops) keep **full** in code; assign Claude + field bots as needed.
 3. In a chat: `@Everde HD` / `@Everde Lowes` / `@Claude` and smoke-test a simple inventory or YTD ask.

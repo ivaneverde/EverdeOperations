@@ -38,16 +38,16 @@ Same Blob publish; each profile loads only its datasets/tools (less bandwidth). 
 
 **View rights (Jonathan tester list — code-enforced portal + bots):** Unknown `@everde.com` → **full**. Explicit **full** admins: Ivan (`isunderland@everde.com`), Jonathan (`jsaperstein@everde.com`), Jason (`jcowham@everde.com`), Marco (`mcarrizales@everde.com`), Aaron (`acowan@everde.com`). Key-account roles are retailer-slice only (no freight/weather/farm ops on Claude/portal).
 
-| User | Email | Teams bots | Portal / Claude role |
-|------|-------|------------|----------------------|
-| Ivan / Jonathan / Jason / Marco / Aaron | (see above) | Claude + HD + Lowes | `full` |
-| Mark Berchiolli | `mberchiolli@everde.com` | Claude + HD + Lowes | `full` |
-| Justin Keeler | `jkeeler@everde.com` | Claude + HD + Lowes | `full` |
-| Jae Martin | `jmartin@everde.com` | HD only | `hd_rep` |
-| Brian Wohlberg | `bwohlberg@everde.com` | HD only | `hd_rep` |
-| John Gorosave | `jgorosave@everde.com` | Lowes only | `lowes_rep` |
-| Scott Bianucci | `sbianucci@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` |
-| Cory Wible | `cwible@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` |
+| User | Email | Teams bots | Portal / Claude role | Install (2026-08-11) |
+|------|-------|------------|----------------------|----------------------|
+| Ivan / Jonathan / Jason / Marco / Aaron | (see above) | Claude + HD + Lowes | `full` | ops / as needed |
+| Mark Berchiolli | `mberchiolli@everde.com` | Claude + HD + Lowes | `full` | **live** (all 3) |
+| Justin Keeler | `jkeeler@everde.com` | Claude + HD + Lowes | `full` | waiting on meeting |
+| Jae Martin | `jmartin@everde.com` | HD only | `hd_rep` | **live** (HD) |
+| Brian Wohlberg | `bwohlberg@everde.com` | HD only | `hd_rep` | waiting on meeting |
+| John Gorosave | `jgorosave@everde.com` | Lowes only | `lowes_rep` | waiting on meeting |
+| Scott Bianucci | `sbianucci@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` | waiting on meeting |
+| Cory Wible | `cwible@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` | **live** (HD + Lowes) |
 
 Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewRights.ts` (keep in sync).
 
@@ -64,7 +64,7 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **Snapshot 9.0.2 (portal app):** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.” Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-10):** 9.0.2 bot compact top-pools + NN (Net Need) glossary in tool rules. 9.0.1 lineage: Option A multi-bot + WCRO portal section + WeeklyDrop scheduler.
+**Last session (2026-08-11):** HD SoCal roster live on Teams App Service (`build: 2026-08-10-hd-socal-jae-roster`). Field installs: Mark B (all 3), Jae (HD), Cory W (HD + Lowes) live; Justin K, Brian W, John G, Scott B still waiting on a meeting.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 
