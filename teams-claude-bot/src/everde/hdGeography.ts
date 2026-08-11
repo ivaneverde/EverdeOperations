@@ -6,7 +6,13 @@
  * (both tabs = HD SoCal). 29A = Market 29 districts 325+327 (18 stores).
  */
 
-import roster from "./hd_socal_store_roster.json";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const roster = require("./hd_socal_store_roster.json") as {
+  store_nbrs: number[];
+  market_29a_store_nbrs?: number[];
+};
 
 export type HdGeoRule = {
   /** 4-digit padded Market Nbr */
@@ -36,14 +42,12 @@ export const HD_SOCAL_WHOLE_MARKETS = ["12", "47", "48", "196", "36"].map(mkt);
 export const HD_SOCAL_M29_DISTRICTS = ["325", "327"].map(mkt);
 
 /** Jae / Brian Parker store roster — authoritative HD SoCal store numbers. */
-export const HD_SOCAL_STORE_NBRS: string[] = (roster.store_nbrs as number[]).map(
-  storeCode,
-);
+export const HD_SOCAL_STORE_NBRS: string[] = roster.store_nbrs.map(storeCode);
 
 export const HD_SOCAL_STORE_SET = new Set(HD_SOCAL_STORE_NBRS);
 
 export const HD_29A_STORE_NBRS: string[] = (
-  (roster as { market_29a_store_nbrs?: number[] }).market_29a_store_nbrs ?? []
+  roster.market_29a_store_nbrs ?? []
 ).map(storeCode);
 
 /** Jae / WCRO HD Southern California scope (market/district rules for display). */
