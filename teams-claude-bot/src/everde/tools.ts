@@ -171,8 +171,16 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_nursery_demand",
     description:
-      "Fetch nursery Production & Demand (Inventory Metrics) JSON from Blob — BO/CR, farm YTD, demand windows.",
-    input_schema: { type: "object", properties: {} },
+      "Fetch nursery Production & Demand (Inventory Metrics) JSON from Blob — BO/CR, farm YTD vs goal, cycle count, photos, ready dates, inventory accuracy. Use q= for a farm code (ESC, GFL) or region (SO CAL, TX).",
+    input_schema: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Optional farm code or region filter, e.g. 'ESC' or 'SO CAL'.",
+        },
+      },
+    },
   },
   {
     name: "get_site_focus_summary",
@@ -212,6 +220,60 @@ function toolFocus(input: unknown): string {
     return (input as { focus: string }).focus;
   }
   return "summary";
+}
+
+function filterNurseryDemandJson(raw: string, q: string): string {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return raw;
+  const p = JSON.parse(raw) as Record<string, unknown>;
+  const matchFarm = (code: string, region?: string): boolean => {
+    const c = code.toLowerCase();
+    const r = String(region ?? "").toLowerCase();
+    return (
+      c === needle ||
+      c.includes(needle) ||
+      r.includes(needle) ||
+      needle.includes(c)
+    );
+  };
+  const pickFarmMap = (val: unknown): Record<string, unknown> | unknown => {
+    if (!val || typeof val !== "object" || Array.isArray(val)) return val;
+    const src = val as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [code, row] of Object.entries(src)) {
+      const region =
+        row && typeof row === "object"
+          ? String((row as { region?: string }).region ?? "")
+          : "";
+      if (matchFarm(code, region)) out[code] = row;
+    }
+    return out;
+  };
+  const pickFarmList = (val: unknown): unknown => {
+    if (!Array.isArray(val)) return val;
+    return val.filter((row) => {
+      if (!row || typeof row !== "object") return false;
+      const farm = String((row as { farm?: string }).farm ?? "");
+      const region = String((row as { region?: string }).region ?? "");
+      return matchFarm(farm, region);
+    });
+  };
+  return JSON.stringify({
+    meta: p.meta,
+    filter: q,
+    farmYTD: pickFarmMap(p.farmYTD),
+    farmBO: pickFarmMap(p.farmBO),
+    variance: pickFarmMap(p.variance),
+    cycle: pickFarmMap(p.cycle),
+    photos: pickFarmMap(p.photos),
+    readyDate: pickFarmMap(p.readyDate),
+    demandWin: pickFarmMap(p.demandWin),
+    boReasons: pickFarmList(p.boReasons),
+    crReasons: pickFarmList(p.crReasons),
+    topReasons: pickFarmList(p.topReasons),
+    weeklyTotals: p.weeklyTotals,
+    regionWeekly: p.regionWeekly,
+  });
 }
 
 function toolQuery(input: unknown): string {
@@ -473,7 +535,20 @@ export async function executeEverdeTool(
       const path = nurseryDemandJsonPath();
       const raw = await downloadJsonFromBlob(container, path);
       if (!raw) return "Nursery demand JSON not available in Blob storage.";
-      return compactNurseryJson(raw, TOOL_MAX_CHARS);
+      const q = toolQuery(input);
+      if (!q) return compactNurseryJson(raw, TOOL_MAX_CHARS);
+      try {
+        const sliced = filterNurseryDemandJson(raw, q);
+        const parsed = JSON.parse(sliced) as {
+          farmYTD?: Record<string, unknown>;
+        };
+        if (!parsed.farmYTD || Object.keys(parsed.farmYTD).length === 0) {
+          return `No Inventory Metrics farms matched q=${q}. Try a farm code (ESC, GFL, BRA) or region (SO CAL, TX, FL).`;
+        }
+        return compactNurseryJson(sliced, TOOL_MAX_CHARS);
+      } catch {
+        return compactNurseryJson(raw, TOOL_MAX_CHARS);
+      }
     }
 
     case "get_site_focus_summary": {

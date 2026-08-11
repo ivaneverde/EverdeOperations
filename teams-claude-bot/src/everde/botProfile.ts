@@ -132,6 +132,7 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
       `You are **${p.displayName}** — Everde's full operations assistant (freight, sales plan, HD + Lowe's, nursery, retail, WCRO, weather when published).`,
       "Answer across datasets when useful. Still respect user view-rights for Lowe's / HD when restricted.",
       "WCRO: call get_wcro_dashboard. Lead with published segments / top_pools_by_market / transfers / reps. When asked for SKUs/items use retailer_pool_sku + top_items + everde_item_codes. NN = Net Need. Cite snapshot date once. Do not deny pool data when top_pools_by_market is present. Label any YTD+farm cross-check as hypothesis, not the official WCRO order.",
+      "Inventory Metrics / Production & Demand / BO-CR / cycle count / photos / farm YTD: call **get_nursery_demand** (q= farm code like ESC or region like SO CAL). Site Focus / weekly farm action items: call **get_site_focus_summary** (same q=). Do not say those feeds are missing when nursery_demand or site_focus is in the snapshot.",
       "HD SoCal / Southern California: get_hd_ytd_following_week q='so cal' → markets 12,47,48,196,29A(D325+327),36 — never only 47+48.",
     ].join("\n");
   }
@@ -139,7 +140,7 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
     return [
       "## Bot identity",
       `You are **${p.displayName}** — Home Depot key-account field assistant.`,
-      "- SCOPE: Home Depot store / market / district sales & on-hand (YTD Following Week), Everde farm/nursery inventory (XXTT), and **WCRO** published ship / transfer / net-need figures for HD.",
+      "- SCOPE: Home Depot store / market / district sales & on-hand (YTD Following Week), Everde farm/nursery inventory (XXTT), Inventory Metrics (get_nursery_demand), Site Focus Summary (get_site_focus_summary), and **WCRO** published ship / transfer / net-need figures for HD.",
       "- OUT OF SCOPE: Lowe's, freight, weather, other retailers.",
       "- WCRO: call get_wcro_dashboard. Answer helpfully from published extract — for top pools / spread prep use **top_pools_by_market**. When asked for SKUs/items, show **retailer_pool_sku**, **top_items** (item + item_description), and **everde_item_codes** — do not stop at genus alone. Cite snapshot date once.",
       "- NN = Net Need. NN Plan (plan-driven) ≠ NN Cust Store (store-summed demand-sensed) ≠ NN Cust Pool (pool-netted). Explain briefly when asked.",
@@ -153,7 +154,7 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
   return [
     "## Bot identity",
     `You are **${p.displayName}** — Lowe's key-account field assistant.`,
-    "- SCOPE: Lowe's store sales & on-hand (YTD BY STORE SKU), Everde farm/nursery inventory (XXTT), and **WCRO** published ship / transfer / net-need figures for Lowe's.",
+      "- SCOPE: Lowe's store sales & on-hand (YTD BY STORE SKU), Everde farm/nursery inventory (XXTT), Inventory Metrics (get_nursery_demand), Site Focus Summary (get_site_focus_summary), and **WCRO** published ship / transfer / net-need figures for Lowe's.",
     "- OUT OF SCOPE: Home Depot, freight, weather, other retailers.",
     "- WCRO: call get_wcro_dashboard. Answer helpfully from published extract — for top pools / spread prep use **top_pools_by_market**. When asked for SKUs/items, show **retailer_pool_sku**, **top_items** (item + item_description), and **everde_item_codes** — do not stop at genus alone. Cite snapshot date once. LOW S.CA includes AZ/NV/NM/UT — not CA-only.",
     "- NN = Net Need. NN Plan (plan-driven) ≠ NN Cust Store (store-summed demand-sensed) ≠ NN Cust Pool (pool-netted). Explain briefly when asked.",
@@ -171,7 +172,7 @@ export function helpTextForProfile(profile: BotProfile): string {
 
 Chat naturally, or **attach files** for analysis.
 
-**Everde data:** freight, sales plan, HD + Lowe's YTD, retail, WCRO ship/transfer, weather, nursery supply/demand.
+**Everde data:** freight, sales plan, HD + Lowe's YTD, retail, WCRO ship/transfer, weather, nursery supply, Inventory Metrics (demand), Site Focus Summary.
 
 **Commands:** \`/help\` · \`/reset\`
 

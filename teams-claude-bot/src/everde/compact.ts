@@ -111,8 +111,14 @@ export function compactNurseryJson(raw: string, maxChars: number): string {
       "demand",
       "farmBO",
       "farmYTD",
+      "variance",
+      "cycle",
+      "photos",
+      "readyDate",
       "weeklyTotals",
+      "regionWeekly",
       "topReasons",
+      "topCrReasons",
     ]);
     payload.farms = slimArray(p.farms, 20);
     payload.farmBO = slimArray(p.farmBO, 20);

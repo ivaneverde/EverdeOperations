@@ -33,6 +33,10 @@ $zipPath = Join-Path $root "deploy-prod.zip"
 if (-not (Test-Path -LiteralPath $zipPath)) {
   throw "Missing $zipPath"
 }
+$zipBytes = (Get-Item -LiteralPath $zipPath).Length
+if ($zipBytes -lt 20MB) {
+  throw "deploy-prod.zip is only $([math]::Round($zipBytes/1MB,2)) MB — refusing to publish a likely incomplete package."
+}
 
 $key = az storage account keys list -g $ResourceGroup -n $StorageAccount --query "[0].value" -o tsv
 if (-not $key) { throw "Could not read storage account key for $StorageAccount" }
@@ -66,7 +70,8 @@ $sas = az storage blob generate-sas `
 $packageUrl = "https://$StorageAccount.blob.core.windows.net/$Container/$BlobName`?$sas"
 
 $settingFile = Join-Path $env:TEMP "teams-bot-run-from-package.env"
-Set-Content -LiteralPath $settingFile -Value "WEBSITE_RUN_FROM_PACKAGE=$packageUrl" -Encoding UTF8
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($settingFile, "WEBSITE_RUN_FROM_PACKAGE=$packageUrl", $utf8NoBom)
 
 Write-Host "Updating WEBSITE_RUN_FROM_PACKAGE on $AppName..." -ForegroundColor Cyan
 az webapp config appsettings set `
