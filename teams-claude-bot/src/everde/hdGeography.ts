@@ -6,13 +6,7 @@
  * (both tabs = HD SoCal). 29A = Market 29 districts 325+327 (18 stores).
  */
 
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const roster = require("./hd_socal_store_roster.json") as {
-  store_nbrs: number[];
-  market_29a_store_nbrs?: number[];
-};
+import { HD_29A_STORE_NBRS, HD_SOCAL_STORE_NBRS } from "./hdSocalStores.js";
 
 export type HdGeoRule = {
   /** 4-digit padded Market Nbr */
@@ -29,26 +23,13 @@ function mkt(n: number | string): string {
   return s;
 }
 
-function storeCode(n: number | string): string {
-  const s = String(n).trim();
-  if (/^\d+$/.test(s)) return s.padStart(4, "0");
-  return s;
-}
-
 /** Full-market SoCal (excludes 29A split). */
 export const HD_SOCAL_WHOLE_MARKETS = ["12", "47", "48", "196", "36"].map(mkt);
 
 /** Market 29 districts that are SoCal ("29A"). */
 export const HD_SOCAL_M29_DISTRICTS = ["325", "327"].map(mkt);
 
-/** Jae / Brian Parker store roster — authoritative HD SoCal store numbers. */
-export const HD_SOCAL_STORE_NBRS: string[] = roster.store_nbrs.map(storeCode);
-
-export const HD_SOCAL_STORE_SET = new Set(HD_SOCAL_STORE_NBRS);
-
-export const HD_29A_STORE_NBRS: string[] = (
-  roster.market_29a_store_nbrs ?? []
-).map(storeCode);
+export const HD_SOCAL_STORE_SET = new Set<string>(HD_SOCAL_STORE_NBRS);
 
 /** Jae / WCRO HD Southern California scope (market/district rules for display). */
 export const HD_SOCAL_RULES: HdGeoRule[] = [
@@ -107,8 +88,7 @@ export function detectHdRegionAlias(q: string): {
       ],
       label: "HD 29A",
       note: "29A = Market 29 districts 325 (Bakersfield) + 327 (Fresno) → SoCal (18 stores per Jae).",
-      storeAllowlist:
-        HD_29A_STORE_NBRS.length > 0 ? HD_29A_STORE_NBRS : undefined,
+      storeAllowlist: [...HD_29A_STORE_NBRS],
     };
   }
   if (SOCAL_RE.test(q)) {
@@ -116,7 +96,7 @@ export function detectHdRegionAlias(q: string): {
       rules: HD_SOCAL_RULES,
       label: HD_SOCAL_LABEL,
       note: HD_SOCAL_NOTE,
-      storeAllowlist: HD_SOCAL_STORE_NBRS,
+      storeAllowlist: [...HD_SOCAL_STORE_NBRS],
     };
   }
   if (NORCAL_RE.test(q)) {
@@ -166,3 +146,6 @@ export function describeHdGeoRules(rules: HdGeoRule[]): string[] {
     return `MKT ${Number(r.market)}`;
   });
 }
+
+// Re-export padded store lists for callers that import from this module.
+export { HD_29A_STORE_NBRS, HD_SOCAL_STORE_NBRS };
