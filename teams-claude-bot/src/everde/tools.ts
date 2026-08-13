@@ -13,6 +13,7 @@ import {
   siteFocusJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
+  salesByItemMetaJsonPath,
   weatherDashboardJsonPath,
 } from "../azure/blobPaths.js";
 import {
@@ -25,6 +26,7 @@ import {
   compactSiteFocusJson,
   compactWcroJson,
   compactYtdFollowingWeekMeta,
+  compactSalesByItemMeta,
 } from "./compact.js";
 import { loadWcroJsonRaw } from "./loadWcroJson.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
@@ -54,6 +56,15 @@ import {
   formatNurserySupplyQuery,
   type NurserySupplyLine,
 } from "./nurserySupplyQuery.js";
+import {
+  formatSalesByItemQuery,
+  loadSalesByItemRowsCached,
+} from "./salesByItem.js";
+import {
+  assessStoreFulfillmentWeather,
+  padStoreNbr,
+  type FulfillmentRetailer,
+} from "./weatherFulfillment.js";
 
 const TOOL_MAX_CHARS = 12000;
 const YTD_SAMPLE_ROWS = 25;
@@ -80,6 +91,26 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
     description:
       "Fetch Everde NOR CAL sales plan dashboard JSON (plan vs actual, misses, excess, channels).",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_sales_by_item",
+    description:
+      "Sales by Item feed (2024–2026): customer/account (Bill To), Everde rep, Demand Channel, Tree/item, qty, revenue. Use for who-sold, customer purchase totals, rep book, channel, and plant/item questions. Fast Growing Trees is a Bill To customer. Examples: q='2026 fast growing trees', q='southwest nursery supply this year', q='mcbride southeast texas 2026', q='2025 #15 distictis buccinatoria west coast lsc'. West Coast LSC = WEST COAST NORTH + SOUTH. Returns by_customer, by_rep, by_channel, top_items. Never dump the full grid.",
+    input_schema: {
+      type: "object",
+      properties: {
+        focus: {
+          type: "string",
+          enum: ["summary", "query"],
+          description: "Default summary. Use query for item/channel/rep/year filters.",
+        },
+        q: {
+          type: "string",
+          description:
+            "Filter for focus=query. Customer: 'fast growing trees 2026' or 'southwest nursery this year'. Rep: 'mcbride texas 2026'. Item: '2025 #15 distictis west coast lsc'.",
+        },
+      },
+    },
   },
   {
     name: "get_hd_ytd_following_week",
@@ -145,8 +176,48 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_weather_dashboard",
     description:
-      "Fetch Everde weather dashboard JSON snapshot (regional conditions when published).",
+      "Everde weather dashboard snapshot: 14-city Open-Meteo forecasts by region (N/S California, TX, FL, CO) plus sales×weather crosswalk when published. For store fulfillment that should factor weather, prefer get_store_fulfillment_weather.",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_store_fulfillment_weather",
+    description:
+      "ON-DEMAND only when the user asks to take weather into account for store fulfillment / whether to ship next week. Maps an HD or Lowe's store to a weather region (city proxy), scores 7-day precip/freeze/storm risk, and returns proceed|caution|hold_outdoor_sensitive. Does NOT invent SKUs — pair with get_wcro_dashboard top_pools_by_market and HD/Lowe's YTD for the store. Example: store=0614 retailer=hd.",
+    input_schema: {
+      type: "object",
+      properties: {
+        retailer: {
+          type: "string",
+          enum: ["hd", "lowes"],
+          description: "Default hd.",
+        },
+        store: {
+          type: "string",
+          description: "Store number, e.g. 0614 or 614.",
+        },
+        market: {
+          type: "string",
+          description: "Optional HD Market Nbr if already known.",
+        },
+        district: {
+          type: "string",
+          description: "Optional HD District Nbr.",
+        },
+        subregion: {
+          type: "string",
+          description: "Optional Lowe's subregion label.",
+        },
+        q: {
+          type: "string",
+          description:
+            "Optional free text (SoCal, NorCal, store name) to help region mapping.",
+        },
+        horizon_days: {
+          type: "number",
+          description: "Forecast days to score (default 7).",
+        },
+      },
+    },
   },
   {
     name: "get_nursery_supply",
@@ -405,6 +476,7 @@ export function toolsForProfile(
     if (t.name === "get_freight_dashboard" && !caps.freight) return false;
     if (t.name === "get_weather_dashboard" && !caps.weather) return false;
     if (t.name === "get_sales_plan_dashboard" && !caps.salesPlanOps) return false;
+    if (t.name === "get_sales_by_item" && !caps.salesPlanOps) return false;
     return true;
   });
 
@@ -467,6 +539,29 @@ export async function executeEverdeTool(
       return compactSalesPlanJson(raw, TOOL_MAX_CHARS);
     }
 
+    case "get_sales_by_item": {
+      const metaRaw = await downloadJsonFromBlob(
+        container,
+        salesByItemMetaJsonPath(),
+      );
+      if (!metaRaw) {
+        return "Sales by Item JSON not in Blob — run npm run sales-plan:sales-by-item-extract-publish.";
+      }
+      const focus = toolFocus(input);
+      if (focus !== "query") {
+        return compactSalesByItemMeta(metaRaw, TOOL_MAX_CHARS);
+      }
+      const q = toolQuery(input);
+      if (!q) {
+        return "focus=query requires q= (e.g. '2025 #15 distictis buccinatoria west coast lsc').";
+      }
+      const rows = await loadSalesByItemRowsCached();
+      if (!rows) {
+        return "Sales by Item row grid not available or still on old grain (needs bill_to). Re-run npm run sales-plan:sales-by-item-extract-publish.";
+      }
+      return formatSalesByItemQuery(rows, q, TOOL_MAX_CHARS);
+    }
+
     case "get_hd_ytd_following_week":
       return runYtdTool("hd", input);
 
@@ -501,6 +596,46 @@ export async function executeEverdeTool(
       );
       if (!raw) return "Weather dashboard JSON not available in Blob storage.";
       return compactWeatherJson(raw, TOOL_MAX_CHARS);
+    }
+
+    case "get_store_fulfillment_weather": {
+      const raw = await downloadJsonFromBlob(
+        container,
+        weatherDashboardJsonPath(),
+      );
+      if (!raw) {
+        return "Weather JSON not in Blob — cannot assess fulfillment weather. Refresh weather publish.";
+      }
+      const inputObj =
+        typeof input === "object" && input ? (input as Record<string, unknown>) : {};
+      let retailer: FulfillmentRetailer =
+        inputObj.retailer === "lowes" ? "lowes" : "hd";
+      if (profile === "lowes") retailer = "lowes";
+      if (profile === "hd") retailer = "hd";
+      const storeRaw =
+        typeof inputObj.store === "string"
+          ? inputObj.store
+          : toolQuery(input).match(/\b0*\d{3,4}\b/)?.[0];
+      const store = storeRaw ? padStoreNbr(storeRaw) : undefined;
+      const market =
+        typeof inputObj.market === "string" ? inputObj.market : undefined;
+      const district =
+        typeof inputObj.district === "string" ? inputObj.district : undefined;
+      const subregion =
+        typeof inputObj.subregion === "string" ? inputObj.subregion : undefined;
+      const hint =
+        typeof inputObj.q === "string" && inputObj.q.trim()
+          ? inputObj.q
+          : toolQuery(input);
+      const horizon_days =
+        typeof inputObj.horizon_days === "number"
+          ? inputObj.horizon_days
+          : undefined;
+      return assessStoreFulfillmentWeather(
+        raw,
+        { retailer, store, market, district, subregion, hint, horizon_days },
+        TOOL_MAX_CHARS,
+      );
     }
 
     case "get_nursery_supply": {

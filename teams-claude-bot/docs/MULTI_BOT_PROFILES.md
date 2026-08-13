@@ -4,7 +4,7 @@ One **Azure App Service** deploy (`everde-claude-teams-bot`) hosts three **visua
 
 | Teams name / @mention | Profile | Messaging endpoint | Data |
 |-----------------------|---------|--------------------|------|
-| **Claude** (`@Claude`) | `full` | `POST /api/messages` | Freight, sales plan, HD + Lowe's, retail, weather, nursery |
+| **Claude** (`@Claude`) | `full` | `POST /api/messages` | Freight, sales plan, Sales by Item (rep/channel), HD + Lowe's, retail, weather, nursery |
 | **Everde HD** (`@Everde HD`) | `hd` | `POST /api/messages/hd` | HD YTD + nursery supply/demand only |
 | **Everde Lowes** (`@Everde Lowes`) | `lowes` | `POST /api/messages/lowes` | Lowe's YTD + nursery supply/demand only |
 
@@ -35,16 +35,17 @@ Outputs: `EverdeHDTeamsBot.zip`, `EverdeLowesTeamsBot.zip` (gitignored).
 ## Remaining: Teams install + assignment (Ivan or Aaron)
 
 1. **Teams Admin Center** → Manage apps → Upload custom app → upload each zip (or sideload via Teams desktop: Apps → Manage your apps → Upload a custom app).
-2. **Assign apps per tester** (install-time gate; code still denies wrong bot). Status **2026-08-11**: Mark B, Jae, Cory W live; others waiting on a meeting with Ivan.
+2. **Assign apps per tester** (install-time gate; code still denies wrong bot). Status **2026-08-11**: all testers live (Meredith M added — Claude + HD + Lowes).
 
 | User | Email | Claude | Everde HD | Everde Lowes | Install |
 |------|-------|:------:|:---------:|:------------:|---------|
 | Mark Berchiolli | `mberchiolli@everde.com` | ✓ | ✓ | ✓ | **live** (all 3) |
-| Justin Keeler | `jkeeler@everde.com` | ✓ | ✓ | ✓ | waiting on meeting |
+| Justin Keeler | `jkeeler@everde.com` | ✓ | ✓ | ✓ | **live** (all 3) |
+| Meredith McLeod | `mmcleod@everde.com` | ✓ | ✓ | ✓ | **live** (all 3) |
 | Jae Martin | `jmartin@everde.com` | — | ✓ | — | **live** (HD) |
-| Brian Wohlberg | `bwohlberg@everde.com` | — | ✓ | — | waiting on meeting |
-| John Gorosave | `jgorosave@everde.com` | — | — | ✓ | waiting on meeting |
-| Scott Bianucci | `sbianucci@everde.com` | — | ✓ | ✓ | waiting on meeting |
+| Brian Wohlberg | `bwohlberg@everde.com` | — | ✓ | — | **live** (HD) |
+| John Gorosave | `jgorosave@everde.com` | — | — | ✓ | **live** (Lowes) |
+| Scott Bianucci | `sbianucci@everde.com` | — | ✓ | ✓ | **live** (HD + Lowes) |
 | Cory Wible | `cwible@everde.com` | — | ✓ | ✓ | **live** (HD + Lowes) |
 
    Unknown Everde users (Ivan, Jonathan, ops) keep **full** in code; assign Claude + field bots as needed.

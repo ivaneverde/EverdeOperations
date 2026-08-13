@@ -2,6 +2,16 @@
 
 Mirrors the freight pattern: Python builds/refreshes the workbook, `extract_sales_plan.py` emits `sales_plan_data.json`, the portal serves JSON from Blob (or `public/sales_plan_data.json`) and the HTML shell loads it via `/api/sales-plan/dashboard-data`.
 
+## Sales by Item (rep lookup for Claude)
+
+Invoice feed with **Rep / Renamed Rep / Demand Channel** — used so Teams Claude can answer “who sold this item on West Coast LSC in 2025?”. This is **not** the NOR CAL sales-plan dashboard (that rollup drops the salesperson).
+
+```powershell
+npm run sales-plan:sales-by-item-extract-publish
+```
+
+Reads `Shared\Sales Data\2024` + `2025 Sales by Item.xlsx` (Year End archive fallback) plus the newest WeeklyDrop `2026 Sales by Item*.xlsx`, publishes `sales-plan/sales-by-item/latest/` to Blob. West Coast LSC = Demand Channel **WEST COAST NORTH** + **WEST COAST SOUTH**.
+
 ## Scripts in this folder
 
 | File | Role |

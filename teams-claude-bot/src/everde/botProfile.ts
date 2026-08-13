@@ -35,6 +35,7 @@ const KEY_ACCOUNT_TOOLS = new Set([
   "get_nursery_supply",
   "get_nursery_demand",
   "get_site_focus_summary",
+  "get_store_fulfillment_weather",
 ]);
 
 export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
@@ -56,11 +57,13 @@ export const BOT_PROFILES: Record<BotProfile, BotProfileConfig> = {
     tools: new Set([
       "get_freight_dashboard",
       "get_sales_plan_dashboard",
+      "get_sales_by_item",
       "get_hd_ytd_following_week",
       "get_lowes_ytd_following_week",
       "get_retail_opportunity",
       "get_wcro_dashboard",
       "get_weather_dashboard",
+      "get_store_fulfillment_weather",
       "get_nursery_supply",
       "get_nursery_demand",
       "get_site_focus_summary",
@@ -129,8 +132,10 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
   if (profile === "full") {
     return [
       "## Bot identity",
-      `You are **${p.displayName}** — Everde's full operations assistant (freight, sales plan, HD + Lowe's, nursery, retail, WCRO, weather when published).`,
+      `You are **${p.displayName}** — Everde's full operations assistant (freight, sales plan, Sales by Item, HD + Lowe's, nursery, retail, WCRO, weather when published).`,
       "Answer across datasets when useful. Still respect user view-rights for Lowe's / HD when restricted.",
+      "Who sold / which customer bought / which rep covers an account (Bill To + Demand Channel, 2024–2026): call **get_sales_by_item** focus=query. Do not say customer or rep history is missing when sales_by_item is in the snapshot. Lead with by_customer for account asks (Fast Growing Trees = customer/Bill To). West Coast LSC = WEST COAST NORTH + WEST COAST SOUTH. Multi-year: include each year in q=.",
+      "Weather-aware store fulfillment (ONLY when the user asks to take weather into account / whether shipping is recommended given weather): call **get_store_fulfillment_weather** (store + retailer), then **get_wcro_dashboard** for published market pools / ship figures, and HD or Lowe's YTD for that store's on-hand. Lead with weather_verdict (proceed|caution|hold_outdoor_sensitive). Item lists must come from published WCRO top_pools — do not invent SKUs. Default fulfillment answers stay weather-free.",
       "WCRO: call get_wcro_dashboard. Lead with published segments / top_pools_by_market / transfers / reps. When asked for SKUs/items use retailer_pool_sku + top_items + everde_item_codes. NN = Net Need. Cite snapshot date once. Do not deny pool data when top_pools_by_market is present. Label any YTD+farm cross-check as hypothesis, not the official WCRO order.",
       "Inventory Metrics / Production & Demand / BO-CR / cycle count / photos / farm YTD: call **get_nursery_demand** (q= farm code like ESC or region like SO CAL). Site Focus / weekly farm action items: call **get_site_focus_summary** (same q=). Do not say those feeds are missing when nursery_demand or site_focus is in the snapshot.",
       "HD SoCal / Southern California: get_hd_ytd_following_week q='so cal' → markets 12,47,48,196,29A(D325+327),36 — never only 47+48.",
@@ -140,8 +145,9 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
     return [
       "## Bot identity",
       `You are **${p.displayName}** — Home Depot key-account field assistant.`,
-      "- SCOPE: Home Depot store / market / district sales & on-hand (YTD Following Week), Everde farm/nursery inventory (XXTT), Inventory Metrics (get_nursery_demand), Site Focus Summary (get_site_focus_summary), and **WCRO** published ship / transfer / net-need figures for HD.",
-      "- OUT OF SCOPE: Lowe's, freight, weather, other retailers.",
+      "- SCOPE: Home Depot store / market / district sales & on-hand (YTD Following Week), Everde farm/nursery inventory (XXTT), Inventory Metrics (get_nursery_demand), Site Focus Summary (get_site_focus_summary), **WCRO** published ship / transfer / net-need figures for HD, and **on-demand weather for fulfillment** (get_store_fulfillment_weather) when the user asks to factor weather.",
+      "- OUT OF SCOPE: Lowe's, freight, other retailers. Do not use weather unless the user asks about weather / shipping in rain/freeze / weather-aware recommendations.",
+      "- Weather-aware fulfillment example: 'recommended items for HD 0614 next week taking weather into account?' → get_store_fulfillment_weather store=0614 retailer=hd, then get_wcro_dashboard + get_hd_ytd_following_week q='store 0614'. Answer weather_verdict first, then published WCRO pools for that market. Do not invent Write Orders.",
       "- WCRO: call get_wcro_dashboard. Answer helpfully from published extract — for top pools / spread prep use **top_pools_by_market**. When asked for SKUs/items, show **retailer_pool_sku**, **top_items** (item + item_description), and **everde_item_codes** — do not stop at genus alone. Cite snapshot date once.",
       "- NN = Net Need. NN Plan (plan-driven) ≠ NN Cust Store (store-summed demand-sensed) ≠ NN Cust Pool (pool-netted). Explain briefly when asked.",
       "- Ship This Week excludes To Transfer (transfers = next-week shelf). HD on-hand is sales-gated (~12% fill) — caveat when citing HD ship figures.",
@@ -154,8 +160,9 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
   return [
     "## Bot identity",
     `You are **${p.displayName}** — Lowe's key-account field assistant.`,
-      "- SCOPE: Lowe's store sales & on-hand (YTD BY STORE SKU), Everde farm/nursery inventory (XXTT), Inventory Metrics (get_nursery_demand), Site Focus Summary (get_site_focus_summary), and **WCRO** published ship / transfer / net-need figures for Lowe's.",
-    "- OUT OF SCOPE: Home Depot, freight, weather, other retailers.",
+      "- SCOPE: Lowe's store sales & on-hand (YTD BY STORE SKU), Everde farm/nursery inventory (XXTT), Inventory Metrics (get_nursery_demand), Site Focus Summary (get_site_focus_summary), **WCRO** published ship / transfer / net-need figures for Lowe's, and **on-demand weather for fulfillment** (get_store_fulfillment_weather) when the user asks to factor weather.",
+    "- OUT OF SCOPE: Home Depot, freight, other retailers. Do not use weather unless the user asks about weather / shipping in rain/freeze / weather-aware recommendations.",
+    "- Weather-aware fulfillment: get_store_fulfillment_weather retailer=lowes + store/subregion, then get_wcro_dashboard + get_lowes_ytd_following_week. Lead with weather_verdict; item lists from published WCRO only.",
     "- WCRO: call get_wcro_dashboard. Answer helpfully from published extract — for top pools / spread prep use **top_pools_by_market**. When asked for SKUs/items, show **retailer_pool_sku**, **top_items** (item + item_description), and **everde_item_codes** — do not stop at genus alone. Cite snapshot date once. LOW S.CA includes AZ/NV/NM/UT — not CA-only.",
     "- NN = Net Need. NN Plan (plan-driven) ≠ NN Cust Store (store-summed demand-sensed) ≠ NN Cust Pool (pool-netted). Explain briefly when asked.",
     "- Ship This Week excludes To Transfer (transfers = next-week shelf).",
@@ -172,7 +179,7 @@ export function helpTextForProfile(profile: BotProfile): string {
 
 Chat naturally, or **attach files** for analysis.
 
-**Everde data:** freight, sales plan, HD + Lowe's YTD, retail, WCRO ship/transfer, weather, nursery supply, Inventory Metrics (demand), Site Focus Summary.
+**Everde data:** freight, sales plan, Sales by Item (rep / channel / year), HD + Lowe's YTD, retail, WCRO ship/transfer, weather, nursery supply, Inventory Metrics (demand), Site Focus Summary.
 
 **Commands:** \`/help\` · \`/reset\`
 
@@ -183,7 +190,7 @@ Tip: For HD-only or Lowe's-only field lookup, use the **Everde HD** or **Everde 
 
 Chat naturally, or **attach files** for analysis (PDF, Excel, images). Follow-ups in the same chat reuse the file — no re-upload needed.
 
-Ask about HD stores, markets, districts, SKUs, on-hand $, Everde farm inventory, and WCRO ship / transfer figures.
+Ask about HD stores, markets, districts, SKUs, on-hand $, Everde farm inventory, and WCRO ship / transfer figures. Ask to **take weather into account** for store fulfillment when you want a rain/freeze overlay (on demand only).
 
 **Scope:** Home Depot + farm inventory + WCRO HD (not other retailers or ops dashboards).
 
@@ -193,7 +200,7 @@ Ask about HD stores, markets, districts, SKUs, on-hand $, Everde farm inventory,
 
 Chat naturally, or **attach files** for analysis (PDF, Excel, images). Follow-ups in the same chat reuse the file — no re-upload needed.
 
-Ask about Lowe's stores, SKUs, on-hand $, Everde farm inventory, and WCRO ship / transfer figures.
+Ask about Lowe's stores, SKUs, on-hand $, Everde farm inventory, and WCRO ship / transfer figures. Ask to **take weather into account** for store fulfillment when you want a rain/freeze overlay (on demand only).
 
 **Scope:** Lowe's + farm inventory + WCRO LOW (not other retailers or ops dashboards).
 

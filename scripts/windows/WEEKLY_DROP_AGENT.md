@@ -8,7 +8,7 @@ This document describes the **on-premises “agent” machine** that watches `Da
 |----------------|-----------|---------|--------|
 | **8:00 AM** | `Everde-SalesPlan-DailyCheck` | `Sales Plan Review\WeeklyDrop\` | Azure Blob `sales_plan_data.json` |
 | **9:00 AM** | `Everde-Freight-DailyCheck` | Juanita Load Board share → `Freight\WeeklyDrop\` | Sync raw `.xlsb`, pipeline + Azure Blob `dashboard_data.json` |
-| **9:30 AM** | `Everde-Weather-DailyCheck` | `Weather\WeeklyDrop\` (daily sales sync) + `JS Files\Weather Data\scripts\` | Blob `weather_dashboard_data.json` |
+| **9:30 AM** | `Everde-Weather-DailyCheck` | `Weather\WeeklyDrop\` (daily sales sync) + `JS Files\Weather Data\scripts\` | Blob `weather_dashboard_data.json` (**Open-Meteo 7-day forecast always refreshed** before publish; sales×weather crosswalk when share scripts succeed) |
 | **10:00 AM** | `Everde-Retail-DailyCheck` | `Weather\WeeklyDrop\` + share retail feeds → `SalesOpportunity\` | Blob `retail_opp_data.json` |
 | **1:30 PM** | `Everde-Nursery-DailyCheck` | `Inventory Metrics\*.xlsb` + `*Site*Focus*.docx` | `public/nursery-inventory-dashboard.html` + `data/site_focus_data.json` + **git push** |
 | **2:30 PM** | *(all daily tasks above)* | Same WeeklyDrop folders | **Catch-up run** — picks up Tue/Wed drops missed by the morning job |
@@ -72,7 +72,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 
 | Report | Drop folder | Files |
 |--------|-------------|-------|
-| Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` (agent can auto-copy newest from admin `Planning & Reporting\...\Current Year Sales by Items (Posted Weekly)` via `npm run sales-plan:sync-sales-by-item`); **HD Sales YTD with Following Week Sales`*.xlsx`** (newest → HD portal grid); **`YTD BY STORE SKU*.xlsb`** (Lowe's Following Week — newest → Lowes portal grid; name differs from HD so both can share this folder) |
+| Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` (agent can auto-copy newest from admin `Planning & Reporting\...\Current Year Sales by Items (Posted Weekly)` via `npm run sales-plan:sync-sales-by-item`); same Sales by Item file also feeds **Claude `get_sales_by_item`** (rep × channel × year; 2025 history from `Shared\Sales Data\2025 Sales by Item.xlsx`); **HD Sales YTD with Following Week Sales`*.xlsx`** (newest → HD portal grid); **`YTD BY STORE SKU*.xlsb`** (Lowe's Following Week — newest → Lowes portal grid; name differs from HD so both can share this folder) |
 | Freight | Juanita drops on `\\VRD-AWSECS\...\Load Board Reports\2026\`; agent syncs to `DataDrops\Freight\WeeklyDrop\` | Raw `Everde Freight Data*.xlsb` (not CALIFORNIA ONLY); dashboard `*.xlsx` appears after pipeline |
 | Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` (weekly drop, typically Monday); optional `WkNN_Site_Focus_Summary*.docx` → portal **Site Focus Summary** subsection |
 | Weather / Retail (Jonathan) | `DataDrops\Weather\WeeklyDrop\` | **Weekly retail:** newest `HD week*.xlsx` or `HD Sales YTD*.xlsx`, newest `YTD BY STORE SKU*.xlsb` / `Lowes YTD*.xlsb`. **Daily weather sales (optional same folder):** `HD FL/SE/SW Daily*.xlsx`, `LOWES Daily Retail Sales*.xlsx` (main + STX.NTX). |

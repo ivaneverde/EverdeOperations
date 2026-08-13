@@ -79,6 +79,45 @@ try {
     }
   }
 
+  # --- Sales by Item (rep × channel × year lookup for Claude) ---
+  $sbiYtd = Newest @("2026 Sales by Item*.xlsx", "*Sales by Item*.xlsx", "*Sales_by_Item*.xlsx")
+  $sbiHistRoot = "\\192.168.190.10\Claude Sandbox\JS Files\Shared\Sales Data"
+  if ($env:SALES_BY_ITEM_SHARED) {
+    $sbiHistRoot = ($env:SALES_BY_ITEM_SHARED.Trim() -replace "/", "\").TrimEnd("\")
+  }
+  $sbiHist2024 = Get-Item -LiteralPath (Join-Path $sbiHistRoot "2024 Sales by Item.xlsx") -ErrorAction SilentlyContinue
+  $sbiHist2025 = Get-Item -LiteralPath (Join-Path $sbiHistRoot "2025 Sales by Item.xlsx") -ErrorAction SilentlyContinue
+  if (-not $sbiYtd -and -not $sbiHist2024 -and -not $sbiHist2025) {
+    Write-Host "Sales by Item: no 2024/2025 Shared file or WeeklyDrop YTD yet." -ForegroundColor Yellow
+  } else {
+    $sbiFp = @{
+      ytd   = if ($sbiYtd) { Get-FileFingerprint $sbiYtd } else { $null }
+      hist24 = if ($sbiHist2024) { Get-FileFingerprint $sbiHist2024 } else { $null }
+      hist25 = if ($sbiHist2025) { Get-FileFingerprint $sbiHist2025 } else { $null }
+    }
+    $sbiPrev = Get-PipelineState $RepoRoot "sales-by-item"
+    $sbiChanged = $Force -or
+      ($sbiYtd -and (Test-WeeklyDropNeedsProcessing $sbiYtd $sbiPrev.ytd $sbiPrev)) -or
+      ($sbiHist2024 -and (Test-WeeklyDropNeedsProcessing $sbiHist2024 $sbiPrev.hist24 $sbiPrev)) -or
+      ($sbiHist2025 -and (Test-WeeklyDropNeedsProcessing $sbiHist2025 $sbiPrev.hist25 $sbiPrev)) -or
+      # migrate old single hist fingerprint into 2025 slot once
+      ($sbiHist2025 -and $sbiPrev.hist -and -not $sbiPrev.hist25 -and (Test-WeeklyDropNeedsProcessing $sbiHist2025 $sbiPrev.hist $sbiPrev))
+    if (-not $sbiChanged) {
+      Write-Host "Sales by Item: source files unchanged since last publish." -ForegroundColor Cyan
+    } else {
+      Write-Host "Sales by Item: new source. Extract + Blob publish..." -ForegroundColor Green
+      & npm run sales-plan:sales-by-item-extract-publish
+      if ($LASTEXITCODE -ne 0) { throw "sales-plan:sales-by-item-extract-publish failed with exit $LASTEXITCODE" }
+      Set-PipelineState $RepoRoot "sales-by-item" @{
+        ytd         = $sbiFp.ytd
+        hist24      = $sbiFp.hist24
+        hist25      = $sbiFp.hist25
+        processedAt = (Get-Date).ToUniversalTime().ToString("o")
+      }
+      Write-Host "Sales by Item publish complete." -ForegroundColor Green
+    }
+  }
+
   # --- HD Sales YTD Following Week (independent fingerprint) ---
   $hd = Newest @(
     "HD Sales YTD with Following Week Sales*.xlsx",

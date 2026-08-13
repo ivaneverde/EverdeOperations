@@ -26,7 +26,7 @@ function dataAvailabilityForSection(sectionId: string): string {
     return "[Data: freight_dashboard_data when loaded.]";
   }
   if (sectionId === "sales-plan-review") {
-    return "[Data: sales_plan_data + hd_ytd_following_week + lowes_ytd_following_week meta when loaded.]";
+    return "[Data: sales_plan_data + sales_by_item (rep/channel via Teams get_sales_by_item) + hd_ytd_following_week + lowes_ytd_following_week meta when loaded.]";
   }
   if (
     sectionId === "production-demand-plan" ||

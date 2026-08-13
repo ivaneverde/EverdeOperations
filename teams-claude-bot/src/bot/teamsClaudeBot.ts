@@ -283,7 +283,7 @@ export class TeamsClaudeBot extends ActivityHandler {
 
       await context.sendActivity(
         MessageFactory.text(
-          "Sorry — I could not process that request. Please try again. If you attached a file, confirm it is PDF, .xlsx, or an image under the size limit.",
+          `Sorry — I hit an error processing that (${message.slice(0, 180)}). Please try again, or rephrase (e.g. customer name + year, or /reset then retry).`,
         ),
       );
     }

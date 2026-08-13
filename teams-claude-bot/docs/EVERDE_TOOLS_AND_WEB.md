@@ -5,7 +5,7 @@
 | Source | When |
 |--------|------|
 | **Everde snapshot** | Every message — compact freight, sales plan, retail, weather JSON from Azure Blob |
-| **Everde tools** | Claude can call for deeper drill-down (`get_freight_dashboard`, etc.) |
+| **Everde tools** | Claude can call for deeper drill-down (`get_freight_dashboard`, `get_sales_by_item`, etc.) |
 | **Web search** | Only when the user asks for live public info (weather, news, "search the web", URLs) |
 
 ## Azure App Service settings
@@ -45,4 +45,5 @@ az webapp deployment source config-zip -g everdeportal -n everde-claude-teams-bo
 ## Teams test prompts
 
 - Everde: `@Claude what are our top freight carriers YTD?`
+- Sales by Item: `@Claude Who sold the #15 DISTICTIS BUCCINATORIA STK from the West Coast LSC channel in 2025?`
 - Web: `@Claude search the web for weather in Salem OR today`

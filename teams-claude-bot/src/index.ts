@@ -117,7 +117,7 @@ async function main(): Promise<void> {
   app.get("/health", (_req, res) => {
     res.status(200).json({
       status: "ok",
-      build: "2026-08-11-site-focus",
+      build: "2026-08-13-fgt-customer",
       profiles: endpoints.map((e) => e.profile),
       endpoints: endpoints.map((e) => e.path),
     });

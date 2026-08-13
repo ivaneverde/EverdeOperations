@@ -9,6 +9,7 @@ import {
   siteFocusJsonPath,
   retailDashboardJsonPath,
   salesPlanDashboardJsonPath,
+  salesByItemMetaJsonPath,
   weatherDashboardJsonPath,
 } from "../azure/blobPaths.js";
 import {
@@ -21,6 +22,7 @@ import {
   compactSiteFocusJson,
   compactWcroJson,
   compactYtdFollowingWeekMeta,
+  compactSalesByItemMeta,
 } from "./compact.js";
 import { loadWcroJsonRaw } from "./loadWcroJson.js";
 import { buildPortalCatalogSummary } from "./portalCatalog.js";
@@ -108,6 +110,14 @@ export async function buildEverdeSnapshot(options?: {
         () => downloadJsonFromBlob(container, salesPlanDashboardJsonPath()),
         compactSalesPlanJson,
         "Sales plan JSON not in Blob.",
+      ),
+    );
+    loaders.push(
+      loadDataset(
+        "sales_by_item",
+        () => downloadJsonFromBlob(container, salesByItemMetaJsonPath()),
+        compactSalesByItemMeta,
+        "Sales by Item meta not in Blob — run npm run sales-plan:sales-by-item-extract-publish.",
       ),
     );
   }

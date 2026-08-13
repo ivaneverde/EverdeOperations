@@ -73,6 +73,7 @@ const EMAIL_ROLES: Record<string, ViewRole> = {
   // Jonathan tester list
   "mberchiolli@everde.com": "full",
   "jkeeler@everde.com": "full",
+  "mmcleod@everde.com": "full",
   "jmartin@everde.com": "hd_rep",
   "bwohlberg@everde.com": "hd_rep",
   "jgorosave@everde.com": "lowes_rep",

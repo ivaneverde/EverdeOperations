@@ -1,3 +1,5 @@
+import { compactWeatherDashboardPayload } from "./weatherFulfillment.js";
+
 export function truncateText(raw: string, maxChars: number): string {
   if (raw.length <= maxChars) return raw;
   return `${raw.slice(0, maxChars)}…[truncated]`;
@@ -91,13 +93,7 @@ export function compactRetailJson(raw: string, maxChars: number): string {
 }
 
 export function compactWeatherJson(raw: string, maxChars: number): string {
-  try {
-    const p = JSON.parse(raw) as Record<string, unknown>;
-    const payload = pickKeys(p, ["meta", "headline", "regions", "alerts", "summary"]);
-    return truncateText(JSON.stringify(payload), maxChars);
-  } catch {
-    return truncateText(raw, maxChars);
-  }
+  return compactWeatherDashboardPayload(raw, maxChars);
 }
 
 export function compactNurseryJson(raw: string, maxChars: number): string {
@@ -327,6 +323,31 @@ export function compactYtdFollowingWeekMeta(
       columns: columns.slice(0, 40),
       totals_by_column: totalsByCol,
       note: "Full store-SKU grids are huge — use get_hd_ytd_following_week / get_lowes_ytd_following_week with focus=query and q= for filtered samples.",
+    };
+    return truncateText(JSON.stringify(payload), maxChars);
+  } catch {
+    return truncateText(raw, maxChars);
+  }
+}
+
+/** Compact Sales by Item meta (never the full year×item×channel×rep grid). */
+export function compactSalesByItemMeta(raw: string, maxChars: number): string {
+  try {
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    const payload = {
+      asOf: p.asOf,
+      grain: p.grain,
+      rowCount: p.rowCount,
+      sourceRowCount: p.sourceRowCount,
+      years: p.years,
+      channelCount: Array.isArray(p.channels) ? p.channels.length : 0,
+      channels: Array.isArray(p.channels)
+        ? (p.channels as string[]).slice(0, 40)
+        : [],
+      sources: p.sources,
+      note:
+        p.note ||
+        "Use get_sales_by_item focus=query with q= item + channel + year. West Coast LSC = WEST COAST NORTH + WEST COAST SOUTH. Rep = Everde salesperson.",
     };
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {

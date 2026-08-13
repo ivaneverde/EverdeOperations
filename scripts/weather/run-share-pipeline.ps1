@@ -169,6 +169,20 @@ try {
   & node scripts/weather/bootstrap-json-from-html.mjs
   if ($LASTEXITCODE -ne 0) { throw "bootstrap-json-from-html failed" }
 
+  # Always refresh 7-day city forecasts from Open-Meteo before Blob publish.
+  # Share fetch_weather_v2 often succeeds, but portal JSON was still bootstrapped from
+  # a stale Everde_Weather_Dashboard.html (May WX embed) when no newer HTML is on share.
+  $refreshPy = Join-Path $PSScriptRoot "refresh_forecast_open_meteo.py"
+  if (Test-Path -LiteralPath $refreshPy) {
+    Write-Host "Refreshing Open-Meteo 7-day forecasts into weather_dashboard_data.json..." -ForegroundColor Cyan
+    & $python $refreshPy
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning "Open-Meteo forecast refresh failed (exit $LASTEXITCODE) - publishing prior JSON."
+    }
+  } else {
+    Write-Warning "Missing refresh_forecast_open_meteo.py - portal forecast may stay stale."
+  }
+
   if (-not $SkipPublish) {
     & npm run weather:publish
     if ($LASTEXITCODE -ne 0) { throw "weather:publish failed" }

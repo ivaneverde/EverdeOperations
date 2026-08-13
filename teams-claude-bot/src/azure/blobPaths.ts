@@ -96,3 +96,17 @@ export function wcroDashboardJsonPath(): string {
     "wcro/latest/wcro_data.json"
   );
 }
+
+export function salesByItemMetaJsonPath(): string {
+  const prefix =
+    process.env.AZURE_SALES_BY_ITEM_BLOB_PREFIX?.trim() ||
+    "sales-plan/sales-by-item/latest";
+  return `${prefix.replace(/\/$/, "")}/sales_by_item_meta.json`;
+}
+
+export function salesByItemRowsGzipPath(): string {
+  const prefix =
+    process.env.AZURE_SALES_BY_ITEM_BLOB_PREFIX?.trim() ||
+    "sales-plan/sales-by-item/latest";
+  return `${prefix.replace(/\/$/, "")}/sales_by_item_rows.json.gz`;
+}

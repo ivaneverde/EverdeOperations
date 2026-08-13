@@ -66,6 +66,7 @@ const EMAIL_ROLES: Record<string, ViewRole> = {
   // Jonathan tester list
   "mberchiolli@everde.com": "full",
   "jkeeler@everde.com": "full",
+  "mmcleod@everde.com": "full",
   "jmartin@everde.com": "hd_rep",
   "bwohlberg@everde.com": "hd_rep",
   "jgorosave@everde.com": "lowes_rep",
@@ -201,7 +202,10 @@ export const FARM_TOOLS = new Set([
   "get_site_focus_summary",
   "get_grade_definitions",
 ]);
-export const SALES_PLAN_OPS_TOOLS = new Set(["get_sales_plan_dashboard"]);
+export const SALES_PLAN_OPS_TOOLS = new Set([
+  "get_sales_plan_dashboard",
+  "get_sales_by_item",
+]);
 
 export function isLowesRestrictedTool(name: string): boolean {
   return LOWES_RESTRICTED_TOOLS.has(name);

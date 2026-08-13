@@ -42,11 +42,12 @@ Same Blob publish; each profile loads only its datasets/tools (less bandwidth). 
 |------|-------|------------|----------------------|----------------------|
 | Ivan / Jonathan / Jason / Marco / Aaron | (see above) | Claude + HD + Lowes | `full` | ops / as needed |
 | Mark Berchiolli | `mberchiolli@everde.com` | Claude + HD + Lowes | `full` | **live** (all 3) |
-| Justin Keeler | `jkeeler@everde.com` | Claude + HD + Lowes | `full` | waiting on meeting |
+| Justin Keeler | `jkeeler@everde.com` | Claude + HD + Lowes | `full` | **live** (all 3) |
+| Meredith McLeod | `mmcleod@everde.com` | Claude + HD + Lowes | `full` | **live** (all 3) |
 | Jae Martin | `jmartin@everde.com` | HD only | `hd_rep` | **live** (HD) |
-| Brian Wohlberg | `bwohlberg@everde.com` | HD only | `hd_rep` | waiting on meeting |
-| John Gorosave | `jgorosave@everde.com` | Lowes only | `lowes_rep` | waiting on meeting |
-| Scott Bianucci | `sbianucci@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` | waiting on meeting |
+| Brian Wohlberg | `bwohlberg@everde.com` | HD only | `hd_rep` | **live** (HD) |
+| John Gorosave | `jgorosave@everde.com` | Lowes only | `lowes_rep` | **live** (Lowes) |
+| Scott Bianucci | `sbianucci@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` | **live** (HD + Lowes) |
 | Cory Wible | `cwible@everde.com` | HD + Lowes (not Claude) | `hd_lowes_rep` | **live** (HD + Lowes) |
 
 Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewRights.ts` (keep in sync).
@@ -64,7 +65,7 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **Snapshot 9.0.2 (portal app):** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.” Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-11):** Production & Demand **Site Focus Summary** in portal + Teams Claude (`get_nursery_demand` / `get_site_focus_summary`). Drop `WkNN_Site_Focus*.docx` in `Inventory Metrics\`. Field installs: Mark B (all 3), Jae (HD), Cory W (HD + Lowes) live; Justin K, Brian W, John G, Scott B waiting on a meeting.
+**Last session (2026-08-13):** Sales by Item includes **Bill To (customer)** + customer/rep/channel rollups. Meredith clarified **Fast Growing Trees is the customer name** (Bill To) — query prefers bill_to over same-named Demand Channel. Softer Teams hard-error text. Weather fulfillment + Open-Meteo daily refresh still live.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 

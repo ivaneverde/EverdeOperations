@@ -52,6 +52,9 @@ next-env.d.ts
 /public/lowes_ytd_meta.json
 /public/lowes_ytd_rows.json.gz
 /public/lowes_sku_category_map.json
+/public/sales_by_item_meta.json
+/public/sales_by_item_rows.json.gz
+/scripts/sales-plan-review/cache/sbi_*.json
 /public/dashboard_data.json
 /public/weather_dashboard_data.json
 /public/weather_dashboard_data.json
