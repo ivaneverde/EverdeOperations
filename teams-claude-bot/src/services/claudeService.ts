@@ -36,9 +36,15 @@ export type ClaudeCompleteOptions = {
   profile?: BotProfile;
 };
 
+export type ClaudeUsageTotals = {
+  input_tokens: number;
+  output_tokens: number;
+};
+
 export type ClaudeCompleteResult = {
   text: string;
   toolCalls: { name: string; input: unknown; result: string }[];
+  usage: ClaudeUsageTotals;
 };
 
 export class ClaudeService {
@@ -157,6 +163,7 @@ export class ClaudeService {
     );
     const hasDocuments = Array.isArray(userContent);
     const toolCalls: ClaudeCompleteResult["toolCalls"] = [];
+    const usage: ClaudeUsageTotals = { input_tokens: 0, output_tokens: 0 };
 
     logger.info("claude.request", {
       model: this.config.CLAUDE_MODEL,
@@ -181,6 +188,9 @@ export class ClaudeService {
           tools: tools.length > 0 ? tools : undefined,
         });
 
+        usage.input_tokens += response.usage?.input_tokens ?? 0;
+        usage.output_tokens += response.usage?.output_tokens ?? 0;
+
         if (
           response.stop_reason === "end_turn" ||
           response.stop_reason === "max_tokens"
@@ -188,6 +198,7 @@ export class ClaudeService {
           return {
             text: this.extractText(response.content),
             toolCalls,
+            usage,
           };
         }
 
@@ -227,6 +238,7 @@ export class ClaudeService {
             return {
               text: this.extractText(response.content),
               toolCalls,
+              usage,
             };
           }
 
@@ -237,6 +249,7 @@ export class ClaudeService {
         return {
           text: this.extractText(response.content),
           toolCalls,
+          usage,
         };
       }
 

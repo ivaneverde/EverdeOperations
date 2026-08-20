@@ -158,6 +158,32 @@ Optional:
 
 Logs: JSON on stdout → wire to **Application Insights** or Log Analytics.
 
+### Teams usage log (questions + tokens)
+
+Each successful Claude turn appends one NDJSON line (fire-and-forget; does not delay the Teams reply):
+
+| Field | Meaning |
+|-------|---------|
+| `email` | Signed-in Everde user |
+| `profile` | `full` / `hd` / `lowes` |
+| `question` | User text (truncated to 500 chars) |
+| `input_tokens` / `output_tokens` | Anthropic usage for that turn (all tool rounds) |
+| `tools` | Everde tool names called |
+
+**Where to pull**
+
+1. **Azure Blob** (primary): container `everde-freight`, path `teams-bot-usage/YYYY-MM-DD.ndjson`  
+   Portal Storage browser, Azure Storage Explorer, or:
+   ```powershell
+   cd teams-claude-bot
+   .\scripts\pull-usage-log.ps1 -DaysBack 7
+   .\scripts\pull-usage-log.ps1 -Email jmartin@everde.com
+   .\scripts\pull-usage-log.ps1 -Contains "6910"
+   ```
+2. **App Service log stream** / App Insights: filter traces for `teams.usage` (same payload on stdout).
+
+Files appear after the first post-deploy Teams question that day.
+
 ## Claude vs Copilot
 
 | | Microsoft Copilot | This bot |

@@ -10,6 +10,7 @@ import { ClaudeService } from "../services/claudeService.js";
 import { ConversationStore } from "../services/conversationStore.js";
 import { ConversationFileStore } from "../services/conversationFileStore.js";
 import { ConversationEverdeStore } from "../services/conversationEverdeStore.js";
+import { recordTeamsBotUsage } from "../services/usageLog.js";
 import {
   activityHasUserFileAttachment,
   downloadAllMessageAttachments,
@@ -162,7 +163,7 @@ export class TeamsClaudeBot extends ActivityHandler {
           ),
         );
 
-        const { text: reply, toolCalls } = await this.claude.completeWithContent(
+        const { text: reply, toolCalls, usage } = await this.claude.completeWithContent(
           history,
           blocks,
           text,
@@ -183,6 +184,18 @@ export class TeamsClaudeBot extends ActivityHandler {
           content: summaryForHistory,
         });
         this.store.append(conversationId, { role: "assistant", content: reply });
+
+        recordTeamsBotUsage({
+          ts: new Date().toISOString(),
+          email: userEmail,
+          profile: this.profile,
+          question: text || summaryForHistory,
+          model: getConfig().CLAUDE_MODEL,
+          input_tokens: usage.input_tokens,
+          output_tokens: usage.output_tokens,
+          tools: toolCalls.map((c) => c.name),
+          conversationId,
+        });
 
         await context.sendActivity(MessageFactory.text(reply));
         return;
@@ -229,7 +242,7 @@ export class TeamsClaudeBot extends ActivityHandler {
           ? `${contextParts.join("\n\n")}\n\n---\n\nUser follow-up: ${text}`
           : text;
 
-      const { text: reply, toolCalls } = await this.claude.complete(
+      const { text: reply, toolCalls, usage } = await this.claude.complete(
         history,
         userPayload,
         text,
@@ -257,6 +270,18 @@ export class TeamsClaudeBot extends ActivityHandler {
         content: historyNote ? `${text} (re: ${historyNote})` : text,
       });
       this.store.append(conversationId, { role: "assistant", content: reply });
+
+      recordTeamsBotUsage({
+        ts: new Date().toISOString(),
+        email: userEmail,
+        profile: this.profile,
+        question: text,
+        model: getConfig().CLAUDE_MODEL,
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        tools: toolCalls.map((c) => c.name),
+        conversationId,
+      });
 
       await context.sendActivity(MessageFactory.text(reply));
     } catch (err) {
