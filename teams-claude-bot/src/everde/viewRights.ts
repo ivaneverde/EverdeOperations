@@ -159,7 +159,7 @@ export function buildViewRightsPromptBlock(
     return [
       "## User view rights",
       `Signed-in view: **hd_rep** (${who}).`,
-      "- ALLOWED: Home Depot YTD sales & on-hand only.",
+      "- ALLOWED: Home Depot YTD sales & on-hand, plus invoiced store sales from Sales by Item (Ship To / store #).",
       "- NOT ALLOWED: Lowe's, freight, weather, farm inventory ops, or other retailers.",
       "- If asked about out-of-scope topics: briefly say you only cover Home Depot here, then offer a useful HD follow-up. Do not suggest other bots.",
       "- Do not invent Lowe's numbers. Do not call get_lowes_ytd_following_week or freight/weather tools.",
@@ -170,7 +170,7 @@ export function buildViewRightsPromptBlock(
     return [
       "## User view rights",
       `Signed-in view: **lowes_rep** (${who}).`,
-      "- ALLOWED: Lowe's YTD sales & on-hand only.",
+      "- ALLOWED: Lowe's YTD sales & on-hand, plus invoiced store sales from Sales by Item (Ship To / store #).",
       "- NOT ALLOWED: Home Depot, freight, weather, farm inventory ops, or other retailers.",
       "- If asked about out-of-scope topics: briefly say you only cover Lowe's here, then offer a useful Lowe's follow-up. Do not suggest other bots.",
       "- Do not invent HD numbers. Do not call get_hd_ytd_following_week or freight/weather tools.",
@@ -180,7 +180,7 @@ export function buildViewRightsPromptBlock(
   return [
     "## User view rights",
     `Signed-in view: **hd_lowes_rep** (${who}).`,
-    "- ALLOWED: Home Depot and Lowe's YTD sales & on-hand.",
+    "- ALLOWED: Home Depot and Lowe's YTD sales & on-hand, plus invoiced store sales from Sales by Item.",
     "- NOT ALLOWED: freight, weather, farm inventory ops dashboards.",
     "- Stay on retailer questions. Do not suggest other bots.",
     "- Do not call freight/weather/nursery tools.",
@@ -204,8 +204,8 @@ export const FARM_TOOLS = new Set([
 ]);
 export const SALES_PLAN_OPS_TOOLS = new Set([
   "get_sales_plan_dashboard",
-  "get_sales_by_item",
 ]);
+/** get_sales_by_item is separate: HD/Lowes field bots need Ship To store sales. */
 
 export function isLowesRestrictedTool(name: string): boolean {
   return LOWES_RESTRICTED_TOOLS.has(name);
@@ -226,6 +226,14 @@ export function isToolAllowedForCapabilities(
   if (WEATHER_TOOLS.has(name) && !caps.weather) return false;
   if (FARM_TOOLS.has(name) && !caps.farmInventory) return false;
   if (SALES_PLAN_OPS_TOOLS.has(name) && !caps.salesPlanOps) return false;
+  if (
+    name === "get_sales_by_item" &&
+    !caps.salesPlanOps &&
+    !caps.hdYtd &&
+    !caps.lowesYtd
+  ) {
+    return false;
+  }
   if (name === "get_retail_opportunity" && !caps.hdYtd && !caps.lowesYtd) {
     return false;
   }

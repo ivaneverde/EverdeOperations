@@ -65,11 +65,11 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **Snapshot 9.0.2 (portal app):** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.” Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-13):** Sales by Item includes **Bill To (customer)** + customer/rep/channel rollups. Meredith clarified **Fast Growing Trees is the customer name** (Bill To) — query prefers bill_to over same-named Demand Channel. Softer Teams hard-error text. Weather fulfillment + Open-Meteo daily refresh still live.
+**Last session (2026-08-19):** WCRO Monday agent watches `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*` pack). Live extract **5.38 / 2026-08-17**. HD + Lowe's YTD Following Week published **as-of 2026-08-17**. Sales by Item already 8/17. Jonathan still **builds** WCRO; we only extract published reports.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 
-**Centralized file drop:** `DataDrops\Weather\WeeklyDrop\` (weather + retail weekly feeds); `Sales Plan Review\WeeklyDrop\` (inventory + sales by item); `Freight\WeeklyDrop\` (raw freight). See `scripts/windows/WEEKLY_DROP_AGENT.md`.
+**Centralized file drop:** `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*` pack → Blob `wcro/latest/`); `DataDrops\Weather\WeeklyDrop\` (weather + retail weekly feeds); `Sales Plan Review\WeeklyDrop\` (inventory + sales by item + HD/LOW YTD); `Freight\WeeklyDrop\` (raw freight). See `scripts/windows/WEEKLY_DROP_AGENT.md`.
 
 **Inventory script (TODO — user requested):** Walk `DataDrops` tree, emit CSV/MD with columns like `path, size, lastWrite, guessed_role` (`feed` | `reference` | `output` | `code`) using heuristics (naming, size, folder).
 

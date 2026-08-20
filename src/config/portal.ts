@@ -19,12 +19,12 @@ const FREIGHT_DASHBOARD_SOURCE =
  */
 const RETAIL_DROP_FOLDER = "SalesOpportunity";
 const RETAIL_WEEKLY_SOURCE = `${RETAIL_DROP_FOLDER}\\Sales Manager Summary - Wk29 2026.xlsx`;
-/** WCRO published reports + weekly drop. */
-const WCRO_ROOT = "_HANDOFF_WCRO_2026-08-06";
-const WCRO_REPORTS_FOLDER = `${WCRO_ROOT}\\reports`;
-const WCRO_WEEKLYDROP_FOLDER = `${WCRO_ROOT}\\WeeklyDrop`;
-const WCRO_COMBINED_SUMMARY =
-  `${WCRO_REPORTS_FOLDER}\\Store Driven Sales Recommendation\\Store Driven Combined Summary (Refresh 5.29 - 2026-08-06).xlsx`;
+/** WCRO published reports — newest `_HANDOFF_WCRO_*` pack under DataDrops\WCRO. */
+const WCRO_ROOT = "WCRO";
+const WCRO_PACK = `${WCRO_ROOT}\\_HANDOFF_WCRO_5.38_2026-08-17`;
+const WCRO_REPORTS_FOLDER = `${WCRO_PACK}\\reports`;
+const WCRO_WEEKLYDROP_FOLDER = WCRO_ROOT;
+const WCRO_COMBINED_SUMMARY = `${WCRO_REPORTS_FOLDER}\\Store Driven Sales Recommendation\\Store Driven Combined Summary (Refresh 5.38 - 2026-08-17).xlsx`;
 
 /** Weather dashboard + crosswalk (daily pipeline on share). */
 const WEATHER_DATA_ROOT = "Weather Data";
@@ -210,7 +210,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
       "West Coast Retail Opportunity — weekly ship, transfer, net need, and rep orders from Jonathan's published sets.",
     shareFolder: WCRO_WEEKLYDROP_FOLDER,
     sectionNotes:
-      "Drop Jonathan's published set folders (or flat xlsx) into WeeklyDrop. Run npm run wcro:extract / scheduled Monday 11 AM; then publish:wcro-json for portal + Teams bots.",
+      "Drop a new `_HANDOFF_WCRO_*` pack into DataDrops\\WCRO (newest wins). Monday 11 AM extract publishes Blob for Teams; copy wcro_data.json for the portal. Does not rebuild Jonathan's engine from HD/LOW YTD.",
     reports: [
       {
         slug: "wcro-store-rec",
@@ -235,7 +235,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
         sourceRelativePath: `${WCRO_REPORTS_FOLDER}\\Transfers`,
         wcroView: "transfers",
         navAccent: "C49B3F",
-        notes: "Set 4 — cross-region ops moves (shelf next week).",
+        notes: "5.37+ transfers live on Store Driven (From column). Standalone Transfers set retired.",
       },
       {
         slug: "wcro-rep-orders",

@@ -43,7 +43,50 @@ export const HD_SOCAL_RULES: HdGeoRule[] = [
 
 export const HD_SOCAL_LABEL = "HD SoCal (S.CA)";
 export const HD_SOCAL_NOTE =
-  "HD SoCal = MKT 12, 47, 48, 196, 29A (MKT 29 districts 325+327), 36 — Jae/Brian Parker roster (166 stores). Not only 47/48.";
+  "HD SoCal = MKT 12, 47, 48, 196, 29A (MKT 29 districts 325+327), 36 — Jae/Brian Parker roster (167 stores, incl. HD 6910 Mission Valley MKT 12). Not only 47/48.";
+
+/** Stores Jae/ops flagged that may be missing from older rosters or still $0 on a stale YTD extract. */
+export type HdKnownStore = {
+  store: string;
+  name: string;
+  market: string;
+  district: string;
+  opened?: string;
+  note: string;
+};
+
+export const HD_KNOWN_STORES: Record<string, HdKnownStore> = {
+  "6910": {
+    store: "6910",
+    name: "Mission Valley",
+    market: "0012",
+    district: "0199",
+    opened: "2026-07-30",
+    note: "Jae 2026-08-18: HD 6910 Mission Valley is Market 12 / District 199. Opened 7/30. On the SoCal roster. HD YTD extract through 2026-07-20 can show $0 sales / $0 on-hand with on-order only — that is pre-open, not a missing store.",
+  },
+};
+
+export function lookupHdKnownStore(
+  storeRaw: string | undefined | null,
+): HdKnownStore | null {
+  if (!storeRaw) return null;
+  const s = String(storeRaw).trim();
+  const padded = /^\d+$/.test(s) && s.length <= 4 ? s.padStart(4, "0") : s;
+  const bare = String(Number(padded));
+  return HD_KNOWN_STORES[padded] || HD_KNOWN_STORES[bare] || null;
+}
+
+export function knownHdStoresFromQuery(q: string): HdKnownStore[] {
+  const lower = q.toLowerCase();
+  const out: HdKnownStore[] = [];
+  for (const store of Object.values(HD_KNOWN_STORES)) {
+    const codeRe = new RegExp(`\\b0*${Number(store.store)}\\b`);
+    if (codeRe.test(q) || lower.includes(store.name.toLowerCase())) {
+      out.push(store);
+    }
+  }
+  return out;
+}
 
 /** NorCal whole markets commonly in scope (CA + Reno). */
 export const HD_NORCAL_WHOLE_MARKETS = ["21", "44", "63"].map(mkt);

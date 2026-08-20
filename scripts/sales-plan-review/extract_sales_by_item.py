@@ -2,9 +2,11 @@
 """
 Aggregate Sales by Item workbooks → compact JSON for Claude / portal lookup.
 
-Grain: 445 Year × Tree × Demand Channel × Renamed Rep × Bill To
+Grain: 445 Year × Tree × Demand Channel × Renamed Rep × Bill To × Ship To × Farm
   - item + channel + rep questions (Justin)
   - customer / account lookups (Meredith) via Bill To Name
+  - store sales (Jae / HD 6910) via Ship To Add2 (e.g. STORE #6910)
+  - farm-of-origin (Meredith / BNL) via Location (e.g. BNL = Bunnell)
 
 Default inputs:
   2024/2025  Shared\\Sales Data\\{year} Sales by Item.xlsx (Year End archive fallback)
@@ -41,7 +43,7 @@ DEFAULT_YEAR_END = Path(
 )
 
 # Bump when grain/columns change so share caches are not reused.
-CACHE_VERSION = "v2"
+CACHE_VERSION = "v4"
 
 COLUMNS = [
     "year",
@@ -52,6 +54,8 @@ COLUMNS = [
     "demand_channel",
     "rep",
     "bill_to",
+    "ship_to",
+    "farm",
     "qty",
     "revenue",
     "lines",
@@ -138,10 +142,17 @@ def _header_index(header: list[str]) -> dict[str, int]:
         "Rep": ["rep"],
         "Renamed Rep": ["renamed rep"],
         "Bill To Name": ["bill to name", "bill to", "billto"],
+        "Ship To Add2": [
+            "ship to add2",
+            "ship to address2",
+            "ship to add 2",
+        ],
         "Qty Inv SUM": ["qty inv sum", "qty inv", "qty"],
         "Revenue Amt Sum": ["revenue amt sum", "revenue"],
         "445 Year": ["445 year"],
         "Gl Yr": ["gl yr", "gl year"],
+        "Location": ["location"],
+        "Loc": ["loc"],
     }
     for canon, names in aliases.items():
         for n in names:
@@ -165,6 +176,16 @@ def scan_workbook(src: Path) -> dict[str, dict[str, Any]]:
         if i == 0:
             header = [str(c).strip() if c is not None else "" for c in row]
             idx = _header_index(header)
+            if "Ship To Add2" not in idx:
+                print(
+                    f"  WARNING: {src.name} has no Ship To Add2 — store queries will not work for this file",
+                    flush=True,
+                )
+            if "Location" not in idx:
+                print(
+                    f"  WARNING: {src.name} has no Location — farm (BNL/Bunnell) queries will not work for this file",
+                    flush=True,
+                )
             continue
         assert idx is not None
         rows += 1
@@ -187,7 +208,19 @@ def scan_workbook(src: Path) -> dict[str, dict[str, Any]]:
             bill_to = str(row[idx["Bill To Name"]] or "").strip()
         if not bill_to or bill_to.upper() == "NULL":
             bill_to = "(unknown)"
-        key = f"{year}\t{tree}\t{ch}\t{rep}\t{bill_to}"
+        ship_to = ""
+        if "Ship To Add2" in idx:
+            ship_to = str(row[idx["Ship To Add2"]] or "").strip()
+        if not ship_to or ship_to.upper() == "NULL":
+            ship_to = "(unknown)"
+        farm = ""
+        if "Location" in idx:
+            farm = str(row[idx["Location"]] or "").strip()
+        if (not farm or farm.upper() == "NULL") and "Loc" in idx:
+            farm = str(row[idx["Loc"]] or "").strip()
+        if not farm or farm.upper() == "NULL":
+            farm = "(unknown)"
+        key = f"{year}\t{tree}\t{ch}\t{rep}\t{bill_to}\t{ship_to}\t{farm}"
         rec = agg.get(key)
         if rec is None:
             desc = str(row[idx["Description"]] or "").strip() if "Description" in idx else ""
@@ -204,6 +237,8 @@ def scan_workbook(src: Path) -> dict[str, dict[str, Any]]:
                 "demand_channel": ch,
                 "rep": rep,
                 "bill_to": bill_to,
+                "ship_to": ship_to,
+                "farm": farm,
                 "qty": 0.0,
                 "revenue": 0.0,
                 "lines": 0,
@@ -323,12 +358,18 @@ def main() -> int:
     channels: set[str] = set()
     year_set: set[int] = set()
     bill_tos: set[str] = set()
+    ship_tos: set[str] = set()
+    farms: set[str] = set()
     for rec in merged.values():
         year_set.add(int(rec["year"]))
         if rec["demand_channel"]:
             channels.add(rec["demand_channel"])
         if rec.get("bill_to"):
             bill_tos.add(str(rec["bill_to"]))
+        if rec.get("ship_to"):
+            ship_tos.add(str(rec["ship_to"]))
+        if rec.get("farm"):
+            farms.add(str(rec["farm"]))
         rows.append(
             [
                 int(rec["year"]),
@@ -339,29 +380,40 @@ def main() -> int:
                 rec["demand_channel"],
                 rec["rep"],
                 rec.get("bill_to") or "(unknown)",
+                rec.get("ship_to") or "(unknown)",
+                rec.get("farm") or "(unknown)",
                 round_num(rec["qty"]),
                 round_num(rec["revenue"]),
                 int(rec["lines"]),
             ]
         )
-    rows.sort(key=lambda r: (r[0], str(r[7]), str(r[1]), str(r[5]), str(r[6])))
+    rows.sort(
+        key=lambda r: (r[0], str(r[9]), str(r[8]), str(r[7]), str(r[1]), str(r[5]), str(r[6]))
+    )
 
     meta = {
         "asOf": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        "grain": "year x tree x demand_channel x renamed_rep x bill_to",
+        "grain": "year x tree x demand_channel x renamed_rep x bill_to x ship_to x farm",
         "columns": COLUMNS,
         "rowCount": len(rows),
         "sourceRowCount": source_rows,
         "years": sorted(year_set),
         "channels": sorted(channels),
         "billToCount": len(bill_tos),
+        "shipToCount": len(ship_tos),
+        "farmCount": len(farms),
+        "farms": sorted(farms),
         "sources": sources,
         "note": (
             "bill_to = Bill To Name (customer/account). "
+            "ship_to = Ship To Add2 (store, e.g. STORE #6910). "
+            "farm = Location org (shipping farm, e.g. BNL = Bunnell). "
             "Rep = Renamed Rep else Rep. "
             "Fast Growing Trees may appear as Demand Channel and/or Bill To. "
             "West Coast LSC = WEST COAST NORTH + WEST COAST SOUTH. "
-            "Use get_sales_by_item focus=query with q= customer and/or item and/or rep and/or year."
+            "Store sales: q='2026 store 6910'. "
+            "Farm item sales: q='2025 2026 3G loropetalum Bunnell'. "
+            "Use get_sales_by_item focus=query with q= farm and/or store and/or customer and/or item and/or year."
         ),
     }
 
@@ -371,7 +423,10 @@ def main() -> int:
     with gzip.open(rows_path, "wt", encoding="utf-8") as f:
         json.dump(rows, f, separators=(",", ":"))
 
-    print(f"Wrote {meta_path} rows={len(rows):,} sourceRows={source_rows:,} billTos={len(bill_tos):,}")
+    print(
+        f"Wrote {meta_path} rows={len(rows):,} sourceRows={source_rows:,} "
+        f"billTos={len(bill_tos):,} shipTos={len(ship_tos):,} farms={len(farms):,}"
+    )
     print(f"Wrote {rows_path} ({rows_path.stat().st_size / 1e6:.1f} MB gzip)")
     return 0
 

@@ -13,11 +13,11 @@ This document describes the **on-premises “agent” machine** that watches `Da
 | **1:30 PM** | `Everde-Nursery-DailyCheck` | `Inventory Metrics\*.xlsb` + `*Site*Focus*.docx` | `public/nursery-inventory-dashboard.html` + `data/site_focus_data.json` + **git push** |
 | **2:30 PM** | *(all daily tasks above)* | Same WeeklyDrop folders | **Catch-up run** — picks up Tue/Wed drops missed by the morning job |
 
-| **11:00 AM Mon** | `Everde-WCRO-WeeklyCheck` | `_HANDOFF_WCRO_2026-08-06\WeeklyDrop\` (fallback: `reports\`) | `data/wcro_data.json` → Blob `wcro/latest/wcro_data.json` |
+| **11:00 AM Mon** | `Everde-WCRO-WeeklyCheck` | `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*\reports\`) | `data/wcro_data.json` → Blob `wcro/latest/wcro_data.json` |
 
 Each job **skips** if no new file since last success (state under `.everde-scheduler/`). A second **2:30 PM** run catches files that land after the morning check (common when reports finish Tuesday or Wednesday). Logs: `.everde-scheduler/logs/`.
 
-**WCRO** runs **Monday 11:00 AM** via `npm run weekly:register-tasks` → `run-scheduled-wcro.ps1`. Drop either the five set folders or flat published `.xlsx` into WeeklyDrop.
+**WCRO** runs **Monday 11:00 AM** via `npm run weekly:register-tasks` → `run-scheduled-wcro.ps1`. Jonathan drops a new `_HANDOFF_WCRO_*` pack into `DataDrops\WCRO\`; the job extracts the newest pack's `reports\` (published workbooks only — it does not rebuild WCRO from HD/LOW YTD).
 
 **Freight** runs **daily** (morning + 2:30 PM catch-up): the job first copies the newest `Everde Freight Data*.xlsb` from Juanita's Load Board folder (`\\VRD-AWSECS\Everde Central Share\Farms\Performance Reports\Freight Load Board Reports\Load Board Reports\2026`, override with `FREIGHT_SOURCE_DROP` in `.env.local`) into `Freight\WeeklyDrop\`, then runs the pipeline if the raw or dashboard changed. If the Load Board share is unreachable, the job still processes files already in WeeklyDrop (including manual copies). Uses `update.py --skip-fuel-check` so Task Scheduler never waits at `Proceed with current fuel_data.py values? [y/N]`. **Production & Demand (Inventory Metrics)** runs **daily** when a new xlsb appears.
 
@@ -76,7 +76,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 | Freight | Juanita drops on `\\VRD-AWSECS\...\Load Board Reports\2026\`; agent syncs to `DataDrops\Freight\WeeklyDrop\` | Raw `Everde Freight Data*.xlsb` (not CALIFORNIA ONLY); dashboard `*.xlsx` appears after pipeline |
 | Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` (weekly drop, typically Monday); optional `WkNN_Site_Focus_Summary*.docx` → portal **Site Focus Summary** subsection |
 | Weather / Retail (Jonathan) | `DataDrops\Weather\WeeklyDrop\` | **Weekly retail:** newest `HD week*.xlsx` or `HD Sales YTD*.xlsx`, newest `YTD BY STORE SKU*.xlsb` / `Lowes YTD*.xlsb`. **Daily weather sales (optional same folder):** `HD FL/SE/SW Daily*.xlsx`, `LOWES Daily Retail Sales*.xlsx` (main + STX.NTX). |
-| WCRO | `DataDrops\_HANDOFF_WCRO_2026-08-06\WeeklyDrop\` | Five set folders **or** flat published `.xlsx` (Store Driven, Combined Summary, On Hand & Register, Transfers, Rep Orders, Sales Variance). Until WeeklyDrop is populated, extract falls back to sibling `reports\`. |
+| WCRO | `DataDrops\WCRO\` | Newest `_HANDOFF_WCRO_*` pack (`reports\` with Store Driven, Combined Summary, On Hand & Register, Rep Orders). Transfers / Sales Variance are optional (retired 5.32–5.37). |
 
 **Weather / Retail drop (copy to Brent & Armando):**  
 `\\192.168.190.10\Claude Sandbox\DataDrops\Weather\WeeklyDrop`  

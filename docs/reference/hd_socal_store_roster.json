@@ -14,7 +14,7 @@
     325,
     327
   ],
-  "store_count": 166,
+  "store_count": 167,
   "stores": [
     {
       "market": 47,
@@ -1367,6 +1367,17 @@
       "segment": "HD_SOCAL_CORE"
     },
     {
+      "market": 12,
+      "district": 199,
+      "store": 6910,
+      "store_name": "Mission Valley",
+      "city": "SAN DIEGO",
+      "state": "CA",
+      "segment": "HD_SOCAL_CORE",
+      "opened": "2026-07-30",
+      "note": "Jae Martin 2026-08-18 — add to Market 12"
+    },
+    {
       "market": 29,
       "district": 327,
       "store": 6946,
@@ -1662,6 +1673,7 @@
     6883,
     6884,
     6893,
+    6910,
     6946,
     6952,
     6960,

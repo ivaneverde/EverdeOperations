@@ -3,13 +3,13 @@ extract_wcro.py
 ---------------
 Everde — WCRO (West Coast Retail Opportunity) portal extractor.
 
-Reads published report workbooks only (no engine recompute). Sprint 1:
-validate Four Numbers against the known 5.29 / 2026-08-06 targets, then
-publish wcro_data.json for the portal.
+Reads published report workbooks only (no engine recompute). Finds the newest
+`_HANDOFF_WCRO_*` pack under DataDrops\\WCRO.
 
 Usage:
   python extract_wcro.py
-  python extract_wcro.py --reports "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\_HANDOFF_WCRO_2026-08-06\\reports"
+  python extract_wcro.py --handoff-root "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\WCRO"
+  python extract_wcro.py --reports "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\WCRO\\_HANDOFF_WCRO_5.38_2026-08-17\\reports"
   python extract_wcro.py --out data/wcro_data.json --skip-validate   # escape hatch only
 
 Dependencies: pip install openpyxl
@@ -34,11 +34,53 @@ TX_FL_ORGS = {"GFL", "MCR", "BNL", "OAS", "HOM"}
 AB_GRADES = {"A", "B"}
 QC_GRADES = {"SS", "SN", "S2N", "GS", "GN", "S"}
 
-DEFAULT_HANDOFF = Path(
-    r"\\192.168.190.10\Claude Sandbox\DataDrops\_HANDOFF_WCRO_2026-08-06"
+DEFAULT_WCRO_ROOT = Path(
+    r"\\192.168.190.10\Claude Sandbox\DataDrops\WCRO"
 )
-DEFAULT_WEEKLYDROP = DEFAULT_HANDOFF / "WeeklyDrop"
-DEFAULT_REPORTS = DEFAULT_HANDOFF / "reports"
+HANDOFF_DATE_RE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
+
+
+def find_latest_handoff(root: Path | None = None) -> Path | None:
+    """Newest `_HANDOFF_WCRO_*` folder that contains reports\\."""
+    base = root or DEFAULT_WCRO_ROOT
+    if not base.is_dir():
+        return None
+    packs = [
+        p
+        for p in base.iterdir()
+        if p.is_dir() and p.name.upper().startswith("_HANDOFF_WCRO")
+    ]
+    if not packs:
+        return None
+
+    def pack_key(p: Path) -> str:
+        m = HANDOFF_DATE_RE.search(p.name)
+        if m:
+            return m.group(1)
+        try:
+            return datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d")
+        except OSError:
+            return "0000-00-00"
+
+    packs.sort(key=pack_key)
+    for p in reversed(packs):
+        if (p / "reports").is_dir():
+            return p
+    return packs[-1]
+
+
+def default_reports_path(handoff_root: Path | None = None) -> Path:
+    pack = find_latest_handoff(handoff_root)
+    if pack:
+        return pack / "reports"
+    return (handoff_root or DEFAULT_WCRO_ROOT) / "reports"
+
+
+def default_weeklydrop_path(handoff_root: Path | None = None) -> Path:
+    pack = find_latest_handoff(handoff_root)
+    if pack:
+        return pack / "WeeklyDrop"
+    return (handoff_root or DEFAULT_WCRO_ROOT) / "WeeklyDrop"
 
 SET_FOLDER_NAMES = {
     "set1": "Sales Variance and Allocation",
@@ -136,7 +178,17 @@ def find_col(cmap: dict[str, int], *candidates: str) -> int | None:
 def load_sheet_rows(path: Path, sheet: str | None = None) -> tuple[str, list[tuple]]:
     wb = load_workbook(path, data_only=True, read_only=True)
     try:
-        name = sheet if sheet and sheet in wb.sheetnames else wb.sheetnames[0]
+        name = None
+        if sheet and sheet in wb.sheetnames:
+            name = sheet
+        elif sheet:
+            lower = sheet.lower()
+            for sn in wb.sheetnames:
+                if sn.lower() == lower or lower in sn.lower():
+                    name = sn
+                    break
+        if name is None:
+            name = wb.sheetnames[0]
         ws = wb[name]
         rows = [tuple(safe_read(c) for c in row) for row in ws.iter_rows(values_only=True)]
         return name, rows
@@ -220,10 +272,9 @@ def resolve_set_dirs(reports_root: Path) -> tuple[Path, dict[str, Path]]:
     canonical = {
         k: reports_root / name for k, name in SET_FOLDER_NAMES.items()
     }
-    if all(d.is_dir() and list_xlsx(d) for d in [canonical["set2"], canonical["set5"]]):
-        # Prefer canonical when Set 2 + Rep Orders exist (minimum for Four Numbers + index)
-        if all(d.is_dir() for d in canonical.values()):
-            return reports_root, canonical
+    # 5.32+ retired Set 1; 5.37+ retired Transfers. Set 2 + Rep Orders is enough.
+    if canonical["set2"].is_dir() and list_xlsx(canonical["set2"]):
+        return reports_root, canonical
 
     flat = list_xlsx(reports_root)
     if flat:
@@ -251,10 +302,14 @@ def resolve_set_dirs(reports_root: Path) -> tuple[Path, dict[str, Path]]:
     )
 
 
-def pick_reports_root(weeklydrop: Path | None, reports: Path | None) -> Path:
-    """Prefer WeeklyDrop when it has content; else handoff reports\\; else explicit --reports."""
-    wd = weeklydrop or DEFAULT_WEEKLYDROP
-    rp = reports or DEFAULT_REPORTS
+def pick_reports_root(
+    weeklydrop: Path | None,
+    reports: Path | None,
+    handoff_root: Path | None = None,
+) -> Path:
+    """Prefer WeeklyDrop when it has content; else newest handoff reports\\."""
+    wd = weeklydrop or default_weeklydrop_path(handoff_root)
+    rp = reports or default_reports_path(handoff_root)
 
     def has_content(p: Path) -> bool:
         if not p.is_dir():
@@ -285,7 +340,7 @@ def pick_reports_root(weeklydrop: Path | None, reports: Path | None) -> Path:
 
 
 def extract_combined_summary(path: Path) -> dict[str, Any]:
-    _, rows = load_sheet_rows(path)
+    _, rows = load_sheet_rows(path, "Combined Summary")
     hi = find_header_row(rows, "Segment")
     if hi is None:
         raise RuntimeError(f"Combined Summary: no Segment header in {path.name}")
@@ -312,8 +367,12 @@ def extract_combined_summary(path: Path) -> dict[str, Any]:
         "NN Plan (units)": i_nn_plan_u,
         "NN Cust Pool (units)": i_nn_pool_u,
         "Ship This Week whlsl $": i_ship_d,
-        "To Transfer whlsl $": i_xfer_d,
     }
+    if i_xfer_d is None:
+        print(
+            f"WARN: Combined Summary has no To Transfer $ column in {path.name} — using 0",
+            file=sys.stderr,
+        )
     missing = [k for k, v in required.items() if v is None]
     if missing:
         raise RuntimeError(f"Combined Summary missing columns: {missing}")
@@ -1168,39 +1227,45 @@ def build_output(reports: Path) -> dict[str, Any]:
 
     combined_candidates = list(set2.glob("*Combined Summary*.xlsx"))
     if not combined_candidates:
+        combined_candidates = [
+            p for p in list_xlsx_recursive(set2) if "combined summary" in p.name.lower()
+        ]
+    if not combined_candidates:
         raise FileNotFoundError(f"No Combined Summary workbook in {set2}")
     combined_path = combined_candidates[0]
     combined = extract_combined_summary(combined_path)
 
-    hd_sd = next(set2.glob("HD Store Driven*.xlsx"))
-    low_sd = next(set2.glob("LOW Store Driven*.xlsx"))
+    hd_sd = next(set2.glob("HD Store Driven*.xlsx"), None)
+    low_sd = next(set2.glob("LOW Store Driven*.xlsx"), None)
+    if hd_sd is None or low_sd is None:
+        raise FileNotFoundError(f"HD/LOW Store Driven workbooks missing in {set2}")
     store_rec = [
         extract_store_driven(hd_sd, "HD"),
         extract_store_driven(low_sd, "LOW"),
     ]
 
     transfers = []
-    for p in list_xlsx(set4):
+    for p in list_xlsx_recursive(set4):
         ch = "HD" if p.name.upper().startswith("HD") else "LOW"
         transfers.append(extract_transfers(p, ch))
 
     ohr: dict[str, Any] = {"weekly": {}, "ytd": {}}
-    for p in list_xlsx(set3):
+    for p in list_xlsx_recursive(set3):
         rec = extract_ohr(p)
         key = f"{(rec['channel'] or '').lower()}_{(rec['region'] or '').lower().replace('.', '')}"
         bucket = "weekly" if rec["edition"] == "Weekly" else "ytd"
         ohr[bucket][key] = rec
 
-    rep_orders = [index_rep_order(p) for p in list_xlsx(set5)]
+    rep_orders = [index_rep_order(p) for p in list_xlsx_recursive(set5)]
 
-    set1_index = [index_set1_file(p) for p in list_xlsx(set1)]
+    set1_index = [index_set1_file(p) for p in list_xlsx_recursive(set1)]
     sms = next((x for x in set1_index if x.get("role") == "sales_manager_summary"), None)
 
     bh_hd = extract_build_health(hd_sd, "HD")
     bh_low = extract_build_health(low_sd, "LOW")
 
     leaks: list[str] = []
-    for p in list_xlsx(set1):
+    for p in list_xlsx_recursive(set1):
         if "Store Detail" in p.name:
             continue
         leaks.extend(scan_org_leak(p))
@@ -1210,11 +1275,11 @@ def build_output(reports: Path) -> dict[str, Any]:
     date = combined.get("date") or "unknown"
 
     file_counts = {
-        "sales_variance_allocation": len(list_xlsx(set1)),
+        "sales_variance_allocation": len(list_xlsx_recursive(set1)),
         "store_driven": len(list_xlsx(set2)),
-        "on_hand_register": len(list_xlsx(set3)),
-        "transfers": len(list_xlsx(set4)),
-        "rep_orders": len(list_xlsx(set5)),
+        "on_hand_register": len(list_xlsx_recursive(set3)),
+        "transfers": len(list_xlsx_recursive(set4)),
+        "rep_orders": len(list_xlsx_recursive(set5)),
     }
 
     output: dict[str, Any] = {
@@ -1311,16 +1376,22 @@ def parse_args() -> argparse.Namespace:
     repo = Path(__file__).resolve().parents[2]
     p = argparse.ArgumentParser(description="WCRO portal extractor")
     p.add_argument(
+        "--handoff-root",
+        type=Path,
+        default=None,
+        help=f"Folder of _HANDOFF_WCRO_* packs (default: {DEFAULT_WCRO_ROOT})",
+    )
+    p.add_argument(
         "--weeklydrop",
         type=Path,
         default=None,
-        help=f"WeeklyDrop folder (default prefer: {DEFAULT_WEEKLYDROP})",
+        help="WeeklyDrop folder (used when it contains published xlsx)",
     )
     p.add_argument(
         "--reports",
         type=Path,
         default=None,
-        help=f"Explicit reports root (fallback: {DEFAULT_REPORTS})",
+        help="Explicit reports root (otherwise newest pack under --handoff-root)",
     )
     p.add_argument(
         "--out",
@@ -1343,7 +1414,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    reports = pick_reports_root(args.weeklydrop, args.reports)
+    reports = pick_reports_root(args.weeklydrop, args.reports, args.handoff_root)
     print(f"Reports root: {reports}")
     if not reports.is_dir():
         print(f"ERROR: reports folder not found: {reports}", file=sys.stderr)

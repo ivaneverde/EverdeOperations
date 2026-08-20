@@ -72,6 +72,7 @@ export async function buildEverdeSnapshot(options?: {
   allowWeather?: boolean;
   allowFarm?: boolean;
   allowSalesPlan?: boolean;
+  allowSalesByItem?: boolean;
   allowRetail?: boolean;
   allowWcro?: boolean;
   profile?: BotProfile;
@@ -86,6 +87,8 @@ export async function buildEverdeSnapshot(options?: {
     (caps.nurserySupply || caps.nurseryDemand) &&
     options?.allowFarm !== false;
   const allowSalesPlan = caps.salesPlan && options?.allowSalesPlan !== false;
+  const allowSalesByItem =
+    caps.salesByItem && options?.allowSalesByItem !== false;
   const allowRetail = caps.retail && options?.allowRetail !== false;
   const allowWcro = caps.wcro && options?.allowWcro !== false;
   const container = freightBlobContainer();
@@ -112,6 +115,8 @@ export async function buildEverdeSnapshot(options?: {
         "Sales plan JSON not in Blob.",
       ),
     );
+  }
+  if (allowSalesByItem) {
     loaders.push(
       loadDataset(
         "sales_by_item",

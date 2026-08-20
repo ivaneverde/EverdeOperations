@@ -9,6 +9,7 @@ import { truncateText } from "./compact.js";
 import {
   describeHdGeoRules,
   detectHdRegionAlias,
+  lookupHdKnownStore,
   rowMatchesHdGeoRules,
   stripHdRegionAliasText,
   type HdGeoRule,
@@ -641,6 +642,17 @@ export function summarizeYtdFilter(
 
   const lyRetailIsEstimated = isLowesLayout && lyInvRetailI < 0;
 
+  const knownStores = [
+    ...new Set(
+      [
+        parsed.store,
+        ...[...stores.keys()],
+      ].filter(Boolean) as string[],
+    ),
+  ]
+    .map((s) => lookupHdKnownStore(s))
+    .filter((x): x is NonNullable<typeof x> => Boolean(x));
+
   return {
     parsed_filter: parsed,
     matched_rows: rows.length,
@@ -661,6 +673,7 @@ export function summarizeYtdFilter(
       .sort((a, b) => a[0].localeCompare(b[0]))
       .slice(0, 40)
       .map(([nbr, name]) => ({ store_nbr: nbr, store_name: name })),
+    known_stores: knownStores.length ? knownStores : undefined,
     plant_category: {
       source:
         "HD/Lowe's Inventory Cross Reference Plant Category (same as XXTT inventory CATEGORY). Not a native Subclass column on the YTD workbook.",
@@ -723,6 +736,7 @@ export function summarizeYtdFilter(
       "HD Market/District/Store are 4-digit zero-padded. Lowe's Store is typically unpadded (774) — filter still matches.",
       "Lowe's Assortment Desc is subclass-like. HD uses Plant Category from xref when available.",
       "On-hand $: always use summary.inventory.* across ALL matched rows (store-level). Never invent network totals.",
+      ...knownStores.map((s) => s.note),
     ],
   };
 }

@@ -90,6 +90,8 @@ if (-not (Test-Path -LiteralPath $scriptsDir)) {
 }
 
 Write-Host "Weather root: $wxRoot" -ForegroundColor Gray
+$env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONUTF8 = "1"
 
 # Ensure crosswalk script exists on share (from Claude ToDo package / repo copy)
 $repoCrosswalk = Join-Path $PSScriptRoot "build_shared_crosswalk.py"
@@ -133,8 +135,10 @@ if ($FullPipeline) {
   $today = Get-Date
   $isoYear = $today.Year
   $isoWeek = Get-IsoWeekNumber $today
-  Invoke-WeatherScript "sales_overlay.py" @("--week", [string]($isoWeek - 1), "--year", [string]$isoYear) | Out-Null
-  Invoke-WeatherScript "sales_overlay.py" @("--week", [string]$isoWeek, "--year", [string]$isoYear) | Out-Null
+  Invoke-WeatherScript "sales_overlay.py" @("--week", [string]($isoWeek - 1), "--year", [string]$isoYear) -Optional | Out-Null
+  Invoke-WeatherScript "sales_overlay.py" @("--week", [string]$isoWeek, "--year", [string]$isoYear) -Optional | Out-Null
+  # Overlay CSVs are inputs to the Daily Sales × Weather PDF
+  Invoke-WeatherScript "build_sales_report_v2.py" -Optional | Out-Null
   Invoke-WeatherScript "build_weather_report_v2.py" | Out-Null
   if ($today.DayOfWeek -eq "Monday") {
     Invoke-WeatherScript "hd_vs_lowes_divergence.py" | Out-Null
@@ -181,6 +185,15 @@ try {
     }
   } else {
     Write-Warning "Missing refresh_forecast_open_meteo.py - portal forecast may stay stale."
+  }
+
+  $mergePy = Join-Path $PSScriptRoot "merge_crosswalk_into_weather_json.py"
+  if (Test-Path -LiteralPath $mergePy) {
+    Write-Host "Merging share sales x weather crosswalk into weather_dashboard_data.json..." -ForegroundColor Cyan
+    & $python $mergePy
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning "Crosswalk merge failed (exit $LASTEXITCODE) - publishing forecast-only JSON."
+    }
   }
 
   if (-not $SkipPublish) {

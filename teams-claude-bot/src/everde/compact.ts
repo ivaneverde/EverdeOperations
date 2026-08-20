@@ -340,6 +340,8 @@ export function compactSalesByItemMeta(raw: string, maxChars: number): string {
       rowCount: p.rowCount,
       sourceRowCount: p.sourceRowCount,
       years: p.years,
+      farmCount: p.farmCount,
+      farms: Array.isArray(p.farms) ? (p.farms as string[]).slice(0, 30) : [],
       channelCount: Array.isArray(p.channels) ? p.channels.length : 0,
       channels: Array.isArray(p.channels)
         ? (p.channels as string[]).slice(0, 40)
@@ -347,7 +349,7 @@ export function compactSalesByItemMeta(raw: string, maxChars: number): string {
       sources: p.sources,
       note:
         p.note ||
-        "Use get_sales_by_item focus=query with q= item + channel + year. West Coast LSC = WEST COAST NORTH + WEST COAST SOUTH. Rep = Everde salesperson.",
+        "Use get_sales_by_item focus=query. Farm+item: q='2025 2026 3G loropetalum Bunnell' (Location org; BNL=Bunnell). Store: q='2026 store 6910'. Customer/rep/item + year.",
     };
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {

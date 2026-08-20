@@ -38,6 +38,7 @@ import {
   type SkuCategoryLookup,
   type YtdKind,
 } from "./ytdFollowingWeek.js";
+import { knownHdStoresFromQuery } from "./hdGeography.js";
 import {
   canAccessHdAnalytics,
   canAccessLowesAnalytics,
@@ -59,6 +60,8 @@ import {
 import {
   formatSalesByItemQuery,
   loadSalesByItemRowsCached,
+  scopeSalesByItemRows,
+  type SalesByItemRetailerScope,
 } from "./salesByItem.js";
 import {
   assessStoreFulfillmentWeather,
@@ -95,7 +98,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_sales_by_item",
     description:
-      "Sales by Item feed (2024–2026): customer/account (Bill To), Everde rep, Demand Channel, Tree/item, qty, revenue. Use for who-sold, customer purchase totals, rep book, channel, and plant/item questions. Fast Growing Trees is a Bill To customer. Examples: q='2026 fast growing trees', q='southwest nursery supply this year', q='mcbride southeast texas 2026', q='2025 #15 distictis buccinatoria west coast lsc'. West Coast LSC = WEST COAST NORTH + SOUTH. Returns by_customer, by_rep, by_channel, top_items. Never dump the full grid.",
+      "Sales by Item feed (2024–2026): invoiced qty/revenue by farm (Location: BNL=Bunnell), Ship To store, Bill To customer, rep, Demand Channel, Tree/item. Farm+item questions: q='2025 2026 3G loropetalum Bunnell' — always include the farm; never substitute all-farm totals. Store: q='2026 store 6910'. Returns by_year, by_farm, by_customer, top_items. Lead with the number. Never dump the full grid.",
     input_schema: {
       type: "object",
       properties: {
@@ -107,7 +110,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
         q: {
           type: "string",
           description:
-            "Filter for focus=query. Customer: 'fast growing trees 2026' or 'southwest nursery this year'. Rep: 'mcbride texas 2026'. Item: '2025 #15 distictis west coast lsc'.",
+            "Filter for focus=query. Farm+item: '2025 2026 3G loropetalum Bunnell'. Store: '2026 store 6910'. Customer: 'fast growing trees 2026'. Item: '2025 #15 distictis west coast lsc'.",
         },
       },
     },
@@ -115,7 +118,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_hd_ytd_following_week",
     description:
-      "HD Sales YTD with Following Week Sales (store×SKU grid). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps, AND retail on-hand. For Southern California use q='so cal' or 'socal' — expands to MKT 12,47,48,196,29A(D325+327),36 (NOT only 47/48). NorCal: q='nor cal'. Plant Category from HD xref. Examples: 'so cal', 'market 48 shrub evergreen', 'store 6612'.",
+      "HD Sales YTD with Following Week Sales (store×SKU grid) — on-hand, comps, Following Week. For **recent invoiced store sales** also call get_sales_by_item q='2026 store 6910' (Ship To Add2; often newer than this YTD extract). Has Market Nbr, District Nbr, Store Nbr (4-digit padded: 48→0048, 25→0025, 614→0614), Store Name, SKU, YTD sales/comps, AND retail on-hand. For Southern California use q='so cal' or 'socal' — expands to MKT 12,47,48,196,29A(D325+327),36 (NOT only 47/48). NorCal: q='nor cal'. Plant Category from HD xref. Examples: 'so cal', 'market 48 shrub evergreen', 'store 6612'.",
     input_schema: {
       type: "object",
       properties: {
@@ -437,10 +440,14 @@ async function runYtdTool(kind: YtdKind, input: unknown): Promise<string> {
   }
   const filtered = filterYtdRows(rows, columns, q, skuCategory);
   if (filtered.length === 0) {
+    const known = knownHdStoresFromQuery(q);
     return [
       `FILTER_MISS (not missing data): q=${JSON.stringify(q)} matched=0 of ${rows.length} published ${label} YTD rows.`,
       `The ${label} store×SKU grid IS loaded (${meta.rowCount ?? rows.length} rows). Zero matches means the filter string did not hit — try again with a different q.`,
       `Retry tips: store number alone (HD store 6612 / Lowe's store 774), store name fragment, market 48, district 25, or plant category / assortment words. Drop extra phrasing.`,
+      ...(known.length
+        ? known.map((s) => `Known store: ${s.note}`)
+        : []),
       `Do NOT tell the user the data is unavailable. Call this tool again with a revised q, or focus=sample to inspect column values.`,
     ].join("\n");
   }
@@ -476,7 +483,13 @@ export function toolsForProfile(
     if (t.name === "get_freight_dashboard" && !caps.freight) return false;
     if (t.name === "get_weather_dashboard" && !caps.weather) return false;
     if (t.name === "get_sales_plan_dashboard" && !caps.salesPlanOps) return false;
-    if (t.name === "get_sales_by_item" && !caps.salesPlanOps) return false;
+    if (
+      t.name === "get_sales_by_item" &&
+      !caps.salesPlanOps &&
+      !caps.hdYtd &&
+      !caps.lowesYtd
+    )
+      return false;
     return true;
   });
 
@@ -557,9 +570,24 @@ export async function executeEverdeTool(
       }
       const rows = await loadSalesByItemRowsCached();
       if (!rows) {
-        return "Sales by Item row grid not available or still on old grain (needs bill_to). Re-run npm run sales-plan:sales-by-item-extract-publish.";
+        return "Sales by Item row grid not available or still on old grain (needs farm / v4). Re-run npm run sales-plan:sales-by-item-extract-publish.";
       }
-      return formatSalesByItemQuery(rows, q, TOOL_MAX_CHARS);
+      const retailerScope: SalesByItemRetailerScope =
+        profile === "hd"
+          ? "hd"
+          : profile === "lowes"
+            ? "lowes"
+            : caps.salesPlanOps
+              ? "all"
+              : caps.hdYtd && caps.lowesYtd
+                ? "hd_lowes"
+                : caps.hdYtd
+                  ? "hd"
+                  : caps.lowesYtd
+                    ? "lowes"
+                    : "all";
+      const scoped = scopeSalesByItemRows(rows, retailerScope);
+      return formatSalesByItemQuery(scoped, q, TOOL_MAX_CHARS);
     }
 
     case "get_hd_ytd_following_week":

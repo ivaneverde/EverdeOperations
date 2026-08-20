@@ -101,6 +101,12 @@ export class ClaudeService {
     const allowSalesPlan =
       profileCaps.datasets.salesPlan &&
       (profile !== "full" || viewCaps.salesPlanOps);
+    const allowSalesByItem =
+      Boolean(profileCaps.datasets.salesByItem) &&
+      (profile !== "full" ||
+        viewCaps.salesPlanOps ||
+        viewCaps.hdYtd ||
+        viewCaps.lowesYtd);
     const allowRetail =
       profileCaps.datasets.retail &&
       (profile !== "full" || viewCaps.hdYtd || viewCaps.lowesYtd);
@@ -116,6 +122,7 @@ export class ClaudeService {
         allowWeather,
         allowFarm,
         allowSalesPlan,
+        allowSalesByItem,
         allowRetail,
         allowWcro,
       });
@@ -268,13 +275,14 @@ export class ClaudeService {
       allowWeather: boolean;
       allowFarm: boolean;
       allowSalesPlan: boolean;
+      allowSalesByItem: boolean;
       allowRetail: boolean;
       allowWcro: boolean;
     },
   ): Promise<{ block: string; ytdAsOfDates: string[] }> {
     const ttlMs = this.config.EVERDE_SNAPSHOT_CACHE_MS;
     const now = Date.now();
-    const key = `${profile}:hd${flags.allowHd ? 1 : 0}:lo${flags.allowLowes ? 1 : 0}:f${flags.allowFreight ? 1 : 0}:w${flags.allowWeather ? 1 : 0}:n${flags.allowFarm ? 1 : 0}:wcro${flags.allowWcro ? 1 : 0}`;
+    const key = `${profile}:hd${flags.allowHd ? 1 : 0}:lo${flags.allowLowes ? 1 : 0}:f${flags.allowFreight ? 1 : 0}:w${flags.allowWeather ? 1 : 0}:n${flags.allowFarm ? 1 : 0}:wcro${flags.allowWcro ? 1 : 0}:sbi${flags.allowSalesByItem ? 1 : 0}`;
     const cached = this.everdeSnapshotCache.get(key);
     if (cached && now - cached.at < ttlMs) {
       return { block: cached.block, ytdAsOfDates: cached.ytdAsOfDates };

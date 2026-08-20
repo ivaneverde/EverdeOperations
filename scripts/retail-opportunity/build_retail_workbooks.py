@@ -610,6 +610,25 @@ def _hd_ly_week_from_columns(columns, fallback_week: int) -> int:
     return fallback_week
 
 
+def _read_hd_store_excel(path) -> pd.DataFrame:
+    """
+    HD week / Following Week layouts differ:
+      - older: sheet Sheet1, headers on row 0
+      - newer (Following Week): sheet Data, totals on row 0, headers on row 1
+    """
+    xl = pd.ExcelFile(path)
+    sheet = "Sheet1" if "Sheet1" in xl.sheet_names else xl.sheet_names[0]
+    probe = pd.read_excel(xl, sheet_name=sheet, header=None, nrows=3)
+    header_row = 0
+    for i in range(min(3, len(probe))):
+        vals = [str(v).strip() for v in probe.iloc[i].tolist() if v is not None and str(v).strip()]
+        if any(v == "SKU Nbr" for v in vals) and any("Store" in v for v in vals):
+            header_row = i
+            break
+    df = pd.read_excel(xl, sheet_name=sheet, header=header_row)
+    return df
+
+
 def load_hd_store(path, item_group: Dict[str, str],
                   hd_xref: pd.DataFrame, week_num: int | None = None) -> pd.DataFrame:
     """
@@ -617,7 +636,7 @@ def load_hd_store(path, item_group: Dict[str, str],
     Returns group × customer × market grain.
     """
     log(f"  Loading HD Store Data: {Path(path).name}")
-    df = pd.read_excel(path, sheet_name='Sheet1', header=0)
+    df = _read_hd_store_excel(path)
     df.columns = [str(c).strip() for c in df.columns]
 
     ly_week = _hd_ly_week_from_columns(df.columns, week_num or CURRENT_ISO_WEEK)
