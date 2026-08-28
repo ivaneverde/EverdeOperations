@@ -69,3 +69,6 @@ next-env.d.ts
 
 # Scheduled DataDrops agent state and logs (per machine)
 /.everde-scheduler/
+
+# Disaster recovery doc with live secrets — email to yourself; never commit
+/docs/DISASTER_RECOVERY.md
