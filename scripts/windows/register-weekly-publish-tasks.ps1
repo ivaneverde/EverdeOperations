@@ -6,10 +6,10 @@
 .DESCRIPTION
   Schedules three per-user tasks on THIS machine (easy to re-run on a different PC later):
 
-    Everde-SalesPlan-DailyCheck     8:00 AM + 2:30 PM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
-    Everde-Freight-DailyCheck       9:00 AM + 2:30 PM daily — sync Load Board share -> WeeklyDrop -> Azure Blob
-    Everde-Retail-DailyCheck       10:00 AM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
-    Everde-Weather-DailyCheck       9:30 AM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
+    Everde-SalesPlan-DailyCheck     8:00 AM + 12:00 PM + 2:30 PM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
+    Everde-Freight-DailyCheck       9:00 AM + 12:00 PM + 2:30 PM daily — sync Load Board share -> WeeklyDrop -> Azure Blob
+    Everde-Retail-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
+    Everde-Weather-DailyCheck       9:30 AM + 12:00 PM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
     Everde-Nursery-DailyCheck       1:30 PM + 2:30 PM daily — Inventory Metrics xlsb -> HTML + git push when changed
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
@@ -25,6 +25,7 @@
 param(
   [string]$SalesPlanTime = "08:00",
   [string]$FreightTime = "09:00",
+  [string]$MiddayTime = "12:00",
   [string]$CatchUpTime = "14:30",
   [string]$RetailTime = "10:00",
   [string]$WeatherTime = "09:30",
@@ -124,6 +125,7 @@ foreach ($t in $tasks) {
   } else {
     $triggers = @(
       (New-ScheduledTaskTrigger -Daily -At $t.Time),
+      (New-ScheduledTaskTrigger -Daily -At $MiddayTime),
       (New-ScheduledTaskTrigger -Daily -At $CatchUpTime)
     )
   }
@@ -137,7 +139,7 @@ foreach ($t in $tasks) {
     -Description $desc `
     -Force | Out-Null
 
-  $schedLabel = if ($t.Schedule -eq "Weekly") { "weekly on $($t.Day)" } else { "daily at $($t.Time) + catch-up $CatchUpTime" }
+  $schedLabel = if ($t.Schedule -eq "Weekly") { "weekly on $($t.Day)" } else { "daily at $($t.Time) + midday $MiddayTime + catch-up $CatchUpTime" }
   Write-Host "Registered: $($t.Name) $schedLabel at $($t.Time)" -ForegroundColor Green
 }
 

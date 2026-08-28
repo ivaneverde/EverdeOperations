@@ -10,12 +10,13 @@ This document describes the **on-premises “agent” machine** that watches `Da
 | **9:00 AM** | `Everde-Freight-DailyCheck` | Juanita Load Board share → `Freight\WeeklyDrop\` | Sync raw `.xlsb`, pipeline + Azure Blob `dashboard_data.json` |
 | **9:30 AM** | `Everde-Weather-DailyCheck` | `Weather\WeeklyDrop\` (daily sales sync) + `JS Files\Weather Data\scripts\` | Blob `weather_dashboard_data.json` (**Open-Meteo 7-day forecast always refreshed** before publish; sales×weather crosswalk when share scripts succeed) |
 | **10:00 AM** | `Everde-Retail-DailyCheck` | `Weather\WeeklyDrop\` + share retail feeds → `SalesOpportunity\` | Blob `retail_opp_data.json` |
+| **12:00 PM** | *(Sales Plan, Freight, Retail, Weather)* | Same drop folders | **Midday check** — Brent/Armando files that land late morning |
 | **1:30 PM** | `Everde-Nursery-DailyCheck` | `Inventory Metrics\*.xlsb` + `*Site*Focus*.docx` | `public/nursery-inventory-dashboard.html` + `data/site_focus_data.json` + **git push** |
-| **2:30 PM** | *(all daily tasks above)* | Same WeeklyDrop folders | **Catch-up run** — picks up Tue/Wed drops missed by the morning job |
+| **2:30 PM** | *(all daily tasks above)* | Same WeeklyDrop folders | **Catch-up run** — picks up files missed by morning/midday |
 
 | **11:00 AM Mon** | `Everde-WCRO-WeeklyCheck` | `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*\reports\`) | `data/wcro_data.json` → Blob `wcro/latest/wcro_data.json` |
 
-Each job **skips** if no new file since last success (state under `.everde-scheduler/`). A second **2:30 PM** run catches files that land after the morning check (common when reports finish Tuesday or Wednesday). Logs: `.everde-scheduler/logs/`.
+Each job **skips** if no new file since last success (state under `.everde-scheduler/`). A **12:00 PM** midday check plus a **2:30 PM** catch-up pick up files that land after the morning jobs (common for Brent/Armando dailies and Following Week YTD). Logs: `.everde-scheduler/logs/`.
 
 **WCRO** runs **Monday 11:00 AM** via `npm run weekly:register-tasks` → `run-scheduled-wcro.ps1`. Jonathan drops a new `_HANDOFF_WCRO_*` pack into `DataDrops\WCRO\`; the job extracts the newest pack's `reports\` (published workbooks only — it does not rebuild WCRO from HD/LOW YTD).
 
@@ -80,7 +81,11 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 
 **Weather / Retail drop (copy to Brent & Armando):**  
 `\\192.168.190.10\Claude Sandbox\DataDrops\Weather\WeeklyDrop`  
-Retail rebuild runs **Monday 10:00 AM** on the agent PC when files change. Weather job runs **daily 9:30 AM** (forecast always; sales×weather when daily files are current).
+
+Daily agent jobs already watch this folder:
+- **9:30 AM + 12:00 PM + 2:30 PM** Weather — newest `HD FL/SE/SW Daily*` + `LOWES Daily*` → sales×weather Blob  
+- **10:00 AM + 12:00 PM + 2:30 PM** Retail — rebuilds when HD/Lowe's YTD (or other sources) change  
+- **8:00 AM + 12:00 PM + 2:30 PM** Sales Plan — also picks up HD/Lowe's Following Week YTD from Weather\WeeklyDrop (copies into Sales Plan Review\WeeklyDrop, then Blob extract)
 
 Manual refresh after a drop:
 ```powershell

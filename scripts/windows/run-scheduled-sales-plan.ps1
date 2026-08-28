@@ -46,6 +46,41 @@ try {
     return $all | Sort-Object LastWriteTime -Descending | Select-Object -First 1
   }
 
+  # Weather\WeeklyDrop is the Brent/Armando drop for dailies + Following Week YTD.
+  # Prefer newest across Sales Plan WeeklyDrop and Weather WeeklyDrop; copy into
+  # Sales Plan WeeklyDrop when Weather is newer so extract scripts keep one path.
+  $weatherDrop = Join-Path $dataRoot "Weather\WeeklyDrop"
+  function NewestAcross([string[]]$dirs, [string[]]$patterns) {
+    $all = @()
+    foreach ($dir in $dirs) {
+      if (-not (Test-Path -LiteralPath $dir)) { continue }
+      foreach ($p in $patterns) {
+        $all += Get-ChildItem -LiteralPath $dir -Filter $p -File -ErrorAction SilentlyContinue |
+          Where-Object { $_.Name -notlike "~$*" }
+      }
+    }
+    if ($all.Count -eq 0) { return $null }
+    return $all | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+  }
+
+  function Ensure-InSalesPlanWeeklyDrop([System.IO.FileInfo]$file) {
+    if (-not $file) { return $null }
+    $dest = Join-Path $weeklyDrop $file.Name
+    if ($file.DirectoryName -ieq $weeklyDrop) { return $file }
+    $needCopy = $true
+    if (Test-Path -LiteralPath $dest) {
+      $existing = Get-Item -LiteralPath $dest
+      if ($existing.Length -eq $file.Length -and $existing.LastWriteTime -ge $file.LastWriteTime) {
+        $needCopy = $false
+      }
+    }
+    if ($needCopy) {
+      Copy-Item -LiteralPath $file.FullName -Destination $dest -Force
+      Write-Host "Copied $($file.Name) -> Sales Plan Review\WeeklyDrop" -ForegroundColor Gray
+    }
+    return Get-Item -LiteralPath $dest
+  }
+
   Push-Location $RepoRoot
 
   # --- NOR CAL Sales Plan (INV + Sales by Item) ---
@@ -118,13 +153,13 @@ try {
     }
   }
 
-  # --- HD Sales YTD Following Week (independent fingerprint) ---
-  $hd = Newest @(
+  # --- HD Sales YTD Following Week (Sales Plan WeeklyDrop + Weather WeeklyDrop) ---
+  $hd = Ensure-InSalesPlanWeeklyDrop (NewestAcross @($weeklyDrop, $weatherDrop) @(
     "HD Sales YTD with Following Week Sales*.xlsx",
     "HD Sales YTD*.xlsx"
-  )
+  ))
   if (-not $hd) {
-    Write-Host "HD YTD: no matching workbook in WeeklyDrop yet." -ForegroundColor Yellow
+    Write-Host "HD YTD: no matching workbook in WeeklyDrop / Weather\WeeklyDrop yet." -ForegroundColor Yellow
   } else {
     $hdFp = Get-FileFingerprint $hd
     $hdPrev = Get-PipelineState $RepoRoot "hd-ytd"
@@ -143,16 +178,16 @@ try {
     }
   }
 
-  # --- Lowe's YTD BY STORE SKU (independent fingerprint; same WeeklyDrop) ---
-  $lowes = Newest @(
+  # --- Lowe's YTD BY STORE SKU (Sales Plan WeeklyDrop + Weather WeeklyDrop) ---
+  $lowes = Ensure-InSalesPlanWeeklyDrop (NewestAcross @($weeklyDrop, $weatherDrop) @(
     "YTD BY STORE SKU*.xlsb",
     "YTD BY STORE SKU*.xlsx",
     "Lowes YTD*.xlsb",
     "LOW YTD BY STORE SKU*.xlsb",
     "LOWES YTD*.xlsb"
-  )
+  ))
   if (-not $lowes) {
-    Write-Host "Lowes YTD: no matching workbook in WeeklyDrop yet." -ForegroundColor Yellow
+    Write-Host "Lowes YTD: no matching workbook in WeeklyDrop / Weather\WeeklyDrop yet." -ForegroundColor Yellow
   } else {
     $lowesFp = Get-FileFingerprint $lowes
     $lowesPrev = Get-PipelineState $RepoRoot "lowes-ytd"

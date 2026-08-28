@@ -74,6 +74,12 @@ const EMAIL_ROLES: Record<string, ViewRole> = {
   "mberchiolli@everde.com": "full",
   "jkeeler@everde.com": "full",
   "mmcleod@everde.com": "full",
+  // IGC / Leadership (Meredith 2026-08-28) — portal + @Claude
+  "smitchell@everde.com": "full",
+  "hshomper@everde.com": "full",
+  "mdornak@everde.com": "full",
+  "rfranek@everde.com": "full",
+  "dwright@everde.com": "full",
   "jmartin@everde.com": "hd_rep",
   "bwohlberg@everde.com": "hd_rep",
   "jgorosave@everde.com": "lowes_rep",

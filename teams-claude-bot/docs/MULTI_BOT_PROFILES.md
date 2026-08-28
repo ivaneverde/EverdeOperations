@@ -42,6 +42,11 @@ Outputs: `EverdeHDTeamsBot.zip`, `EverdeLowesTeamsBot.zip` (gitignored).
 | Mark Berchiolli | `mberchiolli@everde.com` | ✓ | ✓ | ✓ | **live** (all 3) |
 | Justin Keeler | `jkeeler@everde.com` | ✓ | ✓ | ✓ | **live** (all 3) |
 | Meredith McLeod | `mmcleod@everde.com` | ✓ | ✓ | ✓ | **live** (all 3) |
+| Spike Mitchell | `smitchell@everde.com` | ✓ | — | — | **pending** (Claude) |
+| Harvey Shomper | `hshomper@everde.com` | ✓ | — | — | **pending** (Claude) |
+| Mollie Dornak | `mdornak@everde.com` | ✓ | — | — | **pending** (Claude) |
+| Rachal Franek | `rfranek@everde.com` | ✓ | — | — | **pending** (Claude) |
+| Dave Wright | `dwright@everde.com` | ✓ | — | — | **pending** (Claude) |
 | Jae Martin | `jmartin@everde.com` | — | ✓ | — | **live** (HD) |
 | Brian Wohlberg | `bwohlberg@everde.com` | — | ✓ | — | **live** (HD) |
 | John Gorosave | `jgorosave@everde.com` | — | — | ✓ | **live** (Lowes) |

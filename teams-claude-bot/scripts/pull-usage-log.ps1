@@ -60,23 +60,37 @@ if ($Day) {
 $az = Get-Command az -ErrorAction SilentlyContinue
 if (-not $az) { throw "Azure CLI (az) required to download blobs." }
 
+function Download-UsageDay {
+  param([string]$Day, [string]$LocalPath)
+  $blob = "teams-bot-usage/$Day.ndjson"
+  Write-Host "Downloading $container/$blob ..." -ForegroundColor Cyan
+  # az writes progress to stderr; with $ErrorActionPreference=Stop that becomes a
+  # terminating NativeCommandError even on success. Soften only for this call.
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  try {
+    & az storage blob download `
+      --connection-string $env:AZURE_STORAGE_CONNECTION_STRING `
+      --container-name $container `
+      --name $blob `
+      --file $LocalPath `
+      --overwrite true `
+      -o none 1>$null 2>$null
+    $ok = ($LASTEXITCODE -eq 0)
+  } finally {
+    $ErrorActionPreference = $prev
+  }
+  if (-not $ok -or -not (Test-Path -LiteralPath $LocalPath) -or (Get-Item -LiteralPath $LocalPath).Length -eq 0) {
+    Write-Host "  (no file for $Day yet)" -ForegroundColor Yellow
+    return $false
+  }
+  return $true
+}
+
 $allRows = @()
 foreach ($d in $days) {
-  $blob = "teams-bot-usage/$d.ndjson"
   $local = Join-Path $OutDir "$d.ndjson"
-  Write-Host "Downloading $container/$blob ..." -ForegroundColor Cyan
-  $prev = $env:AZURE_STORAGE_CONNECTION_STRING
-  # az storage blob download uses connection string via env or --connection-string
-  az storage blob download `
-    --connection-string $env:AZURE_STORAGE_CONNECTION_STRING `
-    --container-name $container `
-    --name $blob `
-    --file $local `
-    --overwrite true 2>$null
-  if (-not (Test-Path -LiteralPath $local) -or (Get-Item $local).Length -eq 0) {
-    Write-Host "  (no file for $d yet)" -ForegroundColor Yellow
-    continue
-  }
+  if (-not (Download-UsageDay -Day $d -LocalPath $local)) { continue }
   Get-Content -LiteralPath $local | ForEach-Object {
     if (-not $_.Trim()) { return }
     try { $allRows += ($_ | ConvertFrom-Json) } catch { }

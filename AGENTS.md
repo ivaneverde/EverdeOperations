@@ -44,6 +44,11 @@ Same Blob publish; each profile loads only its datasets/tools (less bandwidth). 
 | Mark Berchiolli | `mberchiolli@everde.com` | Claude + HD + Lowes | `full` | **live** (all 3) |
 | Justin Keeler | `jkeeler@everde.com` | Claude + HD + Lowes | `full` | **live** (all 3) |
 | Meredith McLeod | `mmcleod@everde.com` | Claude + HD + Lowes | `full` | **live** (all 3) |
+| Spike Mitchell | `smitchell@everde.com` | Claude | `full` | **pending** install |
+| Harvey Shomper | `hshomper@everde.com` | Claude | `full` | **pending** install |
+| Mollie Dornak | `mdornak@everde.com` | Claude | `full` | **pending** install |
+| Rachal Franek | `rfranek@everde.com` | Claude | `full` | **pending** install |
+| Dave Wright | `dwright@everde.com` | Claude | `full` | **pending** install |
 | Jae Martin | `jmartin@everde.com` | HD only | `hd_rep` | **live** (HD) |
 | Brian Wohlberg | `bwohlberg@everde.com` | HD only | `hd_rep` | **live** (HD) |
 | John Gorosave | `jgorosave@everde.com` | Lowes only | `lowes_rep` | **live** (Lowes) |
