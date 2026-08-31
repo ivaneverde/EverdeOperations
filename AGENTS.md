@@ -24,6 +24,7 @@ Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-de
 - Retailers: **HD** and **LOW** only, **California** focus.
 - Geography grain: **stores, markets, or districts**.
 - Data today: **sales** and **on-hand** from uploads (Brent / Armando feeds via WeeklyDrop → Blob) + **farm / XXTT inventory**.
+- **Farm inventory (Teams-critical):** The weekly **XXTT** drop in `DataDrops\Sales Inventory Availability\` (`XXTT_INV_QA_LANDSCAPE_INV_PL_*.xls`) is the **primary up-to-date farm / graded on-hand + READY DATE** source for `@Claude` / HD / Lowes via **`get_nursery_supply`**. Prefer it over Inventory Transform or stale Inventory Metrics when answering “what do we have on the farm?”. Agent: **Monday 10:00 AM** `Everde-NurserySupply-WeeklyCheck` (refresh + Blob + git push). Manual: `npm run nursery:refresh-supply` then `npm run nursery:publish-blob`.
 - Coming next: **grouping**, other feeds, **suggested orders** → enable **recommendations** (e.g. replenishment). Until then bots stay descriptive (“what’s going on”), not invent replenish advice.
 - North star: answer from **limited information we provide on the uploads** — do not invent outside those feeds.
 
@@ -70,7 +71,9 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **Snapshot 9.0.2 (portal app):** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.” Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-19):** WCRO Monday agent watches `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*` pack). Live extract **5.38 / 2026-08-17**. HD + Lowe's YTD Following Week published **as-of 2026-08-17**. Sales by Item already 8/17. Jonathan still **builds** WCRO; we only extract published reports.
+**Last session (2026-08-31):** XXTT supply `…68115270_1.xls` (8/31) published to Blob + Monday **10:00 AM** nursery-supply task registered. Armando **Lowe's YTD `YTD BY STORE SKU 8.31.26.xlsb`** extracted + Blob; retail Wk36 rebuilt on Lowes 8.31 + SBI 083126. HD Following Week still newest **08 24 26**. Weather dailies HD+Lowe's **8.31** published. Inventory Transform still **051126** (no newer drop). WCRO still **5.38 / 2026-08-17**.
+
+**Prior session (2026-08-19):** WCRO Monday agent watches `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*` pack). Jonathan still **builds** WCRO; we only extract published reports.
 
 **Share layout — `Shared` folder:** Treat as primary **feeds & reference** hub: `Sales Data` (large `Sales by Item` / dated 2026 snapshots), `Sales Plan` (`Sales Plan by Item`), `INV` (`Inventory Transform` dated), `Housing Data` (e.g. permits), `Allocation Files` (allocation templates), `Inventory Cross References` (xref `.xlsb`, large Key Item extracts), `Misc Look Ups` (pricing/product lookups). **Section folders** (`Freight`, `Sales Plan Review`, …) hold **dashboard deliverables** and sometimes generators (`.py`, `changes_history.json`, docs). **Retail:** `scripts/retail-opportunity/build_retail_workbooks.py` builds five workbooks from share feeds → `DataDrops\SalesOpportunity\`; `extract_retail_opp.py` → Blob JSON for the portal embed. Monday agent task: build (if sources changed) + extract/publish.
 
