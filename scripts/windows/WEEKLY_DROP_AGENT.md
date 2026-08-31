@@ -14,6 +14,7 @@ This document describes the **on-premises “agent” machine** that watches `Da
 | **1:30 PM** | `Everde-Nursery-DailyCheck` | `Inventory Metrics\*.xlsb` + `*Site*Focus*.docx` | `public/nursery-inventory-dashboard.html` + `data/site_focus_data.json` + **git push** |
 | **2:30 PM** | *(all daily tasks above)* | Same WeeklyDrop folders | **Catch-up run** — picks up files missed by morning/midday |
 
+| **10:00 AM Mon** | `Everde-NurserySupply-WeeklyCheck` | `DataDrops\Sales Inventory Availability\` (newest `XXTT_INV_QA_LANDSCAPE_INV_PL_*.xls`) | Supply pane HTML + Blob `nursery/latest/nursery_supply_data.json` + **git push** |
 | **11:00 AM Mon** | `Everde-WCRO-WeeklyCheck` | `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*\reports\`) | `data/wcro_data.json` → Blob `wcro/latest/wcro_data.json` |
 
 Each job **skips** if no new file since last success (state under `.everde-scheduler/`). A **12:00 PM** midday check plus a **2:30 PM** catch-up pick up files that land after the morning jobs (common for Brent/Armando dailies and Following Week YTD). Logs: `.everde-scheduler/logs/`.
@@ -67,6 +68,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
    powershell -File scripts/windows/run-scheduled-weather.ps1 -Force
    powershell -File scripts/windows/run-scheduled-retail-build.ps1 -Force
    powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force
+   powershell -File scripts/windows/run-scheduled-nursery-supply.ps1 -Force
    ```
 
 ## Operator drop locations
@@ -76,6 +78,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 | Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` (agent can auto-copy newest from admin `Planning & Reporting\...\Current Year Sales by Items (Posted Weekly)` via `npm run sales-plan:sync-sales-by-item`); same Sales by Item file also feeds **Claude `get_sales_by_item`** (rep × channel × year; 2025 history from `Shared\Sales Data\2025 Sales by Item.xlsx`); **HD Sales YTD with Following Week Sales`*.xlsx`** (newest → HD portal grid); **`YTD BY STORE SKU*.xlsb`** (Lowe's Following Week — newest → Lowes portal grid; name differs from HD so both can share this folder) |
 | Freight | Juanita drops on `\\VRD-AWSECS\...\Load Board Reports\2026\`; agent syncs to `DataDrops\Freight\WeeklyDrop\` | Raw `Everde Freight Data*.xlsb` (not CALIFORNIA ONLY); dashboard `*.xlsx` appears after pipeline |
 | Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` (weekly drop, typically Monday); optional `WkNN_Site_Focus_Summary*.docx` → portal **Site Focus Summary** subsection |
+| Supply Inventory (XXTT) | `DataDrops\Sales Inventory Availability\` | Newest `XXTT_INV_QA_LANDSCAPE_INV_PL_*.xls` — **Monday 10:00 AM** agent refreshes supply pane + Blob (`npm run nursery:refresh-supply`) |
 | Weather / Retail (Jonathan) | `DataDrops\Weather\WeeklyDrop\` | **Weekly retail:** newest `HD week*.xlsx` or `HD Sales YTD*.xlsx`, newest `YTD BY STORE SKU*.xlsb` / `Lowes YTD*.xlsb`. **Daily weather sales (optional same folder):** `HD FL/SE/SW Daily*.xlsx`, `LOWES Daily Retail Sales*.xlsx` (main + STX.NTX). |
 | WCRO | `DataDrops\WCRO\` | Newest `_HANDOFF_WCRO_*` pack (`reports\` with Store Driven, Combined Summary, On Hand & Register, Rep Orders). Transfers / Sales Variance are optional (retired 5.32–5.37). |
 

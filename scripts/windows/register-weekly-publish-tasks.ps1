@@ -11,9 +11,10 @@
     Everde-Retail-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
     Everde-Weather-DailyCheck       9:30 AM + 12:00 PM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
     Everde-Nursery-DailyCheck       1:30 PM + 2:30 PM daily — Inventory Metrics xlsb -> HTML + git push when changed
+    Everde-NurserySupply-WeeklyCheck Monday 10:00 AM — XXTT Sales Inventory Availability .xls -> supply HTML + Blob + git push
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
-  -FreightTime / -NurseryTime adjusted for your timezone.
+  -FreightTime / -NurseryTime / -NurserySupplyTime adjusted for your timezone.
 
   Requires: VPN to reach \\192.168.190.10\..., repo .env.local, Node.js, Python (freight/sales plan),
   git credentials for nursery push. See scripts/windows/WEEKLY_DROP_AGENT.md for IT handoff.
@@ -30,6 +31,7 @@ param(
   [string]$RetailTime = "10:00",
   [string]$WeatherTime = "09:30",
   [string]$NurseryTime = "13:30",
+  [string]$NurserySupplyTime = "10:00",
   [string]$WcroTime = "11:00",
   [string]$AgentLabel = "",
   [switch]$Unregister
@@ -74,6 +76,14 @@ $tasks = @(
     Script = "run-scheduled-nursery.ps1"
     Schedule = "Daily"
     Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
+  },
+  @{
+    Name = "Everde-NurserySupply-WeeklyCheck"
+    Time = $NurserySupplyTime
+    Script = "run-scheduled-nursery-supply.ps1"
+    Schedule = "Weekly"
+    Day = "Monday"
+    Description = "Monday 10:00 AM: if new XXTT Sales Inventory Availability .xls, refresh supply HTML, Blob, and git push."
   },
   @{
     Name = "Everde-WCRO-WeeklyCheck"
@@ -159,6 +169,7 @@ Write-Host "  powershell -File scripts/windows/run-scheduled-freight.ps1 -Force"
 Write-Host "  powershell -File scripts/windows/run-scheduled-retail-build.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-weather.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-nursery-supply.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-wcro.ps1 -Force" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "IT handoff: scripts/windows/WEEKLY_DROP_AGENT.md" -ForegroundColor Yellow
