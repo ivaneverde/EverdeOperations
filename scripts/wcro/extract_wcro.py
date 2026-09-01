@@ -1212,6 +1212,144 @@ def validate(output: dict[str, Any]) -> list[str]:
     return errors
 
 
+# ── Combined Summary fallback (partial Jonathan refresh drops) ───────────
+
+
+def _visible_total_row(path: Path, sheet: str) -> tuple[list[Any], dict[str, int]] | None:
+    wb = load_workbook(path, data_only=True, read_only=True)
+    try:
+        if sheet not in wb.sheetnames:
+            return None
+        ws = wb[sheet]
+        rows = [tuple(safe_read(c) for c in r) for r in ws.iter_rows(values_only=True)]
+        if len(rows) < 5 or rows[3][0] != "VISIBLE TOTAL":
+            return None
+        return rows[3], col_map(rows[4])
+    finally:
+        wb.close()
+
+
+def _visible_metric(
+    row: tuple[Any, ...], cmap: dict[str, int], *candidates: str
+) -> float | None:
+    idx = find_col(cmap, *candidates)
+    if idx is None or idx >= len(row):
+        return None
+    return as_float(row[idx])
+
+
+def synthesize_combined_from_store_driven(
+    hd_path: Path, low_path: Path
+) -> dict[str, Any]:
+    """
+    Build Combined Summary–compatible payload from Store Driven By-Pool VISIBLE TOTAL
+    rows when Jonathan's weekly refresh omits the separate Combined Summary workbook.
+    """
+    refresh, date = parse_refresh_from_name(hd_path.name)
+    if not refresh:
+        refresh, date = parse_refresh_from_name(low_path.name)
+
+    def channel_segments(path: Path, channel: str) -> list[dict[str, Any]]:
+        label = "HD" if channel == "HD" else "Lowes"
+        out: list[dict[str, Any]] = []
+        for region in ("S.CA", "N.CA"):
+            picked = _visible_total_row(path, f"By-Pool {region}")
+            if not picked:
+                continue
+            row, cmap = picked
+
+            def g(*cols: str) -> float | None:
+                return _visible_metric(row, cmap, *cols)
+
+            out.append(
+                {
+                    "segment": f"{label} {region}",
+                    "plan_var_net_$": g("Plan_Var $"),
+                    "nn_plan_u": g("Target (u)"),
+                    "nn_plan_$": None,
+                    "nn_cust_store_u": g("Gross Need (u)"),
+                    "nn_cust_store_$": g("NN Cust Store (gross) $"),
+                    "nn_cust_pool_u": g("NN Pool (u)"),
+                    "nn_cust_pool_$": g("NN Pool $ (ref)"),
+                    "ship_this_week_u": None,
+                    "ship_this_week_$": g("Ship $ (this week)"),
+                    "order_$": g("S.CA order $", "N.CA order $"),
+                    "for_direct_$": g("FOR direct $"),
+                    "to_transfer_u": None,
+                    "to_transfer_$": g("To Transfer $"),
+                    "ab_on_hand_$": g("A+B on hand $"),
+                }
+            )
+        return out
+
+    segments = channel_segments(hd_path, "HD") + channel_segments(low_path, "LOW")
+
+    def subtotal(label: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
+        keys = (
+            "plan_var_net_$",
+            "nn_plan_u",
+            "nn_cust_store_u",
+            "nn_cust_store_$",
+            "nn_cust_pool_u",
+            "nn_cust_pool_$",
+            "ship_this_week_$",
+            "to_transfer_$",
+            "ab_on_hand_$",
+        )
+
+        def sum_key(key: str) -> float | None:
+            vals = [as_float(r.get(key)) for r in rows]
+            nums = [v for v in vals if v is not None]
+            return round(sum(nums), 2) if nums else None
+
+        return {"segment": label, **{k: sum_key(k) for k in keys}}
+
+    hd_rows = [s for s in segments if s["segment"].startswith("HD ")]
+    low_rows = [s for s in segments if s["segment"].startswith("Lowes ")]
+    if hd_rows:
+        segments.append(subtotal("HD Subtotal", hd_rows))
+    if low_rows:
+        segments.append(subtotal("Lowes Subtotal", low_rows))
+    segments.append(subtotal("Combined Total", hd_rows + low_rows))
+
+    combined = next(
+        (s for s in segments if str(s.get("segment", "")).lower().startswith("combined")),
+        None,
+    )
+    if combined is None:
+        raise RuntimeError("Could not synthesize Combined Total from Store Driven files")
+
+    four = {
+        "ship_this_week": as_int_round(combined["ship_this_week_$"]),
+        "to_transfer": as_int_round(combined["to_transfer_$"]),
+        "nn_plan": as_int_round(combined["nn_plan_u"]),
+        "nn_cust_store": as_int_round(combined["nn_cust_pool_u"]),
+        "nn_cust_store_gross_u": as_int_round(combined["nn_cust_store_u"]),
+        "nn_cust_pool_u": as_int_round(combined["nn_cust_pool_u"]),
+        "note": (
+            "Four Numbers synthesized from Store Driven By-Pool VISIBLE TOTAL rows "
+            "(Combined Summary workbook not in this refresh drop). NN Plan uses "
+            "Target (u); NN Cust Store tile uses NN Pool (u)."
+        ),
+    }
+
+    return {
+        "source_file": f"synthesized from {hd_path.name} + {low_path.name}",
+        "unc_path": str(hd_path),
+        "refresh": refresh,
+        "date": date,
+        "four_numbers": four,
+        "segments": segments,
+        "plan_var_summary": [],
+        "plan_var_net_combined_summary_$": as_int_round(combined["plan_var_net_$"]),
+        "notes": [
+            "Combined Summary workbook missing from refresh — segments/Four Numbers "
+            "built from Store Driven VISIBLE TOTAL rows.",
+            "A+B on hand $ is shared physical stock — never sum across HD/LOW segments.",
+        ],
+    }
+
+
 # ── Main ──────────────────────────────────────────────────────────────────
 
 
@@ -1225,20 +1363,26 @@ def build_output(reports: Path) -> dict[str, Any]:
         sets["set5"],
     )
 
+    hd_sd = next(set2.glob("HD Store Driven*.xlsx"), None)
+    low_sd = next(set2.glob("LOW Store Driven*.xlsx"), None)
+    if hd_sd is None or low_sd is None:
+        raise FileNotFoundError(f"HD/LOW Store Driven workbooks missing in {set2}")
+
     combined_candidates = list(set2.glob("*Combined Summary*.xlsx"))
     if not combined_candidates:
         combined_candidates = [
             p for p in list_xlsx_recursive(set2) if "combined summary" in p.name.lower()
         ]
-    if not combined_candidates:
-        raise FileNotFoundError(f"No Combined Summary workbook in {set2}")
-    combined_path = combined_candidates[0]
-    combined = extract_combined_summary(combined_path)
-
-    hd_sd = next(set2.glob("HD Store Driven*.xlsx"), None)
-    low_sd = next(set2.glob("LOW Store Driven*.xlsx"), None)
-    if hd_sd is None or low_sd is None:
-        raise FileNotFoundError(f"HD/LOW Store Driven workbooks missing in {set2}")
+    if combined_candidates:
+        combined_path = combined_candidates[0]
+        combined = extract_combined_summary(combined_path)
+    else:
+        print(
+            "WARN: No Combined Summary workbook — synthesizing Four Numbers from "
+            "Store Driven VISIBLE TOTAL rows.",
+            file=sys.stderr,
+        )
+        combined = synthesize_combined_from_store_driven(hd_sd, low_sd)
     store_rec = [
         extract_store_driven(hd_sd, "HD"),
         extract_store_driven(low_sd, "LOW"),

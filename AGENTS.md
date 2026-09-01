@@ -71,7 +71,9 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **Snapshot 9.0.2 (portal app):** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.” Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-08-31):** XXTT supply `…68115270_1.xls` (8/31) published to Blob + Monday **10:00 AM** nursery-supply task registered. Armando **Lowe's YTD `YTD BY STORE SKU 8.31.26.xlsb`** extracted + Blob; retail Wk36 rebuilt on Lowes 8.31 + SBI 083126. HD Following Week still newest **08 24 26**. Weather dailies HD+Lowe's **8.31** published. Inventory Transform still **051126** (no newer drop). WCRO still **5.38 / 2026-08-17**.
+**Last session (2026-09-01):** Jonathan email **HD and LOW Reports for the week** — WCRO **5.47 / 2026-08-31** partial refresh (Store Driven, On Hand, Exec Summary PDFs, Wk35 Actuals vs Demand) staged to `DataDrops\WCRO\_HANDOFF_WCRO_5.47_2026-08-31\`. Extract + Blob `wcro/latest/wcro_data.json` published (Combined Summary not in drop — Four Numbers synthesized from Store Driven VISIBLE TOTAL rows). Rep orders carried forward from 5.38 handoff.
+
+**Prior session (2026-08-31):** XXTT supply `…68115270_1.xls` (8/31) published to Blob + Monday **10:00 AM** nursery-supply task registered. Armando **Lowe's YTD `YTD BY STORE SKU 8.31.26.xlsb`** extracted + Blob; retail Wk36 rebuilt on Lowes 8.31 + SBI 083126. HD Following Week **08 31 26**. Weather dailies HD+Lowe's **8.31** published. Inventory Transform still **051126** (no newer drop).
 
 **Prior session (2026-08-19):** WCRO Monday agent watches `DataDrops\WCRO\` (newest `_HANDOFF_WCRO_*` pack). Jonathan still **builds** WCRO; we only extract published reports.
 
