@@ -76,6 +76,7 @@ const EMAIL_ROLES: Record<string, ViewRole> = {
   "jmartin@everde.com": "hd_rep",
   "bwohlberg@everde.com": "hd_rep",
   "jgorosave@everde.com": "lowes_rep",
+  "mhardy@everde.com": "lowes_rep",
   "sbianucci@everde.com": "hd_lowes_rep",
   "cwible@everde.com": "hd_lowes_rep",
 };
