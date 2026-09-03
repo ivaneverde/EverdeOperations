@@ -49,7 +49,7 @@ try {
   )
 
   if ($xlsx.Count -eq 0) {
-    Write-Host "No WCRO xlsx under $wcroRoot — nothing to extract." -ForegroundColor Yellow
+    Write-Host "No WCRO xlsx under $wcroRoot - nothing to extract." -ForegroundColor Yellow
     exit 0
   }
 
