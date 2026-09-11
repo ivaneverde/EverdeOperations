@@ -19,6 +19,7 @@
     "freight:migrate-weeklydrop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/migrate-to-weeklydrop.ps1",
     "freight:update-weekly": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/run-update-weekly.ps1",
     "freight:sync-source": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/sync-freight-from-source.ps1",
+    "freight:build-load-board": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/freight/run-load-board-from-archive.ps1",
     "publish:sales-plan-json": "node scripts/sales-plan-review/publish-dashboard-data.mjs",
     "sales-plan:extract-publish": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/run-extract-and-publish.ps1",
     "sales-plan:sync-sales-by-item": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sales-plan-review/sync-sales-by-item-from-admin.ps1",
@@ -52,7 +53,8 @@
     "nursery:extract-site-focus": "python scripts/nursery/extract_site_focus.py",
     "nursery:publish-blob": "node scripts/nursery/publish-nursery-blob.mjs",
     "weekly:register-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1",
-    "weekly:unregister-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1 -Unregister"
+    "weekly:unregister-tasks": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/register-weekly-publish-tasks.ps1 -Unregister",
+    "nursery:fetch-xxtt-gmail": "python scripts/nursery/fetch_xxtt_from_gmail.py"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.10.1",

@@ -7,11 +7,11 @@
   Schedules three per-user tasks on THIS machine (easy to re-run on a different PC later):
 
     Everde-SalesPlan-DailyCheck     8:00 AM + 12:00 PM + 2:30 PM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
-    Everde-Freight-DailyCheck       9:00 AM + 12:00 PM + 2:30 PM daily — sync Load Board share -> WeeklyDrop -> Azure Blob
+    Everde-Freight-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — Oracle archive -> Juanita xlsb -> WeeklyDrop -> Azure Blob
     Everde-Retail-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
     Everde-Weather-DailyCheck       9:30 AM + 12:00 PM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
     Everde-Nursery-DailyCheck       1:30 PM + 2:30 PM daily — Inventory Metrics xlsb -> HTML + git push when changed
-    Everde-NurserySupply-WeeklyCheck Monday 10:00 AM — XXTT Sales Inventory Availability .xls -> supply HTML + Blob + git push
+    Everde-NurserySupply-DailyCheck  9:00 AM daily — Gmail XXTT .xls → DataDrops → supply HTML + Blob + git push
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
   -FreightTime / -NurseryTime / -NurserySupplyTime adjusted for your timezone.
@@ -25,13 +25,13 @@
 #>
 param(
   [string]$SalesPlanTime = "08:00",
-  [string]$FreightTime = "09:00",
+  [string]$FreightTime = "10:00",
   [string]$MiddayTime = "12:00",
   [string]$CatchUpTime = "14:30",
   [string]$RetailTime = "10:00",
   [string]$WeatherTime = "09:30",
   [string]$NurseryTime = "13:30",
-  [string]$NurserySupplyTime = "10:00",
+  [string]$NurserySupplyTime = "09:00",
   [string]$WcroTime = "11:00",
   [string]$AgentLabel = "",
   [switch]$Unregister
@@ -54,7 +54,7 @@ $tasks = @(
     Time = $FreightTime
     Script = "run-scheduled-freight.ps1"
     Schedule = "Daily"
-    Description = "Daily: sync newest Everde Freight Data from Load Board share to WeeklyDrop; run pipeline and publish to Azure Blob when changed."
+    Description = "Daily: rebuild Everde Freight Data xlsb from Oracle archive dump (fallback: Juanita Load Board share); run pipeline and publish to Azure Blob when changed."
   },
   @{
     Name = "Everde-Retail-DailyCheck"
@@ -78,12 +78,11 @@ $tasks = @(
     Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
   },
   @{
-    Name = "Everde-NurserySupply-WeeklyCheck"
+    Name = "Everde-NurserySupply-DailyCheck"
     Time = $NurserySupplyTime
     Script = "run-scheduled-nursery-supply.ps1"
-    Schedule = "Weekly"
-    Day = "Monday"
-    Description = "Monday 10:00 AM: if new XXTT Sales Inventory Availability .xls, refresh supply HTML, Blob, and git push."
+    Schedule = "DailyOnce"
+    Description = "Daily 9:00 AM: Gmail XXTT inventory .xls → Sales Inventory Availability → supply HTML, Blob, git push."
   },
   @{
     Name = "Everde-WCRO-WeeklyCheck"
@@ -103,7 +102,13 @@ $settings = New-ScheduledTaskSettingsSet `
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
-$legacyTaskNames = @("Everde-Freight-WeeklyCheck", "Everde-Retail-WeeklyCheck", "Everde-Nursery-WeeklyCheck", "Everde-WCRO-WeeklyExtract")
+$legacyTaskNames = @(
+  "Everde-Freight-WeeklyCheck",
+  "Everde-Retail-WeeklyCheck",
+  "Everde-Nursery-WeeklyCheck",
+  "Everde-NurserySupply-WeeklyCheck",
+  "Everde-WCRO-WeeklyExtract"
+)
 
 if ($Unregister) {
   foreach ($t in $tasks) {
@@ -132,6 +137,11 @@ foreach ($t in $tasks) {
     $triggers = @(
       (New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dow -At $t.Time)
     )
+  } elseif ($t.Schedule -eq "DailyOnce") {
+    # Single daily run (e.g. Gmail XXTT lands ~3 AM → process at 9 AM only)
+    $triggers = @(
+      (New-ScheduledTaskTrigger -Daily -At $t.Time)
+    )
   } else {
     $triggers = @(
       (New-ScheduledTaskTrigger -Daily -At $t.Time),
@@ -149,8 +159,14 @@ foreach ($t in $tasks) {
     -Description $desc `
     -Force | Out-Null
 
-  $schedLabel = if ($t.Schedule -eq "Weekly") { "weekly on $($t.Day)" } else { "daily at $($t.Time) + midday $MiddayTime + catch-up $CatchUpTime" }
-  Write-Host "Registered: $($t.Name) $schedLabel at $($t.Time)" -ForegroundColor Green
+  $schedLabel = if ($t.Schedule -eq "Weekly") {
+    "weekly on $($t.Day) at $($t.Time)"
+  } elseif ($t.Schedule -eq "DailyOnce") {
+    "daily once at $($t.Time)"
+  } else {
+    "daily at $($t.Time) + midday $MiddayTime + catch-up $CatchUpTime"
+  }
+  Write-Host "Registered: $($t.Name) $schedLabel" -ForegroundColor Green
 }
 
 foreach ($legacy in $legacyTaskNames) {
