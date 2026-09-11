@@ -146,7 +146,7 @@ def fetch_and_drop(
             if not attachments:
                 continue
 
-            print(f"Match: {subject!r} → {len(attachments)} XXTT attachment(s)")
+            print(f"Match: {subject!r} -> {len(attachments)} XXTT attachment(s)")
             for filename, payload in attachments:
                 target = dest_dir / filename
                 if target.is_file() and target.stat().st_size == len(payload):
