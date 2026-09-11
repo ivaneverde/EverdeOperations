@@ -48,3 +48,19 @@ export async function downloadBytesFromBlob(
     return null;
   }
 }
+
+/** Upload raw bytes to Azure Blob (overwrite). */
+export async function uploadBytesToBlob(
+  container: string,
+  blobPath: string,
+  buffer: Buffer,
+  contentType = "application/octet-stream",
+): Promise<boolean> {
+  const svc = getBlobServiceClient();
+  if (!svc) return false;
+  const client = svc.getContainerClient(container).getBlockBlobClient(blobPath);
+  await client.uploadData(buffer, {
+    blobHTTPHeaders: { blobContentType: contentType },
+  });
+  return true;
+}

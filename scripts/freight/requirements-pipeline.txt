@@ -4,3 +4,4 @@ pandas>=2.0,<3
 numpy>=1.26,<3
 pyxlsb>=1.0.10
 openpyxl>=3.1,<4
+pywin32>=306  # Windows Excel COM for Juanita Load Board rebuild (build_load_board.py)

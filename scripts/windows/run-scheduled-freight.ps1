@@ -1,8 +1,10 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Daily check (default 9:00 AM local): sync newest raw from Juanita's Load Board share into WeeklyDrop,
-  rebuild freight dashboard if raw changed, then publish JSON to Azure Blob when the dashboard workbook changes.
+  Daily check (default 10:00 AM local): rebuild Juanita-format Everde Freight Data YTD .xlsb from
+  the newest Oracle Load Board dump in Freight\WeeklyDrop\archive (if new), fall back to copying
+  from Juanita's Load Board share, rebuild freight dashboard if raw changed, then publish JSON
+  to Azure Blob when the dashboard workbook changes.
   Runs update.py with --skip-fuel-check so Task Scheduler never blocks on the fuel_data.py [y/N] prompt.
 #>
 param([switch]$Force)
@@ -19,6 +21,13 @@ $logFile = Join-Path $logDir ("freight-{0:yyyyMMdd-HHmmss}.log" -f (Get-Date))
 Start-Transcript -Path $logFile -Append | Out-Null
 
 try {
+  Write-Host "Building Load Board xlsb from Oracle archive dump (if new)..." -ForegroundColor Cyan
+  $buildScript = Join-Path $RepoRoot "scripts\freight\run-load-board-from-archive.ps1"
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $buildScript
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning "freight build-load-board exited $LASTEXITCODE (continuing with sync / WeeklyDrop contents)"
+  }
+
   Write-Host "Syncing freight raw from Load Board share..." -ForegroundColor Cyan
   $syncScript = Join-Path $RepoRoot "scripts\freight\sync-freight-from-source.ps1"
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $syncScript

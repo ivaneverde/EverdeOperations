@@ -69,9 +69,11 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 
 **In-portal AI assistant:** Portal **compendium** analyst — header + drawer; **OpenAI / Claude toggle**. Context: catalog + **freight** + **sales plan** + **nursery DEMAND** + **retail** + **weather** Blob JSON (compacted). **Backlog:** live weather API fetch; rate limits; optional page-only mode.
 
-**Snapshot 9.0.2 (portal app):** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.” Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
+**Snapshot 9.1.0 (portal app):** WCRO auto-publish (5.49 live), daily XXTT farm inventory from Gmail→DataDrops→Blob/Teams (9:00 AM), Teams prompt caching with usage logging + kill switch, Sales by Item / weather-fulfillment / anti-deny hardening, expanded bot access. Production portal: https://everde-operations.vercel.app . Teams App Service: `everde-claude-teams-bot`.
 
-**Last session (2026-09-11):** Jonathan email **Updated retail files for the week** — WCRO **5.49 / 2026-09-10** (ship week 37) staged to `DataDrops\WCRO\_HANDOFF_WCRO_5.49_2026-09-10\` from email attachments (share zip was missing HD 5.49). Full pack: Store Driven HD+LOW, Combined Summary, On Hand Weekly/YTD, Exec PDFs, Wk36 Actuals, 38 Rep Orders, Citrus Inventory Changes. Extract + Blob `wcro/latest/wcro_data.json` published — Four Numbers Ship **$952,419** / Transfer **$384,340** / NN Plan **1,034,227** / NN Cust Pool **119,270** (gross store demand **331,764**).
+**Prior snapshot 9.0.2:** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.”
+
+**Last session (2026-09-11):** Cut **v9.1.0**. Jonathan email **Updated retail files for the week** — WCRO **5.49 / 2026-09-10** staged + Blob published. Daily Gmail XXTT supply automation live. Teams prompt caching enabled (`CLAUDE_PROMPT_CACHING=0` to disable).
 
 **Prior session (2026-09-01):** Jonathan email **HD and LOW Reports for the week** — WCRO **5.47 / 2026-08-31** partial refresh staged to `_HANDOFF_WCRO_5.47_2026-08-31\`. Extract + Blob published (Combined Summary missing — Four Numbers synthesized from Store Driven).
 

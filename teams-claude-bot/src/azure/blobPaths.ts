@@ -97,6 +97,20 @@ export function wcroDashboardJsonPath(): string {
   );
 }
 
+/** Latest Oracle mass-upload .xlsm for bot FileConsentCard (channel=HD|LOW, region=N.CA|S.CA). */
+export function massUploadLatestBlobPath(
+  channel: string,
+  region: string,
+): string {
+  const ch = channel.trim().toUpperCase() === "LOW" ? "LOW" : "HD";
+  const r = region.replace(/\s+/g, "").toUpperCase();
+  const safe = r.includes("S.CA") || r === "SCA" || r === "S.CA" ? "SCA" : "NCA";
+  return (
+    process.env.AZURE_MASS_UPLOAD_BLOB_PATH?.trim() ||
+    `wcro/mass-upload/latest/${ch}_${safe}_MassUpload.xlsm`
+  );
+}
+
 export function salesByItemMetaJsonPath(): string {
   const prefix =
     process.env.AZURE_SALES_BY_ITEM_BLOB_PREFIX?.trim() ||
