@@ -39,6 +39,10 @@ export type ClaudeCompleteOptions = {
 export type ClaudeUsageTotals = {
   input_tokens: number;
   output_tokens: number;
+  /** Anthropic prompt-cache write tokens (summed across tool rounds). */
+  cache_creation_input_tokens: number;
+  /** Anthropic prompt-cache read tokens (summed across tool rounds). */
+  cache_read_input_tokens: number;
 };
 
 export type ClaudeCompleteResult = {
@@ -137,7 +141,8 @@ export class ClaudeService {
     const fiscalBlock = buildRetailFiscalWeekPromptBlock({ ytdAsOfDates });
     const baseSystem =
       this.config.CLAUDE_SYSTEM_PROMPT?.trim() || DEFAULT_SYSTEM_PROMPT;
-    const system = [
+    // Identical system text as before; wrap as a TextBlock so we can attach cache_control.
+    const systemText = [
       baseSystem,
       identityBlock,
       rightsBlock,
@@ -146,6 +151,20 @@ export class ClaudeService {
     ]
       .filter(Boolean)
       .join("\n\n");
+    const promptCachingEnabled = this.isPromptCachingEnabled();
+    const systemBlocks: {
+      type: "text";
+      text: string;
+      cache_control?: { type: "ephemeral" };
+    }[] = [
+      {
+        type: "text",
+        text: systemText,
+        ...(promptCachingEnabled
+          ? { cache_control: { type: "ephemeral" as const } }
+          : {}),
+      },
+    ];
 
     const messages: MessageParam[] = [
       ...history,
@@ -160,10 +179,16 @@ export class ClaudeService {
       webSearchEnabled,
       profile,
       userEmail,
+      promptCachingEnabled,
     );
     const hasDocuments = Array.isArray(userContent);
     const toolCalls: ClaudeCompleteResult["toolCalls"] = [];
-    const usage: ClaudeUsageTotals = { input_tokens: 0, output_tokens: 0 };
+    const usage: ClaudeUsageTotals = {
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+    };
 
     logger.info("claude.request", {
       model: this.config.CLAUDE_MODEL,
@@ -172,6 +197,7 @@ export class ClaudeService {
       hasAttachments: hasDocuments,
       everdeTools: tools.filter((t) => t.name !== "web_search").length,
       webSearch: webSearchEnabled,
+      promptCaching: promptCachingEnabled,
       viewRole: viewCaps.role,
       allowHd,
       allowLowes,
@@ -183,13 +209,29 @@ export class ClaudeService {
         const response = await this.client.messages.create({
           model: this.config.CLAUDE_MODEL,
           max_tokens: this.config.CLAUDE_MAX_TOKENS,
-          system,
+          system: systemBlocks,
           messages,
           tools: tools.length > 0 ? tools : undefined,
         });
 
-        usage.input_tokens += response.usage?.input_tokens ?? 0;
-        usage.output_tokens += response.usage?.output_tokens ?? 0;
+        const roundIn = response.usage?.input_tokens ?? 0;
+        const roundOut = response.usage?.output_tokens ?? 0;
+        const roundCacheWrite = response.usage?.cache_creation_input_tokens ?? 0;
+        const roundCacheRead = response.usage?.cache_read_input_tokens ?? 0;
+        usage.input_tokens += roundIn;
+        usage.output_tokens += roundOut;
+        usage.cache_creation_input_tokens += roundCacheWrite;
+        usage.cache_read_input_tokens += roundCacheRead;
+
+        logger.info("claude.usage.round", {
+          profile,
+          round,
+          input_tokens: roundIn,
+          output_tokens: roundOut,
+          cache_creation_input_tokens: roundCacheWrite,
+          cache_read_input_tokens: roundCacheRead,
+          promptCaching: promptCachingEnabled,
+        });
 
         if (
           response.stop_reason === "end_turn" ||
@@ -260,10 +302,17 @@ export class ClaudeService {
     }
   }
 
+  private isPromptCachingEnabled(): boolean {
+    const raw = process.env.CLAUDE_PROMPT_CACHING?.trim().toLowerCase();
+    if (raw === "0" || raw === "false" || raw === "off") return false;
+    return true;
+  }
+
   private buildTools(
     webSearchEnabled: boolean,
     profile: BotProfile,
     userEmail: string | null,
+    promptCachingEnabled: boolean,
   ): Tool[] {
     const out: Tool[] = toolsForProfile(profile, userEmail);
 
@@ -274,6 +323,15 @@ export class ClaudeService {
         max_uses: this.config.WEB_SEARCH_MAX_USES,
       };
       out.push(webTool as unknown as Tool);
+    }
+
+    // Cache breakpoint on the last tool so tools+system share one cached prefix.
+    if (promptCachingEnabled && out.length > 0) {
+      const last = out[out.length - 1]!;
+      out[out.length - 1] = {
+        ...last,
+        cache_control: { type: "ephemeral" },
+      };
     }
 
     return out;

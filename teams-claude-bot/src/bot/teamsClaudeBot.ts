@@ -35,6 +35,15 @@ import {
   botProfileDeniedMessage,
   canAccessBotProfile,
 } from "../everde/viewRights.js";
+import {
+  buildMassUploadWorkbook,
+  canUseMassUpload,
+  massUploadDeniedMessage,
+  massUploadDescription,
+  messageRequestsMassUpload,
+  parseMassUploadRequest,
+} from "../everde/massUpload.js";
+import { offerTeamsFileDownload } from "./outboundFileConsent.js";
 
 export class TeamsClaudeBot extends ActivityHandler {
   private readonly claude: ClaudeService;
@@ -125,6 +134,12 @@ export class TeamsClaudeBot extends ActivityHandler {
       return;
     }
 
+    // Exact-feature gate: must include the words "generate a mass upload"
+    if (messageRequestsMassUpload(text)) {
+      await this.handleMassUploadRequest(context, text, conversationId);
+      return;
+    }
+
     await context.sendActivity({ type: ActivityTypes.Typing });
 
     const userEmail = await resolveTeamsUserEmail(context);
@@ -193,6 +208,8 @@ export class TeamsClaudeBot extends ActivityHandler {
           model: getConfig().CLAUDE_MODEL,
           input_tokens: usage.input_tokens,
           output_tokens: usage.output_tokens,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens,
+          cache_read_input_tokens: usage.cache_read_input_tokens,
           tools: toolCalls.map((c) => c.name),
           conversationId,
         });
@@ -279,6 +296,8 @@ export class TeamsClaudeBot extends ActivityHandler {
         model: getConfig().CLAUDE_MODEL,
         input_tokens: usage.input_tokens,
         output_tokens: usage.output_tokens,
+        cache_creation_input_tokens: usage.cache_creation_input_tokens,
+        cache_read_input_tokens: usage.cache_read_input_tokens,
         tools: toolCalls.map((c) => c.name),
         conversationId,
       });
@@ -309,6 +328,89 @@ export class TeamsClaudeBot extends ActivityHandler {
       await context.sendActivity(
         MessageFactory.text(
           `Sorry — I hit an error processing that (${message.slice(0, 180)}). Please try again, or rephrase (e.g. customer name + year, or /reset then retry).`,
+        ),
+      );
+    }
+  }
+
+  private async handleMassUploadRequest(
+    context: TurnContext,
+    text: string,
+    conversationId: string,
+  ): Promise<void> {
+    const userEmail = await resolveTeamsUserEmail(context);
+
+    if (!canAccessBotProfile(userEmail, this.profile)) {
+      await context.sendActivity(
+        MessageFactory.text(botProfileDeniedMessage(this.profile)),
+      );
+      return;
+    }
+
+    if (!canUseMassUpload(userEmail)) {
+      logger.info("massUpload.denied", {
+        email: userEmail?.toLowerCase() ?? null,
+        profile: this.profile,
+      });
+      await context.sendActivity(MessageFactory.text(massUploadDeniedMessage()));
+      return;
+    }
+
+    if (!isPersonalBotChat(context)) {
+      const botLabel =
+        this.profile === "hd"
+          ? "@Everde HD"
+          : this.profile === "lowes"
+            ? "@Everde Lowes"
+            : "@Claude";
+      await context.sendActivity(
+        MessageFactory.text(
+          `For file download, please use a **1:1 chat** with ${botLabel} (FileConsentCard works in personal chat).`,
+        ),
+      );
+      return;
+    }
+
+    // HD / Lowes bots imply retailer; @Claude still parses HD vs Lowes from text
+    const req = parseMassUploadRequest(text, this.profile);
+    await context.sendActivity({ type: ActivityTypes.Typing });
+    await context.sendActivity(
+      MessageFactory.text(
+        `Building Oracle mass upload for **${req.channel} ${req.region}**` +
+          (req.reqDeliveryDate
+            ? ` · ship **${req.reqDeliveryDate.toISOString().slice(0, 10)}**`
+            : "") +
+          (req.orderType ? ` · order type **${req.orderType}**` : "") +
+          "…",
+      ),
+    );
+
+    try {
+      const built = await buildMassUploadWorkbook(req);
+      await offerTeamsFileDownload(context, {
+        fileName: built.fileName,
+        buffer: built.buffer,
+        description: massUploadDescription(req, built.source),
+        email: userEmail,
+      });
+
+      recordTeamsBotUsage({
+        ts: new Date().toISOString(),
+        email: userEmail,
+        profile: this.profile,
+        question: text,
+        model: getConfig().CLAUDE_MODEL,
+        input_tokens: 0,
+        output_tokens: 0,
+        tools: [`mass_upload:${built.source}`],
+        conversationId,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error("massUpload.failed", { err: message, conversationId });
+      await context.sendActivity(
+        MessageFactory.text(
+          `Could not build the mass upload file: ${message.slice(0, 300)}`,
         ),
       );
     }

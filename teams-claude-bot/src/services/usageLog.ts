@@ -10,6 +10,10 @@ export type UsageLogEntry = {
   model: string;
   input_tokens: number;
   output_tokens: number;
+  /** Prompt-cache write tokens (0 when unused / disabled). */
+  cache_creation_input_tokens?: number;
+  /** Prompt-cache read tokens (0 when unused / disabled). */
+  cache_read_input_tokens?: number;
   tools: string[];
   conversationId?: string;
 };
@@ -33,10 +37,14 @@ function truncateQuestion(q: string): string {
  * Writes one NDJSON line to Blob (append) + stdout so App Insights can pick it up.
  */
 export function recordTeamsBotUsage(entry: UsageLogEntry): void {
+  const cacheWrite = entry.cache_creation_input_tokens ?? 0;
+  const cacheRead = entry.cache_read_input_tokens ?? 0;
   const row = {
     ...entry,
     email: entry.email?.toLowerCase() ?? null,
     question: truncateQuestion(entry.question || ""),
+    cache_creation_input_tokens: cacheWrite,
+    cache_read_input_tokens: cacheRead,
     total_tokens: entry.input_tokens + entry.output_tokens,
   };
 
