@@ -499,6 +499,13 @@ export function summarizeYtdFilter(
     "curr inv units change",
   );
   const avgPriceI = colIndex(columns, "avg retail price");
+  const invCostI = colIndex(columns, "curr inventory cost");
+  const lyInvCostI = colIndex(columns, "ly inventory cost");
+  const invCostChgI = colIndex(
+    columns,
+    "curr inv. cost change",
+    "curr inv cost change",
+  );
   const isLowesLayout =
     lyInvRetailI < 0 &&
     (colIndex(columns, "ly on hand units") >= 0 ||
@@ -518,8 +525,10 @@ export function summarizeYtdFilter(
 
   let invRetail = 0;
   let lyInvRetail = 0;
-  let lyInvRetailEstimated = 0;
   let invRetailChange = 0;
+  let invCost = 0;
+  let lyInvCost = 0;
+  let invCostChange = 0;
   let invUnits = 0;
   let lyInvUnits = 0;
   let invUnitsChange = 0;
@@ -527,13 +536,17 @@ export function summarizeYtdFilter(
   let skusWithLyOh = 0;
   let invRetailRows = 0;
   let lyInvRetailRows = 0;
-  let lyEstRows = 0;
+  let invCostRows = 0;
+  let lyInvCostRows = 0;
+  let invRetailSparseSkus = 0;
 
   type TopInv = {
     sku: string;
     name: string;
     curr_inv_retail: number;
-    ly_inv_retail: number;
+    ly_inv_retail: number | null;
+    curr_inv_cost: number;
+    ly_inv_cost: number;
     curr_units: number;
     ly_units: number;
   };
@@ -565,18 +578,9 @@ export function summarizeYtdFilter(
     const curR = invRetailI >= 0 ? num(row[invRetailI]) : 0;
     const curU = invUnitsI >= 0 ? num(row[invUnitsI]) : 0;
     const lyU = lyInvUnitsI >= 0 ? num(row[lyInvUnitsI]) : 0;
-    let lyR = lyInvRetailI >= 0 ? num(row[lyInvRetailI]) : 0;
-
-    // Lowe's: no native LY OH retail $ — estimate store-level from LY OH units × price
-    if (lyInvRetailI < 0 && lyU > 0) {
-      let price = avgPriceI >= 0 ? num(row[avgPriceI]) : 0;
-      if (!(price > 0) && curU > 0 && curR > 0) price = curR / curU;
-      if (price > 0) {
-        lyR = lyU * price;
-        lyInvRetailEstimated += lyR;
-        lyEstRows += 1;
-      }
-    }
+    const lyR = lyInvRetailI >= 0 ? num(row[lyInvRetailI]) : 0;
+    const curC = invCostI >= 0 ? num(row[invCostI]) : 0;
+    const lyC = lyInvCostI >= 0 ? num(row[lyInvCostI]) : 0;
 
     if (invRetailI >= 0 && row[invRetailI] != null && row[invRetailI] !== "") {
       invRetail += curR;
@@ -586,10 +590,22 @@ export function summarizeYtdFilter(
       lyInvRetail += lyR;
       lyInvRetailRows += 1;
     }
+    if (invCostI >= 0 && row[invCostI] != null && row[invCostI] !== "") {
+      invCost += curC;
+      invCostRows += 1;
+    }
+    if (lyInvCostI >= 0 && row[lyInvCostI] != null && row[lyInvCostI] !== "") {
+      lyInvCost += lyC;
+      lyInvCostRows += 1;
+    }
     if (invRetailChgI >= 0) invRetailChange += num(row[invRetailChgI]);
+    if (invCostChgI >= 0) invCostChange += num(row[invCostChgI]);
     if (invUnitsI >= 0 && row[invUnitsI] != null && row[invUnitsI] !== "") {
       invUnits += curU;
-      if (curU > 0) skusWithCurrOh += 1;
+      if (curU > 0) {
+        skusWithCurrOh += 1;
+        if (!(curR > 0)) invRetailSparseSkus += 1;
+      }
     }
     if (lyInvUnitsI >= 0 && row[lyInvUnitsI] != null && row[lyInvUnitsI] !== "") {
       lyInvUnits += lyU;
@@ -597,50 +613,39 @@ export function summarizeYtdFilter(
     }
     if (invUnitsChgI >= 0) invUnitsChange += num(row[invUnitsChgI]);
 
-    if (curR > 0 || curU > 0) {
+    if (curR > 0 || curU > 0 || curC > 0) {
       topInvCandidates.push({
         sku: skuI >= 0 ? String(row[skuI] ?? "") : "",
         name: skuNameI >= 0 ? String(row[skuNameI] ?? "") : "",
         curr_inv_retail: Math.round(curR * 100) / 100,
-        ly_inv_retail: Math.round(lyR * 100) / 100,
+        ly_inv_retail: lyInvRetailI >= 0 ? Math.round(lyR * 100) / 100 : null,
+        curr_inv_cost: Math.round(curC * 100) / 100,
+        ly_inv_cost: Math.round(lyC * 100) / 100,
         curr_units: Math.round(curU),
         ly_units: Math.round(lyU),
       });
     }
   }
 
-  // Prefer native HD LY retail; else Lowe's estimated LY OH $ (store-level only)
-  if (lyInvRetailI < 0 && lyInvUnits > 0) {
-    const avgTyUnitRetail = invUnits > 0 ? invRetail / invUnits : 0;
-    let coveredUnits = 0;
-    for (const row of rows) {
-      const lyU = num(row[lyInvUnitsI]);
-      if (!(lyU > 0)) continue;
-      let price = avgPriceI >= 0 ? num(row[avgPriceI]) : 0;
-      const curU = invUnitsI >= 0 ? num(row[invUnitsI]) : 0;
-      const curR = invRetailI >= 0 ? num(row[invRetailI]) : 0;
-      if (!(price > 0) && curU > 0 && curR > 0) price = curR / curU;
-      if (price > 0) coveredUnits += lyU;
-    }
-    const remainder = Math.max(0, lyInvUnits - coveredUnits);
-    if (lyInvRetailEstimated > 0 && avgTyUnitRetail > 0) {
-      lyInvRetail = lyInvRetailEstimated + remainder * avgTyUnitRetail;
-    } else if (lyInvRetailEstimated > 0) {
-      lyInvRetail = lyInvRetailEstimated;
-    } else if (avgTyUnitRetail > 0) {
-      lyInvRetail = lyInvUnits * avgTyUnitRetail;
-    }
-    lyInvRetailRows = lyEstRows;
-  }
+  // Do NOT estimate Lowe's LY OH retail $ from units × Avg Retail Price.
+  // Curr Inventory Retail is sparsely populated on Lowe's (most OH SKUs have $0 retail
+  // while cost is filled) — inventing LY retail creates false TY vs LY dollar comps.
+  // Prefer native Curr Inventory Cost vs LY Inventory Cost for Lowe's OH $.
 
-  topInvCandidates.sort((a, b) => b.curr_inv_retail - a.curr_inv_retail);
+  if (isLowesLayout) {
+    topInvCandidates.sort((a, b) => b.curr_inv_cost - a.curr_inv_cost);
+  } else {
+    topInvCandidates.sort((a, b) => b.curr_inv_retail - a.curr_inv_retail);
+  }
   const compPct = lySales !== 0 ? (salesChange / lySales) * 100 : null;
+  const invCostCompPct =
+    lyInvCost !== 0 ? ((invCost - lyInvCost) / lyInvCost) * 100 : null;
   const invRetailCompPct =
-    lyInvRetail !== 0
+    !isLowesLayout && lyInvRetail !== 0
       ? ((invRetail - lyInvRetail) / lyInvRetail) * 100
       : null;
 
-  const lyRetailIsEstimated = isLowesLayout && lyInvRetailI < 0;
+  const lyRetailIsEstimated = false;
 
   const knownStores = [
     ...new Set(
@@ -698,12 +703,18 @@ export function summarizeYtdFilter(
       scope: `All ${rows.length} matched rows (not the sample)`,
       retailer_layout: isLowesLayout ? "lowes" : "hd_or_generic",
       curr_inventory_retail: Math.round(invRetail * 100) / 100,
-      ly_curr_inventory_retail: Math.round(lyInvRetail * 100) / 100,
+      ly_curr_inventory_retail:
+        lyInvRetailI >= 0 ? Math.round(lyInvRetail * 100) / 100 : null,
       ly_retail_is_estimated: lyRetailIsEstimated,
-      ly_retail_method: lyRetailIsEstimated
-        ? "Estimated store-level LY OH $ = sum(LY OH units × Avg Retail Price, or TY unit retail when avg missing). Native LY OH retail $ column does not exist on Lowe's — do NOT say LY dollars are unavailable."
+      ly_retail_method: isLowesLayout
+        ? "Lowe's has no native LY OH retail $ column. Do NOT invent LY OH retail from units × Avg Retail Price — Curr Inventory Retail is sparsely populated and that estimate is not comparable. For Lowe's on-hand $ TY vs LY use curr_inventory_cost vs ly_inventory_cost (native). Also report units."
         : "Native LY Curr Inventory Retail column.",
+      curr_inventory_cost: Math.round(invCost * 100) / 100,
+      ly_inventory_cost: Math.round(lyInvCost * 100) / 100,
+      inventory_cost_comp_pct:
+        invCostCompPct != null ? Math.round(invCostCompPct * 100) / 100 : null,
       curr_inv_retail_change: Math.round(invRetailChange * 100) / 100,
+      curr_inv_cost_change: Math.round(invCostChange * 100) / 100,
       inventory_retail_comp_pct:
         invRetailCompPct != null
           ? Math.round(invRetailCompPct * 100) / 100
@@ -718,24 +729,38 @@ export function summarizeYtdFilter(
       curr_inv_units_change: Math.round(invUnitsChange),
       skus_with_curr_on_hand: skusWithCurrOh,
       skus_with_ly_on_hand: skusWithLyOh,
+      skus_with_curr_oh_but_zero_retail: invRetailSparseSkus,
+      curr_inventory_retail_sparse: isLowesLayout
+        ? skusWithCurrOh > 0 && invRetailSparseSkus / skusWithCurrOh >= 0.5
+        : false,
       rows_with_curr_inv_retail: invRetailRows,
       rows_with_ly_inv_retail: lyInvRetailRows,
+      rows_with_curr_inv_cost: invCostRows,
+      rows_with_ly_inv_cost: lyInvCostRows,
+      top_skus_by_on_hand: topInvCandidates.slice(0, 15),
       top_skus_by_curr_inv_retail: topInvCandidates.slice(0, 15),
       columns_used: [
         invRetailI >= 0 ? columns[invRetailI] : null,
         lyInvRetailI >= 0 ? columns[lyInvRetailI] : null,
+        invCostI >= 0 ? columns[invCostI] : null,
+        lyInvCostI >= 0 ? columns[lyInvCostI] : null,
         invUnitsI >= 0 ? columns[invUnitsI] : null,
         lyOhResolved.label || null,
         avgPriceI >= 0 ? columns[avgPriceI] : null,
       ].filter(Boolean),
       answer_hint: isLowesLayout
-        ? "Lead with inventory.curr_inventory_retail (TY OH $) and inventory.ly_curr_inventory_retail (estimated LY OH $) plus inventory.inventory_ly_units. Totals are FULL matched store rows — never network-wide week columns from a sample. If user asks week 25 and WK25 LY OH is missing, say so briefly and use LY On Hand Units / nearest week — still give the dollar estimate. Do NOT fight the user that dollars are impossible."
+        ? "LOWE'S on-hand $: lead with inventory.curr_inventory_cost vs inventory.ly_inventory_cost (native) and inventory.current_inventory_units vs inventory.inventory_ly_units. Curr Inventory Retail is often sparse/blank for OH SKUs — cite it only as a partial retail figure, never invent LY OH retail $, never compare estimated retail to TY Curr Inventory Retail. Sales $ comps stay Sales Retail vs LY Sales Retail."
         : "For 'total dollars on hand' TY vs LY report inventory.curr_inventory_retail vs inventory.ly_curr_inventory_retail (and units). Do NOT use only the 50-row sample for store totals.",
     },
     notes: [
       "HD Market/District/Store are 4-digit zero-padded. Lowe's Store is typically unpadded (774) — filter still matches.",
       "Lowe's Assortment Desc is subclass-like. HD uses Plant Category from xref when available.",
       "On-hand $: always use summary.inventory.* across ALL matched rows (store-level). Never invent network totals.",
+      ...(isLowesLayout
+        ? [
+            "Lowe's: prefer Curr Inventory Cost / LY Inventory Cost for OH dollar comps. Do not estimate LY OH retail from units × price.",
+          ]
+        : []),
       ...knownStores.map((s) => s.note),
     ],
   };
@@ -764,6 +789,8 @@ export function formatYtdSample(
     "Assortment Desc",
     "Curr Inventory Retail",
     "LY Curr Inventory Retail",
+    "Curr Inventory Cost",
+    "LY Inventory Cost",
     "Curr Inv. Retail Change",
     "Curr Inventory Units",
     "Current Inventory",
@@ -787,12 +814,18 @@ export function formatYtdSample(
 
   const skuI = colIndex(columns, "sku nbr", "item");
   const invRetailI = colIndex(columns, "curr inventory retail");
+  const invCostI = colIndex(columns, "curr inventory cost");
+  const lyInvRetailI = colIndex(columns, "ly curr inventory retail");
+  const isLowesSample =
+    lyInvRetailI < 0 && colIndex(columns, "ly on hand units") >= 0;
 
-  // Prefer highest on-hand $ rows in the sample when that column exists
+  // Prefer highest on-hand $ rows — cost for Lowe's (retail often sparse), else retail
   const ordered =
-    invRetailI >= 0
-      ? [...rows].sort((a, b) => num(b[invRetailI]) - num(a[invRetailI]))
-      : rows;
+    isLowesSample && invCostI >= 0
+      ? [...rows].sort((a, b) => num(b[invCostI]) - num(a[invCostI]))
+      : invRetailI >= 0
+        ? [...rows].sort((a, b) => num(b[invRetailI]) - num(a[invRetailI]))
+        : rows;
 
   const sample = ordered.slice(0, maxRows).map((row) => {
     const obj: Record<string, YtdCell> = {};

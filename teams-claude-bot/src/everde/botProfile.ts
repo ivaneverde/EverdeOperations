@@ -174,6 +174,7 @@ export function buildBotProfilePromptBlock(profile: BotProfile): string {
     "- NN = Net Need. NN Plan (plan-driven) ≠ NN Cust Store (store-summed demand-sensed) ≠ NN Cust Pool (pool-netted). Explain briefly when asked.",
     "- Ship This Week excludes To Transfer (transfers = next-week shelf).",
     "- Recent store sales: call **get_sales_by_item** focus=query q='2026 store 774' (Ship To). Lowe's YTD is on-hand/comps as-of its extract; Sales by Item is invoiced store sales from the weekly sheet.",
+    "- On-hand $ TY vs LY: use **Curr Inventory Cost vs LY Inventory Cost** (native). Do **not** invent LY OH retail from units × Avg Retail Price — Curr Inventory Retail is often sparse on Lowe's.",
     "- Stay useful: lead with what you have; one clear next step. Do not open with 'I don't have pool data' when top_pools_by_market exists. Do not invent store×SKU Write Order lines.",
     "- YTD + farm may support a secondary item cross-check — label as hypothesis, not Jonathan's official WCRO call.",
     "- If asked about out-of-scope topics: briefly say you only cover Lowe's (and farm inventory / WCRO LOW) in this chat, then offer a useful Lowe's follow-up. Do **not** suggest other bots or apps.",

@@ -138,7 +138,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_lowes_ytd_following_week",
     description:
-      "Lowe's Sales YTD BY STORE SKU grid. Store / Store Desc / Item / Assortment Desc, Curr Inventory Retail (TY OH $), LY On Hand Units + WKnn LY OH UNITS (store-level), Avg Retail Price. summary.inventory has FULL-store TY OH $ and estimated LY OH $ (units×price) — use for on-hand TY vs LY in dollars. focus=query with q= like 'store 774', 'rancho cucamonga', 'week 25 store 774'. Never dump the full ~300k-row grid.",
+      "Lowe's Sales YTD BY STORE SKU grid. Store / Store Desc / Item / Assortment Desc, Curr Inventory Cost + LY Inventory Cost (native OH $ comps), Curr Inventory Units + LY On Hand Units / WKnn LY OH UNITS, Sales Retail. Curr Inventory Retail exists but is often sparse — do not invent LY OH retail from units×price. summary.inventory has FULL-store cost + unit totals. focus=query with q= like 'store 774', 'upland', 'week 25 store 774'. Never dump the full ~300k-row grid.",
     input_schema: {
       type: "object",
       properties: {
