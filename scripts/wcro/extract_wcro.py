@@ -808,8 +808,71 @@ def _extract_by_store_net_need(
     return out
 
 
+def _extract_store_overstock(
+    rows: list[tuple],
+    *,
+    channel: str,
+    region: str,
+) -> list[dict[str, Any]]:
+    """
+    Official WCRO Store Overstock tab (Rule 1 / Rule 2 calculations).
+
+    Rule 1 = on-hand >= 3x that store's last-year cover.
+    Rule 2 = slow turn / no LY signal (>13 wks) — REVIEW.
+    Excess $ is WHOLESALE (Plan pricing).
+    """
+    hi = find_header_row(rows, "Excess $")
+    if hi is None:
+        hi = find_header_row(rows, "Excess (u)")
+    if hi is None:
+        return []
+    cmap = col_map(rows[hi])
+    i_store = find_col(cmap, "Store")
+    i_sku = find_col(cmap, "SKU")
+    i_name = find_col(cmap, "Item Name")
+    i_genus = find_col(cmap, "Genus")
+    i_rule = find_col(cmap, "Rule")
+    i_flag = find_col(cmap, "Flag")
+    i_oh = find_col(cmap, "On Hand (u)")
+    i_excess_u = find_col(cmap, "Excess (u)")
+    i_excess_d = find_col(cmap, "Excess $")
+    if i_store is None or i_excess_d is None:
+        return []
+
+    out: list[dict[str, Any]] = []
+    for row in rows[hi + 1 :]:
+        if not row or row[i_store] is None:
+            continue
+        store = str(row[i_store]).strip()
+        if not store or store.upper().startswith("VISIBLE"):
+            continue
+        excess_d = as_float(row[i_excess_d]) or 0.0
+        excess_u = as_float(row[i_excess_u]) if i_excess_u is not None else None
+        if excess_d <= 0 and (excess_u is None or excess_u <= 0):
+            continue
+        out.append(
+            {
+                "channel": channel,
+                "region": region,
+                "store": store,
+                "sku": str(row[i_sku]).strip() if i_sku is not None and row[i_sku] is not None else None,
+                "item_name": row[i_name] if i_name is not None else None,
+                "genus": row[i_genus] if i_genus is not None else None,
+                "rule": row[i_rule] if i_rule is not None else None,
+                "flag": row[i_flag] if i_flag is not None else None,
+                "on_hand_u": round(as_float(row[i_oh]) or 0.0, 2)
+                if i_oh is not None
+                else None,
+                "excess_u": round(excess_u, 2) if excess_u is not None else None,
+                "excess_$": round(excess_d, 2),
+            }
+        )
+    out.sort(key=lambda r: float(r.get("excess_$") or 0), reverse=True)
+    return out
+
+
 def extract_store_driven(path: Path, channel: str) -> dict[str, Any]:
-    """Totals from By-Pool tabs + By-Store Gross Need + Build Health. Skip Order/FOR."""
+    """Totals from By-Pool tabs + By-Store Gross Need + Store Overstock + Build Health."""
     # Pass 1: Pool Item Detail first (read_only workbooks only allow forward sheet access).
     detail_by_region: dict[str, dict[tuple[str, str], dict[str, Any]]] = {}
     wb_detail = load_workbook(path, data_only=True, read_only=True)
@@ -826,6 +889,7 @@ def extract_store_driven(path: Path, channel: str) -> dict[str, Any]:
     try:
         markets: dict[str, Any] = {}
         by_store_net_need: list[dict[str, Any]] = []
+        by_store_overstock: list[dict[str, Any]] = []
         for sheet in wb.sheetnames:
             if "Oracle" in sheet or sheet.endswith("Order") or sheet.endswith("FOR"):
                 continue
@@ -950,11 +1014,33 @@ def extract_store_driven(path: Path, channel: str) -> dict[str, Any]:
                         detail_idx=detail_by_region.get(region, {}),
                     )
                 )
+                continue
+
+            if sheet.startswith("Store Overstock "):
+                region = sheet.replace("Store Overstock ", "").strip()
+                ws = wb[sheet]
+                rows = [
+                    tuple(safe_read(c) for c in r)
+                    for r in ws.iter_rows(values_only=True)
+                ]
+                by_store_overstock.extend(
+                    _extract_store_overstock(
+                        rows,
+                        channel=channel,
+                        region=region,
+                    )
+                )
 
         by_store_net_need.sort(
             key=lambda r: (
                 str(r.get("store") or ""),
                 -float(r.get("gross_need_u") or 0),
+            )
+        )
+        by_store_overstock.sort(
+            key=lambda r: (
+                str(r.get("store") or ""),
+                -float(r.get("excess_$") or 0),
             )
         )
 
@@ -965,6 +1051,8 @@ def extract_store_driven(path: Path, channel: str) -> dict[str, Any]:
             "markets": markets,
             "by_store_net_need": by_store_net_need,
             "by_store_net_need_count": len(by_store_net_need),
+            "by_store_overstock": by_store_overstock,
+            "by_store_overstock_count": len(by_store_overstock),
             "build_health": extract_build_health(path, channel),
         }
     finally:

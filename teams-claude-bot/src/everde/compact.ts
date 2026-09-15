@@ -225,6 +225,8 @@ export function compactWcroJson(
     }> = [];
     const byStoreRows: Array<Record<string, unknown>> = [];
     let byStoreTotal = 0;
+    const byOverstockRows: Array<Record<string, unknown>> = [];
+    let byOverstockTotal = 0;
     for (const rec of storeRec) {
       const row = rec as {
         channel?: string;
@@ -238,6 +240,8 @@ export function compactWcroJson(
         >;
         by_store_net_need?: Array<Record<string, unknown>>;
         by_store_net_need_count?: number;
+        by_store_overstock?: Array<Record<string, unknown>>;
+        by_store_overstock_count?: number;
       };
       const ch = String(row.channel ?? "");
       if (channel === "HD" && ch !== "HD") continue;
@@ -259,10 +263,21 @@ export function compactWcroJson(
         ? row.by_store_net_need
         : [];
       byStoreTotal += Number(row.by_store_net_need_count ?? storeRows.length);
+      const overRows = Array.isArray(row.by_store_overstock)
+        ? row.by_store_overstock
+        : [];
+      byOverstockTotal += Number(
+        row.by_store_overstock_count ?? overRows.length,
+      );
       if (storeKey) {
         for (const sr of storeRows) {
           if (normalizeStoreKey(String(sr.store ?? "")) === storeKey) {
             byStoreRows.push(sr);
+          }
+        }
+        for (const sr of overRows) {
+          if (normalizeStoreKey(String(sr.store ?? "")) === storeKey) {
+            byOverstockRows.push(sr);
           }
         }
       }
@@ -270,6 +285,9 @@ export function compactWcroJson(
 
     byStoreRows.sort(
       (a, b) => Number(b.gross_need_u ?? 0) - Number(a.gross_need_u ?? 0),
+    );
+    byOverstockRows.sort(
+      (a, b) => Number(b["excess_$"] ?? 0) - Number(a["excess_$"] ?? 0),
     );
 
     const payload: Record<string, unknown> = {
@@ -282,6 +300,8 @@ export function compactWcroJson(
       rep_orders_count: reps.length,
       by_store_net_need_available: byStoreTotal > 0,
       by_store_net_need_row_count: byStoreTotal,
+      by_store_overstock_available: byOverstockTotal > 0,
+      by_store_overstock_row_count: byOverstockTotal,
       glossary: {
         NN: "Net Need — units/dollars still needed after current inventory and on-order.",
         NN_Plan: "Plan-driven net need (sales plan catch-up).",
@@ -291,21 +311,24 @@ export function compactWcroJson(
           "Same demand-sensed math at pool grain — nets surplus stores against short stores. Four Numbers NN Cust Store tile uses this pool figure.",
         Gross_Need_u:
           "Store x pool net need from Store Driven By-Store (Target - Curr Inv - On Order). Use this for a store's net need.",
+        Store_Overstock:
+          "Official WCRO Store Overstock tab calculations (Rule 1 = on-hand >= 3x LY cover; Rule 2 = slow turn / no LY signal >13 wks REVIEW). Excess $ is wholesale Plan pricing. Use for overstock questions — do not invent overstock from YTD.",
         maldistribution:
           "Gap between NN Cust Store (gross) and NN Cust Pool ≈ stock at the wrong stores.",
         pool:
           "WCRO pool = genus + form + size assortment. retailer_pool_sku = retailer SKU for that pool; everde_item_codes / top_items = member Everde items under the pool.",
       },
       rules: [
-        "Lead with published WCRO figures you have (segments, top_pools_by_market, by_store_net_need, transfers, reps). Do not say pool or store net-need data is missing when those fields are present.",
+        "Lead with published WCRO figures you have (segments, top_pools_by_market, by_store_net_need, by_store_overstock, transfers, reps). Do not say pool, store net-need, or overstock data is missing when those fields are present.",
         "For a specific store's net need / store needs: call get_wcro_dashboard with store= (e.g. store=774) and lead with by_store_net_need (gross_need_u). Do NOT say store net need is unavailable when by_store_net_need_available is true.",
+        "For overstock / overstocked items: call get_wcro_dashboard with store= and lead with by_store_overstock (excess_$, excess_u, rule, flag). Do NOT invent overstock from YTD sales/on-hand heuristics when by_store_overstock_available is true.",
         "gross_need_u = store net need; ship_u / ship_$ = ship recommendation for that store x pool — not a Write Order SKU line.",
         "For 'top pools': use genus/form/size + nn_cust_store_gross_$ + ship_$.",
         "When the user asks for SKUs / items / what to put on a spread: prefer retailer_pool_sku + top_items (item + item_description) and everde_item_codes from top_pools or by_store_net_need — do not stop at genus alone.",
         "Clarify: retailer_pool_sku = HD/Lowes pool SKU; Item codes like BOUBAF0405 = Everde item IDs; item_description = variety name.",
         "Ship This Week = in-region + FOR-direct; To Transfer = next-week shelf (not this week's order).",
         "NN Plan != NN Cust Store != NN Cust Pool — explain briefly if the user asks.",
-        "YTD store sales + farm supply may support a secondary cross-check; label that as hypothesis, not the official WCRO order.",
+        "YTD store sales + farm supply may support a secondary cross-check; label that as hypothesis, not the official WCRO order or overstock list.",
         "Never invent store x SKU Write Order lines that are not in this extract.",
         "Plan variance = Plan - Actual; positive = behind plan.",
         "LOW S.CA is not comparable to HD S.CA (LOW includes AZ/NV/NM/UT).",
@@ -318,13 +341,19 @@ export function compactWcroJson(
       payload.store_filter = storeKey;
       payload.by_store_net_need = byStoreRows.slice(0, 40);
       payload.by_store_net_need_matched = byStoreRows.length;
+      payload.by_store_overstock = byOverstockRows.slice(0, 40);
+      payload.by_store_overstock_matched = byOverstockRows.length;
       if (byStoreRows.length === 0 && byStoreTotal > 0) {
         payload.by_store_net_need_note =
           "No By-Store Gross Need rows for this store in the published extract (store may be outside WCRO West Coast scope this week). Still use top_pools_by_market for the market.";
       }
-    } else if (byStoreTotal > 0) {
+      if (byOverstockRows.length === 0 && byOverstockTotal > 0) {
+        payload.by_store_overstock_note =
+          "No Store Overstock rows for this store in the published WCRO extract this week.";
+      }
+    } else if (byStoreTotal > 0 || byOverstockTotal > 0) {
       payload.by_store_net_need_hint =
-        "Pass store= (e.g. 774) to return that store's By-Store Gross Need (store net need) rows.";
+        "Pass store= (e.g. 774) to return that store's By-Store Gross Need (store net need) and Store Overstock rows.";
     }
 
     return truncateText(JSON.stringify(payload), maxChars);

@@ -164,7 +164,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_wcro_dashboard",
     description:
-      "WCRO published extract: Four Numbers (Ship / Transfer / NN Plan / NN Cust), Combined Summary segments, top_pools_by_market (genus/form/size by NN Cust Store $), by_store_net_need when store= is set (store×pool Gross Need = that store's net need), transfers, and rep-order index. For 'store 774 net need / store needs' ALWAYS pass store=774. Lead with published figures; do not invent store×SKU Write Orders.",
+      "WCRO published extract: Four Numbers, Combined Summary, top_pools_by_market, by_store_net_need (store= Gross Need), by_store_overstock (store= official Store Overstock Rule 1/2 Excess $), transfers, rep-order index. For store net need OR overstocked items ALWAYS pass store= (e.g. 1041). Lead with published figures; do not invent overstock from YTD or store×SKU Write Orders.",
     input_schema: {
       type: "object",
       properties: {
