@@ -164,7 +164,7 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_wcro_dashboard",
     description:
-      "WCRO published extract: Four Numbers (Ship / Transfer / NN Plan / NN Cust), Combined Summary segments, top_pools_by_market (genus/form/size by NN Cust Store $), transfers, and rep-order index. Use for ship-this-week, net-need, top pools, and spread-prep questions. Lead with published figures; do not invent store×SKU Write Orders.",
+      "WCRO published extract: Four Numbers (Ship / Transfer / NN Plan / NN Cust), Combined Summary segments, top_pools_by_market (genus/form/size by NN Cust Store $), by_store_net_need when store= is set (store×pool Gross Need = that store's net need), transfers, and rep-order index. For 'store 774 net need / store needs' ALWAYS pass store=774. Lead with published figures; do not invent store×SKU Write Orders.",
     input_schema: {
       type: "object",
       properties: {
@@ -172,6 +172,16 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
           type: "string",
           enum: ["summary", "reps", "transfers", "full"],
           description: "Default summary (Four Numbers + segments).",
+        },
+        store: {
+          type: "string",
+          description:
+            "Store number for By-Store Gross Need (store net need), e.g. 774 or 0614.",
+        },
+        q: {
+          type: "string",
+          description:
+            "Optional free text; if it contains a store number and store= is empty, that number is used.",
         },
       },
     },
@@ -613,8 +623,17 @@ export async function executeEverdeTool(
       const channel: "HD" | "LOW" | "ALL" =
         profile === "hd" ? "HD" : profile === "lowes" ? "LOW" : "ALL";
       const focus = toolFocus(input);
-      const body = compactWcroJson(raw, TOOL_MAX_CHARS, channel);
-      return `focus=${focus} channel=${channel}\n${body}`;
+      const inputObj =
+        typeof input === "object" && input
+          ? (input as Record<string, unknown>)
+          : {};
+      const storeFromArg =
+        typeof inputObj.store === "string" ? inputObj.store.trim() : "";
+      const qText = toolQuery(input);
+      const storeFromQ = qText.match(/\b0*\d{3,4}\b/)?.[0] ?? "";
+      const store = storeFromArg || storeFromQ || undefined;
+      const body = compactWcroJson(raw, TOOL_MAX_CHARS, channel, store);
+      return `focus=${focus} channel=${channel}${store ? ` store=${store}` : ""}\n${body}`;
     }
 
     case "get_weather_dashboard": {

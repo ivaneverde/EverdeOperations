@@ -79,6 +79,9 @@ export type WcroData = {
         top_pools_by_nn_cust_store?: Record<string, unknown>[];
       }
     >;
+    /** Store × pool Gross Need (store-level net need) from By-Store tabs */
+    by_store_net_need?: Record<string, unknown>[];
+    by_store_net_need_count?: number;
   }[];
   on_hand_register?: {
     weekly?: Record<string, WcroOhrMarket>;

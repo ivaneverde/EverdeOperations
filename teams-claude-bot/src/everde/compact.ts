@@ -140,16 +140,23 @@ export function compactNurserySupplyJson(
   }
 }
 
+function normalizeStoreKey(raw: string | undefined | null): string {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  return digits.replace(/^0+/, "") || digits;
+}
+
 /** Compact WCRO extract for bot snapshot / tool (Four Numbers + segments + top pools). */
 export function compactWcroJson(
   raw: string,
   maxChars: number,
   channel?: "HD" | "LOW" | "ALL",
+  storeFilter?: string | null,
 ): string {
   try {
     const p = JSON.parse(raw) as Record<string, unknown>;
     const snap = (p.snapshot as Record<string, unknown>) ?? {};
     const four = (p.four_numbers as Record<string, unknown>) ?? {};
+    const storeKey = storeFilter ? normalizeStoreKey(storeFilter) : "";
     const segments =
       (
         (p.exec_summary as { combined_summary?: { segments?: unknown[] } })
@@ -216,6 +223,8 @@ export function compactWcroJson(
       totals: unknown;
       top_pools: unknown[];
     }> = [];
+    const byStoreRows: Array<Record<string, unknown>> = [];
+    let byStoreTotal = 0;
     for (const rec of storeRec) {
       const row = rec as {
         channel?: string;
@@ -227,6 +236,8 @@ export function compactWcroJson(
             top_pools_by_nn_cust_store?: unknown[];
           }
         >;
+        by_store_net_need?: Array<Record<string, unknown>>;
+        by_store_net_need_count?: number;
       };
       const ch = String(row.channel ?? "");
       if (channel === "HD" && ch !== "HD") continue;
@@ -244,9 +255,24 @@ export function compactWcroJson(
           top_pools: pools,
         });
       }
+      const storeRows = Array.isArray(row.by_store_net_need)
+        ? row.by_store_net_need
+        : [];
+      byStoreTotal += Number(row.by_store_net_need_count ?? storeRows.length);
+      if (storeKey) {
+        for (const sr of storeRows) {
+          if (normalizeStoreKey(String(sr.store ?? "")) === storeKey) {
+            byStoreRows.push(sr);
+          }
+        }
+      }
     }
 
-    const payload = {
+    byStoreRows.sort(
+      (a, b) => Number(b.gross_need_u ?? 0) - Number(a.gross_need_u ?? 0),
+    );
+
+    const payload: Record<string, unknown> = {
       snapshot: snap,
       four_numbers: four,
       segments,
@@ -254,6 +280,8 @@ export function compactWcroJson(
       transfers: xfer,
       rep_orders_sample: filteredReps,
       rep_orders_count: reps.length,
+      by_store_net_need_available: byStoreTotal > 0,
+      by_store_net_need_row_count: byStoreTotal,
       glossary: {
         NN: "Net Need — units/dollars still needed after current inventory and on-order.",
         NN_Plan: "Plan-driven net need (sales plan catch-up).",
@@ -261,26 +289,44 @@ export function compactWcroJson(
           "Demand-sensed net need computed store-by-store then summed (gross). Often larger than NN Pool.",
         NN_Cust_Pool:
           "Same demand-sensed math at pool grain — nets surplus stores against short stores. Four Numbers NN Cust Store tile uses this pool figure.",
+        Gross_Need_u:
+          "Store x pool net need from Store Driven By-Store (Target - Curr Inv - On Order). Use this for a store's net need.",
         maldistribution:
           "Gap between NN Cust Store (gross) and NN Cust Pool ≈ stock at the wrong stores.",
         pool:
           "WCRO pool = genus + form + size assortment. retailer_pool_sku = retailer SKU for that pool; everde_item_codes / top_items = member Everde items under the pool.",
       },
       rules: [
-        "Lead with published WCRO figures you have (segments, top_pools_by_market, transfers, reps). Do not say pool data is missing when top_pools_by_market is present.",
+        "Lead with published WCRO figures you have (segments, top_pools_by_market, by_store_net_need, transfers, reps). Do not say pool or store net-need data is missing when those fields are present.",
+        "For a specific store's net need / store needs: call get_wcro_dashboard with store= (e.g. store=774) and lead with by_store_net_need (gross_need_u). Do NOT say store net need is unavailable when by_store_net_need_available is true.",
+        "gross_need_u = store net need; ship_u / ship_$ = ship recommendation for that store x pool — not a Write Order SKU line.",
         "For 'top pools': use genus/form/size + nn_cust_store_gross_$ + ship_$.",
-        "When the user asks for SKUs / items / what to put on a spread: prefer retailer_pool_sku + top_items (item + item_description) and everde_item_codes from top_pools — do not stop at genus alone.",
+        "When the user asks for SKUs / items / what to put on a spread: prefer retailer_pool_sku + top_items (item + item_description) and everde_item_codes from top_pools or by_store_net_need — do not stop at genus alone.",
         "Clarify: retailer_pool_sku = HD/Lowes pool SKU; Item codes like BOUBAF0405 = Everde item IDs; item_description = variety name.",
         "Ship This Week = in-region + FOR-direct; To Transfer = next-week shelf (not this week's order).",
-        "NN Plan ≠ NN Cust Store ≠ NN Cust Pool — explain briefly if the user asks.",
+        "NN Plan != NN Cust Store != NN Cust Pool — explain briefly if the user asks.",
         "YTD store sales + farm supply may support a secondary cross-check; label that as hypothesis, not the official WCRO order.",
-        "Never invent store×SKU Write Order lines that are not in this extract.",
-        "Plan variance = Plan − Actual; positive = behind plan.",
+        "Never invent store x SKU Write Order lines that are not in this extract.",
+        "Plan variance = Plan - Actual; positive = behind plan.",
         "LOW S.CA is not comparable to HD S.CA (LOW includes AZ/NV/NM/UT).",
         "HD on-hand is sales-gated (~12% fill) — caveat HD ship recs.",
         "Stay helpful: answer with the best grain available, cite snapshot date once, offer one clear next step — do not open with capability denials.",
       ],
     };
+
+    if (storeKey) {
+      payload.store_filter = storeKey;
+      payload.by_store_net_need = byStoreRows.slice(0, 40);
+      payload.by_store_net_need_matched = byStoreRows.length;
+      if (byStoreRows.length === 0 && byStoreTotal > 0) {
+        payload.by_store_net_need_note =
+          "No By-Store Gross Need rows for this store in the published extract (store may be outside WCRO West Coast scope this week). Still use top_pools_by_market for the market.";
+      }
+    } else if (byStoreTotal > 0) {
+      payload.by_store_net_need_hint =
+        "Pass store= (e.g. 774) to return that store's By-Store Gross Need (store net need) rows.";
+    }
+
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {
     return truncateText(raw, maxChars);

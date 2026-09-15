@@ -117,7 +117,7 @@ async function main(): Promise<void> {
   app.get("/health", (_req, res) => {
     res.status(200).json({
       status: "ok",
-      build: "2026-09-11-prompt-caching",
+      build: "2026-09-15-wcro-by-store-nn",
       profiles: endpoints.map((e) => e.profile),
       endpoints: endpoints.map((e) => e.path),
     });
