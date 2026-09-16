@@ -2,10 +2,11 @@
 """
 Build Juanita's Everde Freight Data YTD workbook from an Oracle Load Board dump.
 
-Oracle xlsx is pasted into Raw Data columns C:AN (the 38 source columns).
-Columns A:B and AO:BP are Juanita's formulas (week/month, ship type, miles, costs).
-Other tabs are pivot tables + Lookup Tab + Truck Capacity; those stay from the template
-and are refreshed after the paste.
+Input (Oracle dump):  DataDrops\\Freight\\WeeklyDrop\\archive\\*Freight_Load_Board*.xls(x)
+Output (Juanita file): \\\\VRD-AWSECS\\...\\Load Board Reports\\2026\\Everde Freight Data YTD M-D-YY ...xlsb
+
+Oracle columns paste into Raw Data C:AN. Columns A:B and AO:BP are Juanita's formulas.
+Other tabs are pivot tables + Lookup Tab + Truck Capacity (kept from the template, then refreshed).
 
 Usage:
     python scripts/freight/build_load_board.py --source "path.xlsx"
@@ -81,6 +82,15 @@ def juanita_share() -> Path:
     return Path(DEFAULT_JUANITA_SHARE)
 
 
+def output_dir() -> Path:
+    import os
+
+    override = os.environ.get("FREIGHT_LOAD_BOARD_OUTPUT")
+    if override:
+        return Path(str(override).replace("/", "\\").rstrip("\\"))
+    return juanita_share()
+
+
 def state_path() -> Path:
     repo = Path(__file__).resolve().parents[2]
     return repo / ".everde-scheduler" / STATE_NAME
@@ -151,11 +161,68 @@ def find_newest_oracle(folder: Path) -> Path | None:
     files = [
         p
         for p in folder.iterdir()
-        if p.is_file() and p.suffix.lower() in {".xlsx", ".xls"} and ORACLE_NAME_RE.search(p.name)
+        if p.is_file()
+        and p.suffix.lower() in {".xlsx", ".xls"}
+        and ORACLE_NAME_RE.search(p.name)
+        and not p.name.startswith("~$")
+        and not p.name.startswith(".")
     ]
     if not files:
         return None
     return max(files, key=lambda p: p.stat().st_mtime)
+
+
+def file_looks_like_html(path: Path) -> bool:
+    with path.open("rb") as f:
+        head = f.read(120).lstrip().lower()
+    return head.startswith(b"<html") or b"oracle bi publisher" in head
+
+
+def convert_oracle_to_xlsx(source: Path, dest_xlsx: Path) -> Path:
+    """Oracle HTML-as-.xls (BI Publisher) -> real .xlsx so pandas can read it."""
+    import win32com.client as win32
+
+    excel = None
+    wb = None
+    try:
+        excel = win32.DispatchEx("Excel.Application")
+        excel.Visible = False
+        excel.DisplayAlerts = False
+        excel.AskToUpdateLinks = False
+        log(f"Excel-converting Oracle dump: {source.name}")
+        wb = excel.Workbooks.Open(str(source), ReadOnly=True, UpdateLinks=0)
+        if dest_xlsx.exists():
+            dest_xlsx.unlink()
+        wb.SaveAs(str(dest_xlsx), FileFormat=51)  # xlOpenXMLWorkbook
+        wb.Close(SaveChanges=False)
+        wb = None
+        log(f"Converted xlsx size={dest_xlsx.stat().st_size:,} bytes")
+        return dest_xlsx
+    finally:
+        if wb is not None:
+            try:
+                wb.Close(SaveChanges=False)
+            except Exception:
+                pass
+        if excel is not None:
+            try:
+                excel.Quit()
+            except Exception:
+                pass
+
+
+def prepare_oracle_for_pandas(source: Path) -> tuple[Path, Path | None]:
+    """Return (path pandas should read, temp dir to delete or None)."""
+    needs_convert = source.suffix.lower() != ".xlsx" or file_looks_like_html(source)
+    if not needs_convert:
+        return source, None
+    work = Path(tempfile.mkdtemp(prefix="everde-oracle-src-"))
+    local = work / source.name
+    log(f"Copying Oracle dump locally ({source.stat().st_size:,} bytes)...")
+    shutil.copy2(source, local)
+    xlsx = work / f"{source.stem}.xlsx"
+    convert_oracle_to_xlsx(local, xlsx)
+    return xlsx, work
 
 
 def find_newest_template(folders: list[Path], exclude_names: set[str] | None = None) -> Path | None:
@@ -201,6 +268,12 @@ def parse_as_of_from_oracle(path: Path) -> datetime:
     return mx.to_pydatetime()
 
 
+def generated_stamp(when: datetime | None = None) -> str:
+    """File-name date: day the workbook was generated (e.g. 9-14-26)."""
+    d = when or datetime.now()
+    return f"{d.month}-{d.day}-{d:%y}"
+
+
 def suffix_from_template(template: Path) -> str:
     m = re.search(r"\bwith\b.+$", template.stem, re.I)
     if m:
@@ -208,8 +281,8 @@ def suffix_from_template(template: Path) -> str:
     return DEFAULT_SUFFIX
 
 
-def output_name(as_of: datetime, template: Path) -> str:
-    return f"Everde Freight Data YTD {as_of:%m-%d-%y} {suffix_from_template(template)}.xlsb"
+def output_name(template: Path, when: datetime | None = None) -> str:
+    return f"Everde Freight Data YTD {generated_stamp(when)} {suffix_from_template(template)}.xlsb"
 
 
 def load_oracle_values(path: Path) -> tuple[pd.DataFrame, list[str]]:
@@ -463,41 +536,49 @@ def run(args: argparse.Namespace) -> int:
         log(f"Already processed {source.name} (same size/mtime). Use --force to rebuild.")
         return 0
 
-    as_of = parse_as_of_from_oracle(source)
-    out_dir = Path(args.output) if args.output else weekly_drop()
-    planned_name = f"Everde Freight Data YTD {as_of:%m-%d-%y} {DEFAULT_SUFFIX}.xlsb"
-    if args.template:
-        template = Path(args.template)
-    else:
-        template = find_newest_template(
-            [weekly_drop(), juanita_share()],
-            exclude_names={planned_name},
-        )
-    if template is None or not template.is_file():
-        raise SystemExit("No Everde Freight Data*.xlsb template found in WeeklyDrop or Juanita share")
+    pandas_src, src_tmp = prepare_oracle_for_pandas(source)
+    try:
+        as_of = parse_as_of_from_oracle(pandas_src)
+        generated = datetime.now()
+        out_dir = Path(args.output) if args.output else output_dir()
+        planned_name = f"Everde Freight Data YTD {generated_stamp(generated)} {DEFAULT_SUFFIX}.xlsb"
+        if args.template:
+            template = Path(args.template)
+        else:
+            template = find_newest_template(
+                [output_dir(), juanita_share(), weekly_drop()],
+                exclude_names={planned_name},
+            )
+        if template is None or not template.is_file():
+            raise SystemExit("No Everde Freight Data*.xlsb template found in WeeklyDrop or Juanita share")
 
-    dest = out_dir / output_name(as_of, template)
-    if not args.force and dest.is_file():
-        if dest.stat().st_mtime >= source.stat().st_mtime and dest.stat().st_size > 1_000_000:
-            log(f"Output already up to date vs dump: {dest.name}")
-            save_state(source, dest, {"rows": None})
-            return 0
-    log(f"Source:   {source}")
-    log(f"Template: {template}")
-    log(f"As-of:    {as_of:%Y-%m-%d} -> {dest.name}")
-    log(f"Output:   {dest}")
+        dest = out_dir / output_name(template, generated)
+        if not args.force and dest.is_file():
+            if dest.stat().st_mtime >= source.stat().st_mtime and dest.stat().st_size > 1_000_000:
+                log(f"Output already up to date vs dump: {dest.name}")
+                save_state(source, dest, {"rows": None})
+                return 0
+        log(f"Source:   {source}")
+        log(f"Pandas:   {pandas_src}")
+        log(f"Template: {template}")
+        log(f"Ship To:  {as_of:%Y-%m-%d}")
+        log(f"Generated {generated_stamp(generated)} -> {dest.name}")
+        log(f"Output:   {dest}")
 
-    stats = build_workbook(source, template, dest, skip_pivots=args.skip_pivots)
-    save_state(source, dest, stats)
-    log(f"Done. rows={stats['rows']} size={stats.get('output_size')} sample_month={stats.get('sample_month')!r}")
-    return 0
+        stats = build_workbook(pandas_src, template, dest, skip_pivots=args.skip_pivots)
+        save_state(source, dest, stats)
+        log(f"Done. rows={stats['rows']} size={stats.get('output_size')} sample_month={stats.get('sample_month')!r}")
+        return 0
+    finally:
+        if src_tmp:
+            shutil.rmtree(src_tmp, ignore_errors=True)
 
 
 def main() -> int:
     p = argparse.ArgumentParser(description="Build Juanita Load Board xlsb from Oracle dump")
     p.add_argument("--source", help="Oracle Load Board .xlsx")
     p.add_argument("--template", help="Existing Everde Freight Data YTD .xlsb (formulas + pivots)")
-    p.add_argument("--output", help="Output directory (default: Freight\\WeeklyDrop)")
+    p.add_argument("--output", help="Output directory (default: Juanita Load Board 2026 folder)")
     p.add_argument("--from-archive", action="store_true", help="Use newest dump in WeeklyDrop\\archive")
     p.add_argument("--force", action="store_true", help="Rebuild even if this dump was already processed")
     p.add_argument("--skip-pivots", action="store_true", help="Paste + formulas only (faster debug)")

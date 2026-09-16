@@ -1,14 +1,19 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Copy the newest Juanita freight raw file from the Load Board share into Freight\WeeklyDrop.
+  Copy the newest freight raw file from the Load Board share into Freight\WeeklyDrop.
 
 .DESCRIPTION
   Source (default): \\VRD-AWSECS\Everde Central Share\Farms\Performance Reports\
     Freight Load Board Reports\Load Board Reports\2026
 
-  Only copies files matching Everde Freight Data*.xlsb (excludes CALIFORNIA ONLY reports).
-  Skips copy when WeeklyDrop already has the same name with same size and last-write time.
+  Accepts either Juanita or Ivan naming:
+    Everde Freight Data YTD ….xlsb
+    Ivan's Everde Freight Data YTD ….xlsb
+
+  Copies into WeeklyDrop under the canonical name (strips a leading "Ivan's "
+  / "Ivans " prefix) so update.py and scheduled jobs always see
+  Everde Freight Data*.xlsb. Excludes CALIFORNIA ONLY reports.
 
   Override source: FREIGHT_SOURCE_DROP in .env.local
 
@@ -56,6 +61,28 @@ if (-not $WeeklyDropDir) {
   }
 }
 
+function Get-CanonicalFreightRawName {
+  param([string]$Name)
+  # "Ivan's Everde Freight Data …" / "Ivans Everde Freight Data …" → "Everde Freight Data …"
+  return ($Name -replace "^Ivan'?s\s+", "")
+}
+
+function Test-IsFreightRawCandidate {
+  param([System.IO.FileInfo]$File)
+  if ($File.Extension -ne ".xlsb") { return $false }
+  if ($File.Name -match "CALIFORNIA") { return $false }
+  $canon = Get-CanonicalFreightRawName $File.Name
+  return ($canon -like "Everde Freight Data*.xlsb")
+}
+
+function Get-NewestFreightRaw {
+  param([string]$Dir)
+  Get-ChildItem -LiteralPath $Dir -Filter "*.xlsb" -File -ErrorAction SilentlyContinue |
+    Where-Object { Test-IsFreightRawCandidate $_ } |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+}
+
 if (-not (Test-Path -LiteralPath $SourceDir)) {
   Write-Host "Freight source not reachable: $SourceDir" -ForegroundColor Yellow
   Write-Host "Will rely on files already in WeeklyDrop: $WeeklyDropDir" -ForegroundColor Yellow
@@ -70,21 +97,14 @@ if (-not (Test-Path -LiteralPath $WeeklyDropDir)) {
   New-Item -ItemType Directory -Path $WeeklyDropDir -Force | Out-Null
 }
 
-function Get-NewestFreightRaw {
-  param([string]$Dir)
-  Get-ChildItem -LiteralPath $Dir -Filter "Everde Freight Data*.xlsb" -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -notmatch "CALIFORNIA" } |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
-}
-
 $source = Get-NewestFreightRaw $SourceDir
 if (-not $source) {
-  Write-Host "No Everde Freight Data*.xlsb in source: $SourceDir" -ForegroundColor Yellow
+  Write-Host "No Everde Freight Data*.xlsb (or Ivan's …) in source: $SourceDir" -ForegroundColor Yellow
   exit 0
 }
 
-$destPath = Join-Path $WeeklyDropDir $source.Name
+$canonicalName = Get-CanonicalFreightRawName $source.Name
+$destPath = Join-Path $WeeklyDropDir $canonicalName
 $dest = Get-Item -LiteralPath $destPath -ErrorAction SilentlyContinue
 
 $needsCopy = $false
@@ -100,6 +120,9 @@ if (-not $dest) {
 
 Write-Host "Source:  $($source.FullName)" -ForegroundColor Cyan
 Write-Host "  Modified: $($source.LastWriteTime)" -ForegroundColor DarkGray
+if ($canonicalName -ne $source.Name) {
+  Write-Host "  Canonical WeeklyDrop name: $canonicalName (stripped Ivan prefix)" -ForegroundColor DarkGray
+}
 Write-Host "WeeklyDrop: $destPath" -ForegroundColor Cyan
 
 if (-not $needsCopy) {
@@ -114,4 +137,4 @@ if ($WhatIf) {
 }
 
 Copy-Item -LiteralPath $source.FullName -Destination $destPath -Force
-Write-Host "Copied: $($source.Name)" -ForegroundColor Green
+Write-Host "Copied: $canonicalName" -ForegroundColor Green

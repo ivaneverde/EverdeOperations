@@ -9,7 +9,7 @@
     \\192.168.190.10\Claude Sandbox\DataDrops\Freight\WeeklyDrop\archive
 
   Output (same naming as Juanita's files) lands in:
-    \\192.168.190.10\Claude Sandbox\DataDrops\Freight\WeeklyDrop
+    \\VRD-AWSECS\Everde Central Share\Farms\Performance Reports\Freight Load Board Reports\Load Board Reports\2026
 
   Uses the newest existing Everde Freight Data*.xlsb as the template (formulas, Lookup Tab, pivots).
 

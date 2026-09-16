@@ -2,9 +2,9 @@
 <#
 .SYNOPSIS
   Daily check (default 10:00 AM local): rebuild Juanita-format Everde Freight Data YTD .xlsb from
-  the newest Oracle Load Board dump in Freight\WeeklyDrop\archive (if new), fall back to copying
-  from Juanita's Load Board share, rebuild freight dashboard if raw changed, then publish JSON
-  to Azure Blob when the dashboard workbook changes.
+  the newest Oracle Load Board dump in Freight\WeeklyDrop\archive (if new) into Juanita's Load Board
+  share, then copy that file into WeeklyDrop, rebuild the freight dashboard if raw changed, and
+  publish JSON to Azure Blob when the dashboard workbook changes.
   Runs update.py with --skip-fuel-check so Task Scheduler never blocks on the fuel_data.py [y/N] prompt.
 #>
 param([switch]$Force)
@@ -47,6 +47,20 @@ try {
     exit 0
   }
 
+  function Get-CanonicalFreightRawName([string]$Name) {
+    return ($Name -replace "^Ivan'?s\s+", "")
+  }
+
+  function NewestFreightRaw([string]$dir) {
+    Get-ChildItem -LiteralPath $dir -Filter "*.xlsb" -File -ErrorAction SilentlyContinue |
+      Where-Object {
+        $_.Name -notmatch "CALIFORNIA" -and
+        ((Get-CanonicalFreightRawName $_.Name) -like "Everde Freight Data*.xlsb")
+      } |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1
+  }
+
   function Newest([string[]]$patterns) {
     $all = @()
     foreach ($p in $patterns) {
@@ -56,7 +70,17 @@ try {
     return $all | Sort-Object LastWriteTime -Descending | Select-Object -First 1
   }
 
-  $raw = Newest @("Everde Freight Data*.xlsb")
+  $raw = NewestFreightRaw $weeklyDrop
+  # Prefer canonical name in WeeklyDrop; sync already strips Ivan's → Everde Freight Data*
+  if ($raw -and $raw.Name -match "^Ivan'?s\s+") {
+    $canon = Get-CanonicalFreightRawName $raw.Name
+    $canonPath = Join-Path $weeklyDrop $canon
+    if (-not (Test-Path -LiteralPath $canonPath)) {
+      Copy-Item -LiteralPath $raw.FullName -Destination $canonPath -Force
+      Write-Host "Normalized WeeklyDrop raw name: $($raw.Name) -> $canon" -ForegroundColor Cyan
+    }
+    $raw = Get-Item -LiteralPath $canonPath
+  }
   $dash = Newest @(
     "Everde Freight Dashboard*.xlsx",
     "Everde_Freight_Dashboard*.xlsb",

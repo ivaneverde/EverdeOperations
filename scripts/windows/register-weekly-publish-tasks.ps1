@@ -54,7 +54,7 @@ $tasks = @(
     Time = $FreightTime
     Script = "run-scheduled-freight.ps1"
     Schedule = "Daily"
-    Description = "Daily: rebuild Everde Freight Data xlsb from Oracle archive dump (fallback: Juanita Load Board share); run pipeline and publish to Azure Blob when changed."
+    Description = "Daily: rebuild Everde Freight Data xlsb from Oracle archive dump onto Juanita Load Board share; sync to WeeklyDrop; pipeline + Azure Blob when changed."
   },
   @{
     Name = "Everde-Retail-DailyCheck"
