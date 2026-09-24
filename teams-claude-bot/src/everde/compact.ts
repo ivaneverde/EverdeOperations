@@ -151,12 +151,16 @@ export function compactWcroJson(
   maxChars: number,
   channel?: "HD" | "LOW" | "ALL",
   storeFilter?: string | null,
+  focus?: string | null,
+  accountManager?: string | null,
 ): string {
   try {
     const p = JSON.parse(raw) as Record<string, unknown>;
     const snap = (p.snapshot as Record<string, unknown>) ?? {};
     const four = (p.four_numbers as Record<string, unknown>) ?? {};
     const storeKey = storeFilter ? normalizeStoreKey(storeFilter) : "";
+    const focusKey = (focus || "summary").toLowerCase();
+    const amFilter = (accountManager || "").trim().toLowerCase();
     const segments =
       (
         (p.exec_summary as { combined_summary?: { segments?: unknown[] } })
@@ -334,8 +338,140 @@ export function compactWcroJson(
         "LOW S.CA is not comparable to HD S.CA (LOW includes AZ/NV/NM/UT).",
         "HD on-hand is sales-gated (~12% fill) — caveat HD ship recs.",
         "Stay helpful: answer with the best grain available, cite snapshot date once, offer one clear next step — do not open with capability denials.",
+        "Ops Adjustments / AM Setup / Xref: use focus=ops|am_setup|xref (or account_manager=). QC Release is a review list — do not say 'grade it up'. Wrong-plant and suspect xref rows are held (not shipped) until fixed.",
       ],
     };
+
+    // Compact Ops & Sales Adjustments (Jonathan 5.51+)
+    const ops = p.ops_adjustments as Record<string, unknown> | null | undefined;
+    const am = p.am_setup_list as Record<string, unknown> | null | undefined;
+    const xref = p.xref_exceptions as Record<string, unknown> | null | undefined;
+    if (ops) {
+      const qc = (ops.qc_release as Record<string, unknown>) ?? {};
+      const top50 = Array.isArray(qc.top_50) ? (qc.top_50 as unknown[]).slice(0, 20) : [];
+      const xfers = (ops.ops_transfers as Record<string, unknown>) ?? {};
+      payload.ops_adjustments = {
+        citrus: ops.citrus_inventory_changes,
+        qc_totals_by_region: qc.totals_by_region,
+        top_50_unlock_$: qc.top_50_unlock_$,
+        all_regions_unlock_$: qc.all_regions_unlock_$,
+        top_50: top50,
+        transfers_into_S_CA: (xfers["into_S.CA"] as Record<string, unknown>)
+          ? {
+              total_transfer_$: (xfers["into_S.CA"] as Record<string, unknown>)
+                .total_transfer_$,
+              total_transfer_u: (xfers["into_S.CA"] as Record<string, unknown>)
+                .total_transfer_u,
+              lane_totals: (xfers["into_S.CA"] as Record<string, unknown>)
+                .lane_totals,
+              top_groups: (
+                ((xfers["into_S.CA"] as Record<string, unknown>)
+                  .top_groups as unknown[]) ?? []
+              ).slice(0, 12),
+            }
+          : null,
+        transfers_into_N_CA: (xfers["into_N.CA"] as Record<string, unknown>)
+          ? {
+              total_transfer_$: (xfers["into_N.CA"] as Record<string, unknown>)
+                .total_transfer_$,
+              total_transfer_u: (xfers["into_N.CA"] as Record<string, unknown>)
+                .total_transfer_u,
+              lane_totals: (xfers["into_N.CA"] as Record<string, unknown>)
+                .lane_totals,
+              top_groups: (
+                ((xfers["into_N.CA"] as Record<string, unknown>)
+                  .top_groups as unknown[]) ?? []
+              ).slice(0, 12),
+            }
+          : null,
+      };
+    }
+    if (am) {
+      const byMgr = (am.by_manager as Record<string, unknown>) ?? {};
+      let managers = Object.keys(byMgr);
+      if (amFilter) {
+        managers = managers.filter((m) => m.toLowerCase().includes(amFilter));
+      }
+      const compactMgr: Record<string, unknown> = {};
+      for (const m of managers) {
+        const sec = (byMgr[m] as Record<string, unknown>) ?? {};
+        compactMgr[m] = {
+          wrong_plants: (
+            (sec.wrong_plants as unknown[]) ?? []
+          ).slice(0, focusKey === "am_setup" ? 25 : 10),
+          not_set_up: ((sec.not_set_up as unknown[]) ?? []).slice(
+            0,
+            focusKey === "am_setup" ? 15 : 8,
+          ),
+          other_market_only: (
+            (sec.other_market_only as unknown[]) ?? []
+          ).slice(0, focusKey === "am_setup" ? 15 : 8),
+          egregious_on_hand: sec.egregious_on_hand ?? [],
+        };
+      }
+      payload.am_setup_list = {
+        summary: am.summary,
+        by_manager: compactMgr,
+      };
+    }
+    if (xref) {
+      const hdRows = Array.isArray(xref.hd_suspect_rows)
+        ? (xref.hd_suspect_rows as unknown[])
+        : [];
+      const lowRows = Array.isArray(xref.low_suspect_rows)
+        ? (xref.low_suspect_rows as unknown[])
+        : [];
+      const lim = focusKey === "xref" ? 30 : 12;
+      payload.xref_exceptions = {
+        counts: xref.counts,
+        note: xref.note,
+        hd_suspect_rows:
+          !channel || channel === "ALL" || channel === "HD"
+            ? hdRows.slice(0, lim)
+            : [],
+        low_suspect_rows:
+          !channel || channel === "ALL" || channel === "LOW"
+            ? lowRows.slice(0, lim)
+            : [],
+      };
+    }
+
+    if (focusKey === "ops" && payload.ops_adjustments) {
+      return truncateText(
+        JSON.stringify({
+          snapshot: snap,
+          four_numbers: four,
+          focus: "ops",
+          ops_adjustments: payload.ops_adjustments,
+          rules: payload.rules,
+        }),
+        maxChars,
+      );
+    }
+    if (focusKey === "am_setup" && payload.am_setup_list) {
+      return truncateText(
+        JSON.stringify({
+          snapshot: snap,
+          four_numbers: four,
+          focus: "am_setup",
+          am_setup_list: payload.am_setup_list,
+          rules: payload.rules,
+        }),
+        maxChars,
+      );
+    }
+    if (focusKey === "xref" && payload.xref_exceptions) {
+      return truncateText(
+        JSON.stringify({
+          snapshot: snap,
+          four_numbers: four,
+          focus: "xref",
+          xref_exceptions: payload.xref_exceptions,
+          rules: payload.rules,
+        }),
+        maxChars,
+      );
+    }
 
     if (storeKey) {
       payload.store_filter = storeKey;

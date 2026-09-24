@@ -107,6 +107,15 @@ export type WcroData = {
     >;
   }[];
   rep_orders: WcroRepOrder[];
+  /** Jonathan Ops & Sales Adjustments (Refresh 5.51+) from reports/_extras */
+  ops_adjustments?: Record<string, unknown> | null;
+  am_setup_list?: Record<string, unknown> | null;
+  xref_exceptions?: Record<string, unknown> | null;
+  extras_meta?: {
+    extras_dir?: string | null;
+    present?: string[];
+    note?: string;
+  };
   build_health: {
     refresh?: string;
     date?: string;

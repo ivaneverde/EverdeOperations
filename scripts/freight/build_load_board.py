@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 
 XL_UP = -4162
+XL_TO_LEFT = -4159
 XL_CALC_MANUAL = -4135
 XL_CALC_AUTOMATIC = -4105
 
@@ -333,6 +334,133 @@ def last_used_row(ws) -> int:
     return max([used_last, *col_last])
 
 
+def last_used_col(ws, header_row: int = 1) -> int:
+    """Rightmost column with a header (Juanita Raw Data is A:BP = 68)."""
+    last = int(ws.Cells(header_row, ws.Columns.Count).End(XL_TO_LEFT).Column)
+    return max(last, VALUE_LAST_COL)
+
+
+def pivot_source_is_external(source) -> bool:
+    """True when SourceData points at another workbook / absolute path (Juanita PC leftovers)."""
+    if source is None:
+        return False
+    # Range COM objects are already in-workbook — leave them alone.
+    if not isinstance(source, (str, bytes)):
+        try:
+            # Some COM wrappers expose SourceData as a Range
+            _ = source.Address
+            return False
+        except Exception:
+            pass
+    s = str(source).strip()
+    if not s:
+        return False
+    # External workbook refs look like: \\path\[file.xlsb]Sheet'!... or [file.xlsb]Sheet'!...
+    if "[" in s and "]" in s:
+        return True
+    if s.startswith("\\\\") or re.match(r"^[A-Za-z]:\\", s):
+        return True
+    return False
+
+
+def retarget_external_pivot_caches(wb, ws_raw, last_data: int) -> int:
+    """
+    Point any pivot cache still aimed at Juanita's old local path (or any external
+    workbook) at this workbook's Raw Data, so RefreshTable succeeds.
+
+    Use the same SourceData string style as the healthy caches in her template
+    ('Raw Data'!C1:C68) — assigning a huge Range object has crashed Excel.
+    """
+    del last_data  # kept for call-site clarity; Juanita caches use column-span form
+    last_col = last_used_col(ws_raw)
+    # Match working caches in excel_formulas.txt: "'Raw Data'!C1:C68"
+    source_str = f"'Raw Data'!C1:C{last_col}"
+    fixed = 0
+    try:
+        caches = wb.PivotCaches()
+        count = int(caches.Count)
+    except Exception as exc:
+        log(f"Could not enumerate PivotCaches: {exc}")
+        return 0
+    for i in range(1, count + 1):
+        try:
+            pc = caches(i)
+            src = pc.SourceData
+        except Exception as exc:
+            log(f"  pivot cache #{i}: could not read SourceData ({exc})")
+            continue
+        if not pivot_source_is_external(src):
+            continue
+        log(f"  pivot cache #{i}: retargeting external source -> {source_str}")
+        log(f"    was: {str(src)[:220]!r}")
+        try:
+            pc.SourceData = source_str
+            fixed += 1
+        except Exception as exc:
+            try:
+                pc.SourceData = f"'Raw Data'!R1C1:R{int(ws_raw.UsedRange.Row + ws_raw.UsedRange.Rows.Count - 1)}C{last_col}"
+                fixed += 1
+            except Exception as exc2:
+                log(f"  pivot cache #{i}: retarget failed: {exc} / {exc2}")
+    return fixed
+
+
+def _col_letter(col: int) -> str:
+    """1-based column index -> Excel letter(s)."""
+    letters = []
+    n = col
+    while n:
+        n, rem = divmod(n - 1, 26)
+        letters.append(chr(65 + rem))
+    return "".join(reversed(letters))
+
+
+# Pivot sheets that historically kill Excel on RefreshTable even after SourceData
+# retarget (corrupt/legacy layout from Juanita's YE 2025 file). We still retarget
+# their cache so a manual Refresh in Excel works; we just don't RefreshTable here.
+SKIP_PIVOT_REFRESH_SHEETS = {"comparisons"}
+
+
+def refresh_all_pivots(wb) -> tuple[int, int, int]:
+    """Refresh every pivot table except known-toxic sheets. Returns (ok, failed, skipped)."""
+    refreshed = 0
+    failed = 0
+    skipped = 0
+    sheets: list[tuple[str, object]] = []
+    for sh in wb.Worksheets:
+        try:
+            name = str(sh.Name)
+        except Exception:
+            name = "?"
+        sheets.append((name, sh))
+    for name, sh in sheets:
+        if name.strip().lower() in SKIP_PIVOT_REFRESH_SHEETS:
+            try:
+                n = int(sh.PivotTables().Count)
+            except Exception:
+                n = 0
+            if n:
+                log(f"  skipping refresh on {name!r} ({n} pivot(s) — retarget only; refresh in Excel)")
+                skipped += n
+            continue
+        try:
+            count = int(sh.PivotTables().Count)
+        except Exception:
+            count = 0
+        for i in range(1, count + 1):
+            try:
+                sh.PivotTables(i).RefreshTable()
+                refreshed += 1
+            except Exception as exc:
+                failed += 1
+                log(f"  pivot refresh failed on {name!r} #{i}: {exc}")
+                msg = str(exc).lower()
+                if "remote procedure call" in msg or "-2147023170" in str(exc):
+                    log("  Excel COM died during pivot refresh; aborting further refreshes")
+                    return refreshed, failed, skipped
+    return refreshed, failed, skipped
+
+
 def build_workbook(source: Path, template: Path, dest: Path, skip_pivots: bool = False) -> dict:
     import win32com.client as win32
 
@@ -427,23 +555,53 @@ def build_workbook(source: Path, template: Path, dest: Path, skip_pivots: bool =
         if skip_pivots:
             log("Skipping pivot refresh (--skip-pivots)")
         else:
+            log("Retargeting external pivot caches (Juanita PC path leftovers) ...")
+            fixed = retarget_external_pivot_caches(wb, ws, last_data)
+            log(f"Pivot caches retargeted={fixed}")
+            # Persist SourceData fix before refresh — refresh has crashed Excel before.
+            try:
+                wb.Save()
+                log("Saved workbook after pivot retarget (pre-refresh)")
+            except Exception as exc:
+                log(f"Pre-refresh save warning: {exc}")
             log("Refreshing pivot tables ...")
-            refreshed = 0
-            failed = 0
-            for sh in wb.Worksheets:
-                try:
-                    count = sh.PivotTables().Count
-                except Exception:
-                    count = 0
-                for i in range(1, count + 1):
+            refreshed, failed, skipped = refresh_all_pivots(wb)
+            log(f"Pivots refreshed={refreshed} failed={failed} skipped={skipped}")
+            if failed:
+                log(
+                    f"WARNING: {failed} pivot table(s) still failed after retargeting. "
+                    "Raw Data + formulas are saved; open Comparisons in Excel and Refresh if needed."
+                )
+            try:
+                excel.CalculateUntilAsyncQueriesDone()
+            except Exception as exc:
+                log(f"Calculate after pivots skipped: {exc}")
+
+        # If Excel died mid-pivot, reopen the local book for formula check + final save.
+        try:
+            _ = ws.Name
+            excel_alive = True
+        except Exception:
+            excel_alive = False
+        if not excel_alive:
+            log("Excel session died; reopening workbook for final save ...")
+            try:
+                if excel is not None:
                     try:
-                        sh.PivotTables(i).RefreshTable()
-                        refreshed += 1
-                    except Exception as exc:
-                        failed += 1
-                        log(f"  pivot refresh failed on {sh.Name!r} #{i}: {exc}")
-            log(f"Pivots refreshed={refreshed} failed={failed}")
-            excel.CalculateUntilAsyncQueriesDone()
+                        excel.Quit()
+                    except Exception:
+                        pass
+                excel = win32.DispatchEx("Excel.Application")
+                excel.Visible = False
+                excel.DisplayAlerts = False
+                excel.AskToUpdateLinks = False
+                wb = excel.Workbooks.Open(str(local_book), ReadOnly=False, UpdateLinks=0)
+                ws = wb.Worksheets("Raw Data")
+            except Exception as exc:
+                raise SystemExit(
+                    f"Excel died during pivot refresh and reopen failed: {exc}. "
+                    f"Check local book at {local_book}"
+                ) from exc
 
         week_val = ws.Range("AO2").Value
         month_val = ws.Range("AP2").Value
@@ -459,7 +617,10 @@ def build_workbook(source: Path, template: Path, dest: Path, skip_pivots: bool =
                 "Actual Ship Date likely did not match Lookup Tab dates."
             )
 
-        excel.ScreenUpdating = True
+        try:
+            excel.ScreenUpdating = True
+        except Exception:
+            pass
         wb.Save()
         wb.Close(SaveChanges=True)
         wb = None

@@ -164,19 +164,25 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_wcro_dashboard",
     description:
-      "WCRO published extract: Four Numbers, Combined Summary, top_pools_by_market, by_store_net_need (store= Gross Need), by_store_overstock (store= official Store Overstock Rule 1/2 Excess $), transfers, rep-order index. For store net need OR overstocked items ALWAYS pass store= (e.g. 1041). Lead with published figures; do not invent overstock from YTD or store×SKU Write Orders.",
+      "WCRO published extract: Four Numbers, Combined Summary, top_pools_by_market, by_store_net_need (store= Gross Need), by_store_overstock, Ops Adjustments (focus=ops: QC unlock / citrus / transfers), AM Market Setup List (focus=am_setup + account_manager=), Xref Exceptions (focus=xref). For store net need OR overstock always pass store=. Lead with published figures.",
     input_schema: {
       type: "object",
       properties: {
         focus: {
           type: "string",
-          enum: ["summary", "reps", "transfers", "full"],
-          description: "Default summary (Four Numbers + segments).",
+          enum: ["summary", "reps", "transfers", "ops", "am_setup", "xref", "full"],
+          description:
+            "Default summary. ops=QC/citrus/transfers; am_setup=account manager fix lists; xref=suspect multi-plant SKUs.",
         },
         store: {
           type: "string",
           description:
             "Store number for By-Store Gross Need (store net need), e.g. 774 or 0614.",
+        },
+        account_manager: {
+          type: "string",
+          description:
+            "Filter AM Setup List (e.g. 'John', 'Jae', 'Brian'). Use with focus=am_setup.",
         },
         q: {
           type: "string",
@@ -629,11 +635,22 @@ export async function executeEverdeTool(
           : {};
       const storeFromArg =
         typeof inputObj.store === "string" ? inputObj.store.trim() : "";
+      const amFromArg =
+        typeof inputObj.account_manager === "string"
+          ? inputObj.account_manager.trim()
+          : "";
       const qText = toolQuery(input);
       const storeFromQ = qText.match(/\b0*\d{3,4}\b/)?.[0] ?? "";
       const store = storeFromArg || storeFromQ || undefined;
-      const body = compactWcroJson(raw, TOOL_MAX_CHARS, channel, store);
-      return `focus=${focus} channel=${channel}${store ? ` store=${store}` : ""}\n${body}`;
+      const body = compactWcroJson(
+        raw,
+        TOOL_MAX_CHARS,
+        channel,
+        store,
+        focus,
+        amFromArg || undefined,
+      );
+      return `focus=${focus} channel=${channel}${store ? ` store=${store}` : ""}${amFromArg ? ` account_manager=${amFromArg}` : ""}\n${body}`;
     }
 
     case "get_weather_dashboard": {

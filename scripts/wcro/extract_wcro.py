@@ -1635,6 +1635,11 @@ def build_output(reports: Path) -> dict[str, Any]:
         "rep_orders": len(list_xlsx_recursive(set5)),
     }
 
+    # Ops & Sales Adjustments (Jonathan Refresh 5.51+): reports/_extras
+    from extract_extras import extract_all_extras  # local sibling module
+
+    extras = extract_all_extras(reports)
+
     output: dict[str, Any] = {
         "snapshot": {
             "refresh": refresh,
@@ -1664,6 +1669,14 @@ def build_output(reports: Path) -> dict[str, Any]:
         "on_hand_register": ohr,
         "transfers": transfers,
         "rep_orders": rep_orders,
+        "ops_adjustments": extras.get("ops_adjustments"),
+        "am_setup_list": extras.get("am_setup_list"),
+        "xref_exceptions": extras.get("xref_exceptions"),
+        "extras_meta": {
+            "extras_dir": extras.get("extras_dir"),
+            "present": extras.get("present") or [],
+            "note": extras.get("note"),
+        },
         "build_health": {
             "refresh": refresh,
             "date": date,
@@ -1720,6 +1733,14 @@ def build_output(reports: Path) -> dict[str, Any]:
             "NN_Customer must never alias to NN_Plan",
             "Ship This Week excludes cross-region transfers",
             "TX/FL orgs out of scope",
+            "Ship only where SKU is set up in that store's own market (no borrowing setups)",
+            "Wrong-plant xref pairs are held on AM Setup / Xref Exceptions — not shipped",
+            "Reserved inventory excluded once per item/farm/grade before orders",
+            "Recent-sales rate must use current comparison file (engine stops if stale)",
+            "One wholesale price per item group across order/OH/register/overstock",
+            "Lowe's retail $ from Lowe's own store file when present (not Everde estimate)",
+            "Weeks on hand from customer store file every line; midweek register = partial week",
+            "Ops Adjustments QC Release = review list (not an automatic grade-up)",
         ],
     }
     return output
