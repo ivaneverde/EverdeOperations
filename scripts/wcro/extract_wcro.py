@@ -145,11 +145,17 @@ def parse_refresh_from_name(name: str) -> tuple[str | None, str | None]:
     return m.group(1), m.group(2)
 
 
+HEADER_CELL_MAX_LEN = 60  # longer cells are explanatory notes above the real header row
+
+
 def find_header_row(rows: list[tuple], required_substr: str, max_scan: int = 40) -> int | None:
     needle = required_substr.lower()
     for i, row in enumerate(rows[:max_scan]):
         for cell in row:
-            if isinstance(cell, str) and needle in norm_header(cell).lower():
+            if not isinstance(cell, str):
+                continue
+            h = norm_header(cell)
+            if len(h) <= HEADER_CELL_MAX_LEN and needle in h.lower():
                 return i
     return None
 
@@ -815,10 +821,11 @@ def _extract_store_overstock(
     region: str,
 ) -> list[dict[str, Any]]:
     """
-    Official WCRO Store Overstock tab (Rule 1 / Rule 2 calculations).
+    Official WCRO Store Overstock tab.
 
-    Rule 1 = on-hand >= 3x that store's last-year cover.
-    Rule 2 = slow turn / no LY signal (>13 wks) — REVIEW.
+    Since 5.57 one test at the store's own pace: NS = no sales at the store in
+    12 months (all stock is excess); EX = more than 52 weeks of stock (excess =
+    stock above 26 weeks). Items new to the store are not listed.
     Excess $ is WHOLESALE (Plan pricing).
     """
     hi = find_header_row(rows, "Excess $")
@@ -831,11 +838,15 @@ def _extract_store_overstock(
     i_sku = find_col(cmap, "SKU")
     i_name = find_col(cmap, "Item Name")
     i_genus = find_col(cmap, "Genus")
+    i_size = find_col(cmap, "Size")
+    i_group = find_col(cmap, "Item group")
     i_rule = find_col(cmap, "Rule")
     i_flag = find_col(cmap, "Flag")
     i_oh = find_col(cmap, "On Hand (u)")
+    i_oo = find_col(cmap, "On Order (u)")
     i_excess_u = find_col(cmap, "Excess (u)")
     i_excess_d = find_col(cmap, "Excess $")
+    i_excess_r = find_col(cmap, "Excess retail $")
     if i_store is None or i_excess_d is None:
         return []
 
@@ -850,23 +861,28 @@ def _extract_store_overstock(
         excess_u = as_float(row[i_excess_u]) if i_excess_u is not None else None
         if excess_d <= 0 and (excess_u is None or excess_u <= 0):
             continue
-        out.append(
-            {
-                "channel": channel,
-                "region": region,
-                "store": store,
-                "sku": str(row[i_sku]).strip() if i_sku is not None and row[i_sku] is not None else None,
-                "item_name": row[i_name] if i_name is not None else None,
-                "genus": row[i_genus] if i_genus is not None else None,
-                "rule": row[i_rule] if i_rule is not None else None,
-                "flag": row[i_flag] if i_flag is not None else None,
-                "on_hand_u": round(as_float(row[i_oh]) or 0.0, 2)
-                if i_oh is not None
-                else None,
-                "excess_u": round(excess_u, 2) if excess_u is not None else None,
-                "excess_$": round(excess_d, 2),
-            }
-        )
+        rec: dict[str, Any] = {
+            "channel": channel,
+            "region": region,
+            "store": store,
+            "sku": str(row[i_sku]).strip() if i_sku is not None and row[i_sku] is not None else None,
+            "item_name": row[i_name] if i_name is not None else None,
+            "genus": row[i_genus] if i_genus is not None else None,
+            "size": row[i_size] if i_size is not None else None,
+            "item_group": row[i_group] if i_group is not None else None,
+            "rule": row[i_rule] if i_rule is not None else None,
+            "flag": row[i_flag] if i_flag is not None else None,
+            "on_hand_u": round(as_float(row[i_oh]) or 0.0, 2)
+            if i_oh is not None
+            else None,
+            "excess_u": round(excess_u, 2) if excess_u is not None else None,
+            "excess_$": round(excess_d, 2),
+        }
+        if i_oo is not None:
+            rec["on_order_u"] = round(as_float(row[i_oo]) or 0.0, 2)
+        if i_excess_r is not None:
+            rec["excess_retail_$"] = round(as_float(row[i_excess_r]) or 0.0, 2)
+        out.append(rec)
     out.sort(key=lambda r: float(r.get("excess_$") or 0), reverse=True)
     return out
 

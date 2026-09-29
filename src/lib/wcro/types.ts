@@ -82,7 +82,7 @@ export type WcroData = {
     /** Store × pool Gross Need (store-level net need) from By-Store tabs */
     by_store_net_need?: Record<string, unknown>[];
     by_store_net_need_count?: number;
-    /** Official Store Overstock tab (Rule 1/2 Excess $) */
+    /** Official Store Overstock tab (rule NS/EX, Excess $ wholesale) */
     by_store_overstock?: Record<string, unknown>[];
     by_store_overstock_count?: number;
   }[];

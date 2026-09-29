@@ -1,14 +1,14 @@
 {
   "seeded_from": {
-    "refresh": "5.56",
+    "refresh": "5.57",
     "date": "2026-09-28",
-    "generated_at": "2026-09-28T21:47:48.443800+00:00",
-    "reports_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\WCRO\\_HANDOFF_WCRO_5.56_2026-09-28\\reports",
-    "resolved_sets_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\WCRO\\_HANDOFF_WCRO_5.56_2026-09-28\\reports"
+    "generated_at": "2026-09-29T14:46:38.991738+00:00",
+    "reports_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\WCRO\\_HANDOFF_WCRO_5.57_2026-09-28\\reports",
+    "resolved_sets_root": "\\\\192.168.190.10\\Claude Sandbox\\DataDrops\\WCRO\\_HANDOFF_WCRO_5.57_2026-09-28\\reports"
   },
   "entries": [
     {
-      "refresh": "5.56",
+      "refresh": "5.57",
       "date": "2026-09-28",
       "source": "extractor seed",
       "notes": [

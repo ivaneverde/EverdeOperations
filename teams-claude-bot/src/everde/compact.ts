@@ -316,7 +316,7 @@ export function compactWcroJson(
         Gross_Need_u:
           "Store x pool net need from Store Driven By-Store (Target - Curr Inv - On Order). Use this for a store's net need.",
         Store_Overstock:
-          "Official WCRO Store Overstock tab calculations (Rule 1 = on-hand >= 3x LY cover; Rule 2 = slow turn / no LY signal >13 wks REVIEW). Excess $ is wholesale Plan pricing. Use for overstock questions — do not invent overstock from YTD.",
+          "Official WCRO Store Overstock tab (since 5.57 one test at the store's own pace: NS = not selling (no store sales in 12 months, all on hand + on order is excess); EX = extreme (>52 wks of stock at the store's own pace, excess = stock above 26 wks); new-to-store items not listed). rule = NS/EX; flag explains weeks of stock. Excess $ is wholesale Plan pricing; excess_retail_$ is the retailer's retail. Use for overstock questions — do not invent overstock from YTD.",
         maldistribution:
           "Gap between NN Cust Store (gross) and NN Cust Pool ≈ stock at the wrong stores.",
         pool:
@@ -325,7 +325,7 @@ export function compactWcroJson(
       rules: [
         "Lead with published WCRO figures you have (segments, top_pools_by_market, by_store_net_need, by_store_overstock, transfers, reps). Do not say pool, store net-need, or overstock data is missing when those fields are present.",
         "For a specific store's net need / store needs: call get_wcro_dashboard with store= (e.g. store=774) and lead with by_store_net_need (gross_need_u). Do NOT say store net need is unavailable when by_store_net_need_available is true.",
-        "For overstock / overstocked items: call get_wcro_dashboard with store= and lead with by_store_overstock (excess_$, excess_u, rule, flag). Do NOT invent overstock from YTD sales/on-hand heuristics when by_store_overstock_available is true.",
+        "For overstock / overstocked items: call get_wcro_dashboard with store= and lead with by_store_overstock (excess_$, excess_u, on_hand_u, rule NS/EX, flag). Do NOT invent overstock from YTD sales/on-hand heuristics when by_store_overstock_available is true.",
         "gross_need_u = store net need; ship_u / ship_$ = ship recommendation for that store x pool — not a Write Order SKU line.",
         "For 'top pools': use genus/form/size + nn_cust_store_gross_$ + ship_$.",
         "When the user asks for SKUs / items / what to put on a spread: prefer retailer_pool_sku + top_items (item + item_description) and everde_item_codes from top_pools or by_store_net_need — do not stop at genus alone.",
