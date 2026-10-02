@@ -406,11 +406,22 @@ export function compactWcroJson(
           other_market_only: (
             (sec.other_market_only as unknown[]) ?? []
           ).slice(0, focusKey === "am_setup" ? 15 : 8),
+          no_usable_item: ((sec.no_usable_item as unknown[]) ?? []).slice(0, 8),
           egregious_on_hand: sec.egregious_on_hand ?? [],
+          no_sku_in_region: ((sec.no_sku_in_region as unknown[]) ?? []).slice(
+            0,
+            focusKey === "am_setup" ? 15 : 5,
+          ),
         };
       }
+      const counts = (am.section_counts as Record<string, unknown>) ?? {};
       payload.am_setup_list = {
         summary: am.summary,
+        section_counts: Object.fromEntries(
+          managers.filter((m) => m in counts).map((m) => [m, counts[m]]),
+        ),
+        sections_note:
+          "Sections in fix order: 1 wrong_plants, 2 not_set_up (demand unfilled), 3 other_market_only (set up elsewhere, not shipped), 4 no_usable_item, 5 egregious_on_hand (store counts that look wrong), 6 no_sku_in_region (Everde items with plan/2026 shipments but no SKU row in that region; sorted by plan_$). section_counts are full counts; row lists are top slices.",
         by_manager: compactMgr,
       };
     }

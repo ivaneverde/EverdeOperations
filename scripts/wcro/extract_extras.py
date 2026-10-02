@@ -398,18 +398,52 @@ def extract_ops_adjustments(path: Path) -> dict[str, Any]:
     return out
 
 
-_AM_SECTION_PATTERNS = [
-    (re.compile(r"^1\.\s*Obvious wrong plants", re.I), "wrong_plants"),
-    (re.compile(r"^2\.\s*Not set up", re.I), "not_set_up"),
-    (re.compile(r"^3\.\s*Set up in another market", re.I), "other_market_only"),
-    (re.compile(r"^4\.\s*Set up,? but no usable", re.I), "no_usable_item"),
-    (re.compile(r"^4\.\s*Set up, no usable", re.I), "no_usable_item"),
-    (re.compile(r"^5\.\s*Egregious", re.I), "egregious_on_hand"),
-]
+# Section titles are reworded between releases; the leading number is the stable key.
+_AM_SECTION_RE = re.compile(r"^([1-6])\.\s+\S")
+_AM_SECTION_KEYS = {
+    "1": "wrong_plants",
+    "2": "not_set_up",
+    "3": "other_market_only",
+    "4": "no_usable_item",
+    "5": "egregious_on_hand",
+    "6": "no_sku_in_region",
+}
+
+
+def _leading_int(v: Any) -> int | None:
+    """Numbers like '95 sold in 12 months' or 'none sold' (→ 0)."""
+    if isinstance(v, (int, float)):
+        return as_int_round(v)
+    s = str(v or "").strip().lower()
+    m = re.match(r"([\d,]+)", s)
+    if m:
+        return int(m.group(1).replace(",", ""))
+    return 0 if s.startswith(("none", "no ")) else None
 
 
 def _map_am_row(section: str, cmap: dict[str, int], row: tuple) -> dict[str, Any] | None:
     cust = _cell(row, find_col(cmap, "Cust", "Customer"))
+    if section == "no_sku_in_region":
+        item = _cell(row, find_col(cmap, "Item"))
+        if not cust and not item:
+            return None
+        return {
+            "cust": str(cust or ""),
+            "region": str(_cell(row, find_col(cmap, "Region")) or ""),
+            "item": str(item or ""),
+            "item_description": str(_cell(row, find_col(cmap, "Item description")) or ""),
+            "genus": str(_cell(row, find_col(cmap, "Genus")) or ""),
+            "size": str(_cell(row, find_col(cmap, "Size")) or ""),
+            "plan_u": as_int_round(_cell(row, find_col(cmap, "Plan units"))),
+            "plan_$": _money(_cell(row, find_col(cmap, "Plan $"))),
+            "shipped_2026_u": as_int_round(_cell(row, find_col(cmap, "2026 shipped units"))),
+            "shipped_2026_$": _money(_cell(row, find_col(cmap, "2026 shipped $"))),
+            "last_sku": str(_cell(row, find_col(cmap, "SKU it was last on")) or ""),
+            "new_this_week": str(_cell(row, find_col(cmap, "New this week")) or ""),
+            "same_genus_size_skus": str(
+                _cell(row, find_col(cmap, "Same genus + size SKUs")) or ""
+            ),
+        }
     sku = _cell(row, find_col(cmap, "SKU"))
     if not cust and not sku:
         return None
@@ -457,15 +491,33 @@ def _map_am_row(section: str, cmap: dict[str, int], row: tuple) -> dict[str, Any
     elif section == "other_market_only":
         base.update(
             {
+                "items_elsewhere": str(_cell(row, find_col(cmap, "Items set up for this SKU elsewhere")) or ""),
+                "set_up_in": str(_cell(row, find_col(cmap, "Set up in")) or ""),
+                "stores_short": as_int_round(_cell(row, find_col(cmap, "Stores short"))),
+                "units_short": as_int_round(_cell(row, find_col(cmap, "Units short"))),
                 "short_$": _money(_cell(row, find_col(cmap, "Short $"))),
                 "our_ab": str(_cell(row, find_col(cmap, "Our A+B", "A+B")) or ""),
+                "ab_free_after_plan_u": as_int_round(_cell(row, find_col(cmap, "A+B still free"))),
+            }
+        )
+    elif section == "no_usable_item":
+        base.update(
+            {
+                "items_set_up_here": str(_cell(row, find_col(cmap, "Items set up here")) or ""),
+                "stores": as_int_round(_cell(row, find_col(cmap, "Stores"))),
+                "units": as_int_round(_cell(row, find_col(cmap, "Units"))),
+                "demand_$": _money(_cell(row, find_col(cmap, "Demand $"))),
             }
         )
     elif section == "egregious_on_hand":
         base.update(
             {
                 "store": str(_cell(row, find_col(cmap, "Store", "Store #")) or ""),
+                "sku_name": str(_cell(row, find_col(cmap, "Name", "Customer SKU name")) or ""),
                 "on_hand_u": as_int_round(_cell(row, find_col(cmap, "On hand", "On-hand", "OH"))),
+                "sold_12m_u": _leading_int(_cell(row, find_col(cmap, "Sold last 12 months"))),
+                "weeks_of_stock": _money(_cell(row, find_col(cmap, "Weeks of stock"))),
+                "retail_$": _money(_cell(row, find_col(cmap, "Retail $"))),
                 "note": str(_cell(row, find_col(cmap, "Note", "Comment")) or ""),
             }
         )
@@ -480,7 +532,14 @@ def extract_am_setup_list(path: Path) -> dict[str, Any]:
     }
     try:
         _, rows = load_sheet_rows(path, "Summary")
-        hi = find_header_row(rows, "Account manager")
+        hi = next(
+            (
+                i
+                for i, r in enumerate(rows[:40])
+                if r and isinstance(r[0], str) and norm_header(r[0]).lower() == "account manager"
+            ),
+            None,
+        )
         if hi is not None:
             cmap = col_map(rows[hi])
             for row in rows[hi + 1 :]:
@@ -520,6 +579,10 @@ def extract_am_setup_list(path: Path) -> dict[str, Any]:
                         "egregious_on_hand": as_int_round(
                             _cell(row, find_col(cmap, "Egregious on-hand"))
                         ),
+                        "no_sku_in_region_items": as_int_round(
+                            _cell(row, find_col(cmap, "No SKU in region"))
+                        ),
+                        "no_sku_plan_$": _money(_cell(row, find_col(cmap, "Plan $ with no SKU"))),
                     }
                 )
     except Exception as exc:
@@ -538,6 +601,7 @@ def extract_am_setup_list(path: Path) -> dict[str, Any]:
                 "other_market_only": [],
                 "no_usable_item": [],
                 "egregious_on_hand": [],
+                "no_sku_in_region": [],
             }
             current: str | None = None
             cmap: dict[str, int] = {}
@@ -545,37 +609,38 @@ def extract_am_setup_list(path: Path) -> dict[str, Any]:
                 if not row or row[0] is None:
                     continue
                 first = str(row[0]).strip()
-                matched = False
-                for pat, key in _AM_SECTION_PATTERNS:
-                    if pat.match(first):
-                        current = key
-                        cmap = {}
-                        matched = True
-                        break
-                if matched:
+                m = _AM_SECTION_RE.match(first)
+                if m:
+                    current = _AM_SECTION_KEYS[m.group(1)]
+                    cmap = {}
                     continue
                 if current and not cmap:
-                    # next non-empty row with "Cust" or "SKU" is header
                     joined = " ".join(norm_header(c) for c in row if c)
                     if "Cust" in joined or "SKU" in joined or "Store" in joined:
                         cmap = col_map(row)
                     continue
                 if current and cmap:
-                    if first.startswith(("1.", "2.", "3.", "4.", "5.", "How ")):
+                    low = first.lower()
+                    if low.startswith(("total", "none this week", "how ")):
                         continue
                     rec = _map_am_row(current, cmap, row)
                     if rec:
                         sections[current].append(rec)
-            # keep top by demand within each section
+            sort_key = {
+                "wrong_plants": "demand_$",
+                "not_set_up": "unfilled_$",
+                "other_market_only": "short_$",
+                "no_usable_item": "demand_$",
+                "egregious_on_hand": "retail_$",
+                "no_sku_in_region": "plan_$",
+            }
+            counts: dict[str, int] = {}
             for key, rows_list in sections.items():
-                if key in {"wrong_plants"}:
-                    rows_list.sort(key=lambda r: r.get("demand_$") or 0, reverse=True)
-                elif key == "not_set_up":
-                    rows_list.sort(key=lambda r: r.get("unfilled_$") or 0, reverse=True)
-                elif key == "other_market_only":
-                    rows_list.sort(key=lambda r: r.get("short_$") or 0, reverse=True)
+                counts[key] = len(rows_list)
+                rows_list.sort(key=lambda r: r.get(sort_key[key]) or 0, reverse=True)
                 sections[key] = rows_list[:80]
             out["by_manager"][sn.strip()] = sections
+            out.setdefault("section_counts", {})[sn.strip()] = counts
     finally:
         wb.close()
     return out

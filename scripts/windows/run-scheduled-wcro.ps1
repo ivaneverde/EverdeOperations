@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Monday (default 11:00 AM): extract newest WCRO handoff under DataDrops\WCRO → Blob.
+  Daily (11:00 AM + 12:00 PM + 2:30 PM): extract newest WCRO handoff under DataDrops\WCRO → Blob.
 
 .DESCRIPTION
   Watches:

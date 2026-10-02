@@ -38,6 +38,7 @@ DEFAULT_WCRO_ROOT = Path(
     r"\\192.168.190.10\Claude Sandbox\DataDrops\WCRO"
 )
 HANDOFF_DATE_RE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
+HANDOFF_VERSION_RE = re.compile(r"_HANDOFF_WCRO_(\d+(?:\.\d+)+)_", re.I)
 
 
 def find_latest_handoff(root: Path | None = None) -> Path | None:
@@ -53,14 +54,16 @@ def find_latest_handoff(root: Path | None = None) -> Path | None:
     if not packs:
         return None
 
-    def pack_key(p: Path) -> str:
-        m = HANDOFF_DATE_RE.search(p.name)
-        if m:
-            return m.group(1)
+    def pack_key(p: Path) -> tuple[str, tuple[int, ...], float]:
         try:
-            return datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d")
+            mtime = p.stat().st_mtime
         except OSError:
-            return "0000-00-00"
+            mtime = 0.0
+        m = HANDOFF_DATE_RE.search(p.name)
+        date = m.group(1) if m else datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
+        v = HANDOFF_VERSION_RE.search(p.name)
+        version = tuple(int(x) for x in v.group(1).split(".")) if v else ()
+        return (date, version, mtime)
 
     packs.sort(key=pack_key)
     for p in reversed(packs):
