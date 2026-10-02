@@ -7,11 +7,13 @@
   Schedules three per-user tasks on THIS machine (easy to re-run on a different PC later):
 
     Everde-SalesPlan-DailyCheck     8:00 AM + 12:00 PM + 2:30 PM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
-    Everde-Freight-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — Oracle archive -> Juanita xlsb -> WeeklyDrop -> Azure Blob
+    Everde-Freight-LoadBoard-Monday     Monday 8:00 AM — Fila everde_prod dump -> Juanita 2026 xlsb
+    Everde-Freight-DashboardEmail-Monday Monday 9:00 AM — handoff-kit dashboard + email (Ivan-only until opened)
     Everde-Retail-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
     Everde-Weather-DailyCheck       9:30 AM + 12:00 PM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
     Everde-Nursery-DailyCheck       1:30 PM + 2:30 PM daily — Inventory Metrics xlsb -> HTML + git push when changed
     Everde-NurserySupply-DailyCheck  9:00 AM daily — Gmail XXTT .xls → DataDrops → supply HTML + Blob + git push
+    Everde-WCRO-DailyCheck          11:00 AM + 12:00 PM + 2:30 PM daily — newest KAOWT _HANDOFF_WCRO_* pack -> Blob
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
   -FreightTime / -NurseryTime / -NurserySupplyTime adjusted for your timezone.
@@ -33,6 +35,8 @@ param(
   [string]$NurseryTime = "13:30",
   [string]$NurserySupplyTime = "09:00",
   [string]$WcroTime = "11:00",
+  [string]$LoadBoardTime = "08:00",
+  [string]$FreightDashboardEmailTime = "09:00",
   [string]$AgentLabel = "",
   [switch]$Unregister
 )
@@ -54,7 +58,7 @@ $tasks = @(
     Time = $FreightTime
     Script = "run-scheduled-freight.ps1"
     Schedule = "Daily"
-    Description = "Daily: rebuild Everde Freight Data xlsb from Oracle archive dump onto Juanita Load Board share; sync to WeeklyDrop; pipeline + Azure Blob when changed."
+    Description = "Daily: move Oracle freight_load_board dump from everde_prod to WeeklyDrop archive; rebuild xlsb to Juanita Load Board + WeeklyDrop; pipeline + Blob when changed."
   },
   @{
     Name = "Everde-Retail-DailyCheck"
@@ -85,12 +89,27 @@ $tasks = @(
     Description = "Daily 9:00 AM: Gmail XXTT inventory .xls → Sales Inventory Availability → supply HTML, Blob, git push."
   },
   @{
-    Name = "Everde-WCRO-WeeklyCheck"
+    Name = "Everde-WCRO-DailyCheck"
     Time = $WcroTime
     Script = "run-scheduled-wcro.ps1"
+    Schedule = "Daily"
+    Description = "Daily: if KAOWT dropped a new _HANDOFF_WCRO_* pack, extract → data/wcro_data.json → Azure Blob (portal + Teams bots)."
+  },
+  @{
+    Name = "Everde-Freight-LoadBoard-Monday"
+    Time = $LoadBoardTime
+    Script = "run-scheduled-load-board.ps1"
     Schedule = "Weekly"
     Day = "Monday"
-    Description = "Monday 11:00 AM: WCRO WeeklyDrop extract → data/wcro_data.json → Azure Blob (portal + Teams bots)."
+    Description = "Monday 8:00 AM: move Fila freight_load_board dump off everde_prod and write Juanita-format YTD xlsb to Load Board 2026."
+  },
+  @{
+    Name = "Everde-Freight-DashboardEmail-Monday"
+    Time = $FreightDashboardEmailTime
+    Script = "run-scheduled-freight-dashboard-email.ps1"
+    Schedule = "Weekly"
+    Day = "Monday"
+    Description = "Monday 9:00 AM: build Freight Dashboard from newest Juanita YTD xlsb and email Ivan only (test)."
   }
 )
 
@@ -98,7 +117,7 @@ $settings = New-ScheduledTaskSettingsSet `
   -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries `
   -StartWhenAvailable `
-  -ExecutionTimeLimit (New-TimeSpan -Hours 3)
+  -ExecutionTimeLimit (New-TimeSpan -Hours 4)
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
@@ -107,7 +126,8 @@ $legacyTaskNames = @(
   "Everde-Retail-WeeklyCheck",
   "Everde-Nursery-WeeklyCheck",
   "Everde-NurserySupply-WeeklyCheck",
-  "Everde-WCRO-WeeklyExtract"
+  "Everde-WCRO-WeeklyExtract",
+  "Everde-WCRO-WeeklyCheck"
 )
 
 if ($Unregister) {
@@ -187,5 +207,7 @@ Write-Host "  powershell -File scripts/windows/run-scheduled-weather.ps1 -Force"
 Write-Host "  powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-nursery-supply.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-wcro.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-load-board.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-freight-dashboard-email.ps1 -Force" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "IT handoff: scripts/windows/WEEKLY_DROP_AGENT.md" -ForegroundColor Yellow

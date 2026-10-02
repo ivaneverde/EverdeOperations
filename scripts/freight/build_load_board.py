@@ -2,8 +2,9 @@
 """
 Build Juanita's Everde Freight Data YTD workbook from an Oracle Load Board dump.
 
-Input (Oracle dump):  DataDrops\\Freight\\WeeklyDrop\\archive\\*Freight_Load_Board*.xls(x)
-Output (Juanita file): \\\\VRD-AWSECS\\...\\Load Board Reports\\2026\\Everde Freight Data YTD M-D-YY ...xlsb
+Input (Oracle dump):  \\\\10.178.0.201\\OracleShare\\everde_prod\\freight_load_board_*.xls
+                      moved to DataDrops\\Freight\\WeeklyDrop\\archive, then converted.
+Output: Juanita Load Board 2026 folder + DataDrops\\Freight\\WeeklyDrop
 
 Oracle columns paste into Raw Data C:AN. Columns A:B and AO:BP are Juanita's formulas.
 Other tabs are pivot tables + Lookup Tab + Truck Capacity (kept from the template, then refreshed).
@@ -44,8 +45,9 @@ DEFAULT_JUANITA_SHARE = (
     r"\\VRD-AWSECS\Everde Central Share\Farms\Performance Reports"
     r"\Freight Load Board Reports\Load Board Reports\2026"
 )
+DEFAULT_ORACLE_DROP = r"\\10.178.0.201\OracleShare\everde_prod"
 DEFAULT_SUFFIX = "with MAR-26 Rates with updated 26 BUD YE COSTS"
-ORACLE_NAME_RE = re.compile(r"Freight_Load_Board", re.I)
+ORACLE_NAME_RE = re.compile(r"freight[_ ]?load[_ ]?board", re.I)
 STATE_NAME = "load-board-oracle.json"
 
 
@@ -68,10 +70,19 @@ def weekly_drop() -> Path:
 def archive_dir() -> Path:
     import os
 
-    override = os.environ.get("FREIGHT_ORACLE_ARCHIVE")
+    override = os.environ.get("FREIGHT_LOAD_BOARD_ARCHIVE")
     if override:
         return Path(str(override).replace("/", "\\").rstrip("\\"))
     return weekly_drop() / "archive"
+
+
+def oracle_live_dir() -> Path:
+    import os
+
+    override = os.environ.get("FREIGHT_ORACLE_DROP") or os.environ.get("FREIGHT_ORACLE_ARCHIVE")
+    if override:
+        return Path(str(override).replace("/", "\\").rstrip("\\"))
+    return Path(DEFAULT_ORACLE_DROP)
 
 
 def juanita_share() -> Path:
@@ -156,10 +167,10 @@ def is_excel_error(v) -> bool:
     return False
 
 
-def find_newest_oracle(folder: Path) -> Path | None:
+def list_oracle_files(folder: Path) -> list[Path]:
     if not folder.is_dir():
-        return None
-    files = [
+        return []
+    return [
         p
         for p in folder.iterdir()
         if p.is_file()
@@ -168,9 +179,74 @@ def find_newest_oracle(folder: Path) -> Path | None:
         and not p.name.startswith("~$")
         and not p.name.startswith(".")
     ]
+
+
+def find_newest_oracle(folder: Path) -> Path | None:
+    files = list_oracle_files(folder)
     if not files:
         return None
     return max(files, key=lambda p: p.stat().st_mtime)
+
+
+def find_newest_oracle_anywhere() -> Path | None:
+    found: list[Path] = []
+    for folder in (oracle_live_dir(), archive_dir()):
+        p = find_newest_oracle(folder)
+        if p:
+            found.append(p)
+    if not found:
+        return None
+    return max(found, key=lambda p: p.stat().st_mtime)
+
+
+def unique_archive_path(src: Path, dest_dir: Path) -> Path:
+    dest = dest_dir / src.name
+    if not dest.exists():
+        return dest
+    try:
+        if dest.stat().st_size == src.stat().st_size:
+            return dest
+    except OSError:
+        pass
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    return dest_dir / f"{src.stem}_{stamp}{src.suffix}"
+
+
+def move_live_dumps_to_archive() -> list[Path]:
+    """Move freight_load_board dumps off everde_prod into WeeklyDrop\\archive."""
+    live = oracle_live_dir()
+    dest_dir = archive_dir()
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    moved: list[Path] = []
+    if not live.is_dir():
+        log(f"Oracle live drop not reachable: {live}")
+        return moved
+    files = list_oracle_files(live)
+    if not files:
+        log(f"No freight_load_board dump in {live} (already clear).")
+        return moved
+    for src in files:
+        dest = unique_archive_path(src, dest_dir)
+        log(f"Moving {src} -> {dest}")
+        try:
+            if dest.exists() and dest.stat().st_size == src.stat().st_size:
+                src.unlink()
+                log(f"  already in archive; removed live copy")
+                moved.append(dest)
+                continue
+            shutil.copy2(src, dest)
+            src.unlink()
+            moved.append(dest)
+        except Exception as exc:
+            log(f"  FAILED to clear live dump {src.name}: {exc}")
+            if dest.exists():
+                moved.append(dest)
+    leftover = list_oracle_files(live)
+    if leftover:
+        log(f"WARNING: still on everde_prod: {[p.name for p in leftover]}")
+    else:
+        log("everde_prod freight dumps cleared.")
+    return moved
 
 
 def file_looks_like_html(path: Path) -> bool:
@@ -665,7 +741,8 @@ def already_processed(source: Path, force: bool) -> bool:
     except Exception:
         return False
     now = fingerprint(source)
-    return prev.get("source") == now
+    prev_src = prev.get("source") or {}
+    return prev_src.get("size") == now["size"] and prev_src.get("mtime") == now["mtime"]
 
 
 def save_state(source: Path, dest: Path, stats: dict) -> None:
@@ -682,10 +759,15 @@ def save_state(source: Path, dest: Path, stats: dict) -> None:
 
 def run(args: argparse.Namespace) -> int:
     if args.from_archive:
+        moved = move_live_dumps_to_archive()
         source = args.source and Path(args.source) or find_newest_oracle(archive_dir())
         if source is None:
-            log(f"No Oracle Load Board xlsx in archive: {archive_dir()}")
+            source = find_newest_oracle_anywhere()
+        if source is None:
+            log(f"No Oracle Load Board dump in {oracle_live_dir()} or {archive_dir()}")
             return 0
+        if moved:
+            log(f"Staged {len(moved)} dump(s) into archive; converting {source.name}")
     else:
         if not args.source:
             raise SystemExit("--source is required unless --from-archive")
@@ -693,32 +775,42 @@ def run(args: argparse.Namespace) -> int:
     if not source.is_file():
         raise SystemExit(f"Oracle dump not found: {source}")
 
+    generated = datetime.now()
+    out_dir = Path(args.output) if args.output else output_dir()
+    planned_name = f"Everde Freight Data YTD {generated_stamp(generated)} {DEFAULT_SUFFIX}.xlsb"
+    if args.template:
+        template = Path(args.template)
+    else:
+        template = find_newest_template(
+            [output_dir(), juanita_share(), weekly_drop()],
+            exclude_names={planned_name},
+        )
+    if template is None or not template.is_file():
+        raise SystemExit("No Everde Freight Data*.xlsb template found in WeeklyDrop or Juanita share")
+    dest = out_dir / output_name(template, generated)
+
     if already_processed(source, args.force):
         log(f"Already processed {source.name} (same size/mtime). Use --force to rebuild.")
         return 0
 
+    newest_out = find_newest_template([out_dir, weekly_drop()])
+    if not args.force and newest_out and newest_out.stat().st_size > 1_000_000:
+        if newest_out.stat().st_mtime >= source.stat().st_mtime:
+            log(f"Output already up to date vs dump: {newest_out.name}")
+            wd = weekly_drop()
+            wd.mkdir(parents=True, exist_ok=True)
+            wd_dest = wd / newest_out.name
+            if newest_out.resolve() != wd_dest.resolve() and (
+                not wd_dest.exists() or wd_dest.stat().st_mtime < newest_out.stat().st_mtime
+            ):
+                log(f"Copying to WeeklyDrop: {wd_dest}")
+                shutil.copy2(newest_out, wd_dest)
+            save_state(source, newest_out, {"rows": None})
+            return 0
+
     pandas_src, src_tmp = prepare_oracle_for_pandas(source)
     try:
         as_of = parse_as_of_from_oracle(pandas_src)
-        generated = datetime.now()
-        out_dir = Path(args.output) if args.output else output_dir()
-        planned_name = f"Everde Freight Data YTD {generated_stamp(generated)} {DEFAULT_SUFFIX}.xlsb"
-        if args.template:
-            template = Path(args.template)
-        else:
-            template = find_newest_template(
-                [output_dir(), juanita_share(), weekly_drop()],
-                exclude_names={planned_name},
-            )
-        if template is None or not template.is_file():
-            raise SystemExit("No Everde Freight Data*.xlsb template found in WeeklyDrop or Juanita share")
-
-        dest = out_dir / output_name(template, generated)
-        if not args.force and dest.is_file():
-            if dest.stat().st_mtime >= source.stat().st_mtime and dest.stat().st_size > 1_000_000:
-                log(f"Output already up to date vs dump: {dest.name}")
-                save_state(source, dest, {"rows": None})
-                return 0
         log(f"Source:   {source}")
         log(f"Pandas:   {pandas_src}")
         log(f"Template: {template}")
@@ -727,8 +819,16 @@ def run(args: argparse.Namespace) -> int:
         log(f"Output:   {dest}")
 
         stats = build_workbook(pandas_src, template, dest, skip_pivots=args.skip_pivots)
+        wd = weekly_drop()
+        wd.mkdir(parents=True, exist_ok=True)
+        wd_dest = wd / dest.name
+        if dest.resolve() != wd_dest.resolve():
+            log(f"Copying to WeeklyDrop: {wd_dest}")
+            shutil.copy2(dest, wd_dest)
         save_state(source, dest, stats)
         log(f"Done. rows={stats['rows']} size={stats.get('output_size')} sample_month={stats.get('sample_month')!r}")
+        log(f"Juanita:  {dest}")
+        log(f"WeeklyDrop: {wd_dest}")
         return 0
     finally:
         if src_tmp:
@@ -740,7 +840,7 @@ def main() -> int:
     p.add_argument("--source", help="Oracle Load Board .xlsx")
     p.add_argument("--template", help="Existing Everde Freight Data YTD .xlsb (formulas + pivots)")
     p.add_argument("--output", help="Output directory (default: Juanita Load Board 2026 folder)")
-    p.add_argument("--from-archive", action="store_true", help="Use newest dump in WeeklyDrop\\archive")
+    p.add_argument("--from-archive", action="store_true", help="Use newest dump on OracleShare or WeeklyDrop\\archive")
     p.add_argument("--force", action="store_true", help="Rebuild even if this dump was already processed")
     p.add_argument("--skip-pivots", action="store_true", help="Paste + formulas only (faster debug)")
     args = p.parse_args()

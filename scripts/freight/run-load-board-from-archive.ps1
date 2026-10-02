@@ -5,11 +5,10 @@
   in Freight\WeeklyDrop\archive.
 
 .DESCRIPTION
-  Oracle dumps land in:
-    \\192.168.190.10\Claude Sandbox\DataDrops\Freight\WeeklyDrop\archive
-
-  Output (same naming as Juanita's files) lands in:
-    \\VRD-AWSECS\Everde Central Share\Farms\Performance Reports\Freight Load Board Reports\Load Board Reports\2026
+  1. Move freight_load_board_*.xls from \\10.178.0.201\OracleShare\everde_prod
+     into Freight\WeeklyDrop\archive (keeps everde_prod clear for next week).
+  2. Convert to Juanita-format Everde Freight Data YTD .xlsb
+  3. Write to Load Board Reports\2026 and copy to Freight\WeeklyDrop.
 
   Uses the newest existing Everde Freight Data*.xlsb as the template (formulas, Lookup Tab, pivots).
 

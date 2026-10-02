@@ -1,10 +1,10 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Daily check (default 10:00 AM local): rebuild Juanita-format Everde Freight Data YTD .xlsb from
-  the newest Oracle Load Board dump in Freight\WeeklyDrop\archive (if new) into Juanita's Load Board
-  share, then copy that file into WeeklyDrop, rebuild the freight dashboard if raw changed, and
-  publish JSON to Azure Blob when the dashboard workbook changes.
+  Daily check (default 10:00 AM local): move the newest Oracle freight_load_board dump from
+  \\10.178.0.201\OracleShare\everde_prod into Freight\WeeklyDrop\archive, rebuild Juanita-format
+  Everde Freight Data YTD .xlsb into the Load Board 2026 folder and WeeklyDrop, then publish the
+  dashboard if raw changed.
   Runs update.py with --skip-fuel-check so Task Scheduler never blocks on the fuel_data.py [y/N] prompt.
 #>
 param([switch]$Force)
@@ -26,6 +26,18 @@ try {
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $buildScript
   if ($LASTEXITCODE -ne 0) {
     Write-Warning "freight build-load-board exited $LASTEXITCODE (continuing with sync / WeeklyDrop contents)"
+  }
+
+  $isMondayCatchup = (Get-Date).DayOfWeek -eq [DayOfWeek]::Monday
+  if ($isMondayCatchup) {
+    $emailScript = Join-Path $PSScriptRoot "run-scheduled-freight-dashboard-email.ps1"
+    if (Test-Path -LiteralPath $emailScript) {
+      Write-Host "Monday catch-up: dashboard email if today's Juanita xlsb exists and was not already sent..." -ForegroundColor Cyan
+      & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $emailScript -WaitMinutes 0
+      if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Monday dashboard email catch-up exited $LASTEXITCODE"
+      }
+    }
   }
 
   Write-Host "Syncing freight raw from Load Board share..." -ForegroundColor Cyan
@@ -83,6 +95,7 @@ try {
   }
   $dash = Newest @(
     "Everde Freight Dashboard*.xlsx",
+    "Everde_Freight_Dashboard*.xlsx",
     "Everde_Freight_Dashboard*.xlsb",
     "Everde Freight Dashboard*.xlsb"
   )
@@ -98,18 +111,24 @@ try {
   Push-Location $RepoRoot
 
   if ($rawNew -and $raw) {
-    Write-Host "New raw freight file: $($raw.Name). Running update.py pipeline (non-interactive)..." -ForegroundColor Green
-    & npm run freight:update-weekly -- -SkipFuelCheck
-    if ($LASTEXITCODE -ne 0) {
-      Write-Warning "freight:update-weekly exited $LASTEXITCODE (may still publish if dashboard was copied)"
+    $isMonday = (Get-Date).DayOfWeek -eq [DayOfWeek]::Monday
+    if ($isMonday) {
+      Write-Host "Monday: skipping legacy DataDrops update.py (9:00 AM handoff-kit job owns the Excel dashboard email)." -ForegroundColor Cyan
+    } else {
+      Write-Host "New raw freight file: $($raw.Name). Running update.py pipeline (non-interactive)..." -ForegroundColor Green
+      & npm run freight:update-weekly -- -SkipFuelCheck
+      if ($LASTEXITCODE -ne 0) {
+        Write-Warning "freight:update-weekly exited $LASTEXITCODE (may still publish if dashboard was copied)"
+      }
+      $dash = Newest @(
+        "Everde Freight Dashboard*.xlsx",
+        "Everde_Freight_Dashboard*.xlsx",
+        "Everde_Freight_Dashboard*.xlsb",
+        "Everde Freight Dashboard*.xlsb"
+      )
+      $dashFp = Get-FileFingerprint $dash
+      $dashNew = $true
     }
-    $dash = Newest @(
-      "Everde Freight Dashboard*.xlsx",
-      "Everde_Freight_Dashboard*.xlsb",
-      "Everde Freight Dashboard*.xlsb"
-    )
-    $dashFp = Get-FileFingerprint $dash
-    $dashNew = $true
   }
 
   if (-not $dash) {

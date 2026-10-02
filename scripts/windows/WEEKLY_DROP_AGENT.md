@@ -7,7 +7,9 @@ This document describes the **on-premises “agent” machine** that watches `Da
 | Time (Pacific) | Task name | Watches | Output |
 |----------------|-----------|---------|--------|
 | **8:00 AM** | `Everde-SalesPlan-DailyCheck` | `Sales Plan Review\WeeklyDrop\` | Azure Blob `sales_plan_data.json` |
-| **10:00 AM** | `Everde-Freight-DailyCheck` | Oracle dump in `Freight\WeeklyDrop\archive` → Juanita Load Board share `...\2026\` | Build Juanita-format `.xlsb` there; sync copy into `Freight\WeeklyDrop\` for dashboard + Azure Blob |
+| **8:00 AM Mon** | `Everde-Freight-LoadBoard-Monday` | `\\10.178.0.201\OracleShare\everde_prod\freight_load_board_*.xls` | Juanita `...\Load Board Reports\2026\` + WeeklyDrop archive |
+| **9:00 AM Mon** | `Everde-Freight-DashboardEmail-Monday` | Newest Juanita `Everde Freight Data YTD …xlsb` | `Everde_Freight_Dashboard_YYYY-MM-DD.xlsx` emailed to **Ivan only** (test). Subject `Freight Dashboard`. |
+| **10:00 AM** | `Everde-Freight-DailyCheck` | same `everde_prod` dump if 8am missed it | Catch-up convert → Juanita + WeeklyDrop; portal Blob (legacy Excel dashboard skipped on Mondays) |
 | **9:30 AM** | `Everde-Weather-DailyCheck` | `Weather\WeeklyDrop\` (daily sales sync) + `JS Files\Weather Data\scripts\` | Blob `weather_dashboard_data.json` (**Open-Meteo 7-day forecast always refreshed** before publish; sales×weather crosswalk when share scripts succeed) |
 | **10:00 AM** | `Everde-Retail-DailyCheck` | `Weather\WeeklyDrop\` + share retail feeds → `SalesOpportunity\` | Blob `retail_opp_data.json` |
 | **12:00 PM** | *(Sales Plan, Freight, Retail, Weather)* | Same drop folders | **Midday check** — Brent/Armando files that land late morning |
@@ -19,9 +21,11 @@ This document describes the **on-premises “agent” machine** that watches `Da
 
 Each job **skips** if no new file since last success (state under `.everde-scheduler/`). A **12:00 PM** midday check plus a **2:30 PM** catch-up pick up files that land after the morning jobs (common for Brent/Armando dailies and Following Week YTD). Logs: `.everde-scheduler/logs/`.
 
-**WCRO** runs **Monday 11:00 AM** via `npm run weekly:register-tasks` → `run-scheduled-wcro.ps1`. Jonathan drops a new `_HANDOFF_WCRO_*` pack into `DataDrops\WCRO\`; the job extracts the newest pack's `reports\` (published workbooks only — it does not rebuild WCRO from HD/LOW YTD).
+**WCRO** runs **daily at 11:00 AM** (plus 12:00 PM midday and 2:30 PM catch-up) via `npm run weekly:register-tasks` → `run-scheduled-wcro.ps1` (task `Everde-WCRO-DailyCheck`). Jonathan's KAOWT automation drops a new `_HANDOFF_WCRO_<version>_<date>` pack into `DataDrops\WCRO\` (emails "KAOWT: WCRO pack delivered to the IT share"); the job extracts the newest pack's `reports\` (published workbooks only — it does not rebuild WCRO from HD/LOW YTD) and skips when nothing changed. Superseded packs can be moved to `DataDrops\WCRO\archive\` (ignored by the job).
 
-**Freight** runs **daily at 10:00 AM** (plus 12:00 PM midday and 2:30 PM catch-up): the job rebuilds Juanita's `Everde Freight Data YTD *.xlsb` from the newest Oracle `*Freight_Load_Board*.xls` / `.xlsx` in `Freight\WeeklyDrop\archive` (Excel COM: paste onto **Raw Data** C:AN, fill formulas, refresh pivots) and writes it to `\\VRD-AWSECS\Everde Central Share\Farms\Performance Reports\Freight Load Board Reports\Load Board Reports\2026`. Manual: `npm run freight:build-load-board`. If the archive dump is unchanged, it skips. Then it copies the newest file from that Load Board folder into `Freight\WeeklyDrop\` and runs the dashboard pipeline if the raw or dashboard changed. Uses `update.py --skip-fuel-check` so Task Scheduler never waits at `Proceed with current fuel_data.py values? [y/N]`. **Production & Demand (Inventory Metrics)** runs **daily** when a new xlsb appears. Requires **desktop Excel** on the agent PC for the Load Board rebuild.
+**Freight Load Board:** **Monday 8:00 AM** plus daily **10:00 AM / 12:00 PM / 2:30 PM** catch-ups if Fila's dump is late. Oracle drops `freight_load_board_*.xls` on `\\10.178.0.201\OracleShare\everde_prod` weekly (Monday). The job **moves** that file into `Freight\WeeklyDrop\archive` (zip/csv stay on `everde_prod`), rebuilds Juanita's `Everde Freight Data YTD *.xlsb`, and writes it to `\\VRD-AWSECS\...\Load Board Reports\2026` plus `WeeklyDrop\`. Manual: `npm run freight:build-load-board`. Unchanged dumps skip the rebuild. Requires **desktop Excel**.
+
+**Freight Dashboard email:** **Monday 9:00 AM** waits up to 50 minutes for today's Juanita xlsb, runs the 30-step handoff kit (prior-Friday ship cap + Excel recalc), and emails **Freight Dashboard** to `isunderland@everde.com` only until the team list is opened. This PC must be logged in (Outlook + Excel COM). If the dump is missing, it skips (no last-week resend). Monday 12:00 / 2:30 convert jobs retry the email with no extra wait once today's xlsb exists.
 
 **Agent PC must register tasks once:** `npm run weekly:register-tasks` (no `Everde-*` tasks = nothing runs automatically).
 
@@ -70,6 +74,8 @@ Each job **skips** if no new file since last success (state under `.everde-sched
    powershell -File scripts/windows/run-scheduled-retail-build.ps1 -Force
    powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force
    powershell -File scripts/windows/run-scheduled-nursery-supply.ps1 -Force
+   powershell -File scripts/windows/run-scheduled-load-board.ps1 -Force
+   powershell -File scripts/windows/run-scheduled-freight-dashboard-email.ps1 -Force
    ```
 
 ## Operator drop locations
@@ -77,7 +83,7 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 | Report | Drop folder | Files |
 |--------|-------------|-------|
 | Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` (agent can auto-copy newest from admin `Planning & Reporting\...\Current Year Sales by Items (Posted Weekly)` via `npm run sales-plan:sync-sales-by-item`); same Sales by Item file also feeds **Claude `get_sales_by_item`** (rep × channel × year; 2025 history from `Shared\Sales Data\2025 Sales by Item.xlsx`); **HD Sales YTD with Following Week Sales`*.xlsx`** (newest → HD portal grid); **`YTD BY STORE SKU*.xlsb`** (Lowe's Following Week — newest → Lowes portal grid; name differs from HD so both can share this folder) |
-| Freight | Oracle dump → `DataDrops\Freight\WeeklyDrop\archive\` (`*Freight_Load_Board*.xls` / `.xlsx`); rebuilt `Everde Freight Data YTD *.xlsb` lands on `\\VRD-AWSECS\...\Load Board Reports\2026\` | Agent then syncs that `.xlsb` into `WeeklyDrop\` for the dashboard pipeline |
+| Freight | Weekly Monday dump `\\10.178.0.201\OracleShare\everde_prod\freight_load_board_*.xls` — agent **moves** it to `DataDrops\Freight\WeeklyDrop\archive\` | Rebuilt `Everde Freight Data YTD *.xlsb` on Juanita `...\Load Board Reports\2026\` **and** `WeeklyDrop\` |
 | Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` (weekly drop, typically Monday); optional `WkNN_Site_Focus_Summary*.docx` → portal **Site Focus Summary** subsection |
 | Supply Inventory (XXTT) | Gmail → `DataDrops\Sales Inventory Availability\` | Newest `XXTT_INV_QA_LANDSCAPE_INV_PL_*.xls` — **daily 9:00 AM** agent fetches from Gmail (Oracle ~3 AM email) then refreshes supply pane + Blob (`npm run nursery:refresh-supply`). Set `XXTT_GMAIL_USER` + `XXTT_GMAIL_APP_PASSWORD` in `.env.local`. |
 | Weather / Retail (Jonathan) | `DataDrops\Weather\WeeklyDrop\` | **Weekly retail:** newest `HD week*.xlsx` or `HD Sales YTD*.xlsx`, newest `YTD BY STORE SKU*.xlsb` / `Lowes YTD*.xlsb`. **Daily weather sales (optional same folder):** `HD FL/SE/SW Daily*.xlsx`, `LOWES Daily Retail Sales*.xlsx` (main + STX.NTX). |
