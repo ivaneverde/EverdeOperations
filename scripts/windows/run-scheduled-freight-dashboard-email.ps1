@@ -4,7 +4,8 @@
   Monday 9:00 AM: build the Freight Dashboard from today's Juanita YTD xlsb,
   publish it to Blob (portal + Teams), then email it. Subject: Freight Dashboard.
   Recipients: FREIGHT_DASHBOARD_EMAIL_TO / FREIGHT_DASHBOARD_EMAIL_CC in .env.local
-  (default Ivan only). A failed publish means no email.
+  (default Ivan only). Sends only when today's Load Board xlsb exists, the kit build and
+  source-integrity gate pass, the new week's ship dates are present, and the Blob publish succeeds.
 
 .DESCRIPTION
   Waits up to -WaitMinutes for a Juanita YTD xlsb written TODAY (no last-week resend).
@@ -53,9 +54,6 @@ try {
   $today = (Get-Date).ToString("yyyy-MM-dd")
   $to = if ($env:FREIGHT_DASHBOARD_EMAIL_TO) { $env:FREIGHT_DASHBOARD_EMAIL_TO.Trim() } else { "isunderland@everde.com" }
   $cc = if ($env:FREIGHT_DASHBOARD_EMAIL_CC) { $env:FREIGHT_DASHBOARD_EMAIL_CC.Trim() } else { "" }
-  if ("$to;$cc" -match "jsaperstein@everde.com") {
-    throw "Refusing to email Jonathan. Ivan-only until the team list is opened."
-  }
 
   $kit = if ($env:FREIGHT_HANDOFF_KIT) {
     ($env:FREIGHT_HANDOFF_KIT.Trim() -replace "/", "\").TrimEnd("\")
@@ -181,12 +179,15 @@ try {
     Write-Host "Copied dashboard to WeeklyDrop." -ForegroundColor Cyan
   }
 
+  $compose = Join-Path $RepoRoot "scripts\freight\compose_dashboard_email.py"
+  & $python $compose $kit --verify
+  if ($LASTEXITCODE -ne 0) { throw "Dashboard build is not ready to email (see NOT READY above). Not publishing or emailing." }
+
   $publish = Join-Path $RepoRoot "scripts\freight\run-extract-and-publish.ps1"
   Write-Host "Publishing dashboard to Blob (portal + Teams) before emailing..." -ForegroundColor Cyan
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publish -DashboardPath $workbook
   if ($LASTEXITCODE -ne 0) { throw "run-extract-and-publish.ps1 exited $LASTEXITCODE (not emailing)" }
 
-  $compose = Join-Path $RepoRoot "scripts\freight\compose_dashboard_email.py"
   $bodyPath = Join-Path $kit "_pipeline\_work\dashboard_email_body.html"
   & $python $compose $kit $bodyPath
   if ($LASTEXITCODE -ne 0) { throw "compose_dashboard_email.py exited $LASTEXITCODE" }

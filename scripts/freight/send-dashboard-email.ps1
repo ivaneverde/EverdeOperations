@@ -3,8 +3,8 @@
 .SYNOPSIS
   Send the weekly Freight Dashboard via the signed-in Outlook profile.
 
-  NEVER send as Jonathan. NEVER send to the team until Ivan has reviewed.
-  Default is a TEST send to isunderland@everde.com only.
+  NEVER send as Jonathan (the Outlook profile check below enforces it).
+  Default To is isunderland@everde.com; the Monday job passes the team list from .env.local.
 
 .EXAMPLE
   .\send-dashboard-email.ps1 -Workbook "C:\Users\isunderland\FreightHandoff\Everde_Freight_Dashboard_2026-09-29.xlsx"
@@ -25,21 +25,6 @@ $ErrorActionPreference = "Stop"
 if (-not (Test-Path -LiteralPath $Workbook)) {
   throw "Workbook not found: $Workbook"
 }
-
-$blocked = @("jsaperstein@everde.com")
-function Assert-NotJonathan([string]$addr) {
-  foreach ($part in ($addr -split "[;,]")) {
-    $p = $part.Trim()
-    if (-not $p) { continue }
-    foreach ($b in $blocked) {
-      if ($p -match [regex]::Escape($b)) {
-        throw "Refusing to send as/to Jonathan ($p). Use Everde AI Operations / Ivan only."
-      }
-    }
-  }
-}
-Assert-NotJonathan $To
-Assert-NotJonathan $Cc
 
 if ($BodyFile -and (Test-Path -LiteralPath $BodyFile)) {
   $BodyText = [System.IO.File]::ReadAllText($BodyFile)

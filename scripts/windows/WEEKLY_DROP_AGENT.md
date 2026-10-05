@@ -8,7 +8,7 @@ This document describes the **on-premises “agent” machine** that watches `Da
 |----------------|-----------|---------|--------|
 | **8:00 AM** | `Everde-SalesPlan-DailyCheck` | `Sales Plan Review\WeeklyDrop\` | Azure Blob `sales_plan_data.json` |
 | **8:00 AM Mon** | `Everde-Freight-LoadBoard-Monday` | `\\10.178.0.201\OracleShare\everde_prod\freight_load_board_*.xls` | Juanita `...\Load Board Reports\2026\` + WeeklyDrop archive |
-| **9:00 AM Mon** | `Everde-Freight-DashboardEmail-Monday` | Newest Juanita `Everde Freight Data YTD …xlsb` | `Everde_Freight_Dashboard_YYYY-MM-DD.xlsx` emailed to **Ivan only** (test). Subject `Freight Dashboard`. |
+| **9:00 AM Mon** | `Everde-Freight-DashboardEmail-Monday` | Newest Juanita `Everde Freight Data YTD …xlsb` | `Everde_Freight_Dashboard_YYYY-MM-DD.xlsx` published to Blob, then emailed to the team (`FREIGHT_DASHBOARD_EMAIL_TO` / `_CC` in `.env.local`: Justin, Juanita, Jimena; Cc Jonathan). Sends only if today's xlsb exists, the build + integrity gate pass and the new week is present. Subject `Freight Dashboard`. |
 | **10:00 AM** | `Everde-Freight-DailyCheck` | same `everde_prod` dump if 8am missed it | Catch-up convert → Juanita + WeeklyDrop; portal Blob (legacy Excel dashboard skipped on Mondays) |
 | **9:30 AM** | `Everde-Weather-DailyCheck` | `Weather\WeeklyDrop\` (daily sales sync) + `JS Files\Weather Data\scripts\` | Blob `weather_dashboard_data.json` (**Open-Meteo 7-day forecast always refreshed** before publish; sales×weather crosswalk when share scripts succeed) |
 | **10:00 AM** | `Everde-Retail-DailyCheck` | `Weather\WeeklyDrop\` + share retail feeds → `SalesOpportunity\` | Blob `retail_opp_data.json` |

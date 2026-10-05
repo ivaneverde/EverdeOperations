@@ -8,11 +8,11 @@ Writes an HTML fragment for send-dashboard-email.ps1.
 
 Usage:
     python compose_dashboard_email.py <kit_root> [out.html]
+    python compose_dashboard_email.py <kit_root> --verify    exit 3 if not safe to email
 
 Env:
-    FREIGHT_SHIP_CAP                 last ship date in the build (YYYY-MM-DD); default = max Ship Date
-    FREIGHT_DASHBOARD_EMAIL_GREETING default "Hi team,"
-    FREIGHT_PORTAL_URL               default portal Freight Exec Summary page
+    FREIGHT_SHIP_CAP              last ship date in the build (YYYY-MM-DD); default = max Ship Date
+    FREIGHT_DASHBOARD_EMAIL_INTRO opening line (default matches Ivan's 10/5/26 send)
 """
 from __future__ import annotations
 
@@ -191,15 +191,37 @@ def compose(kit: Path) -> tuple[list[str], list[str], str]:
     return takeaways[:7], actions[:5], window
 
 
+def verify_ready(kit: Path) -> list[str]:
+    """Reasons the build is not safe to email; empty list = ready."""
+    problems: list[str] = []
+    stop = kit / "_pipeline" / "_quality_log" / "source_integrity_STOP.txt"
+    if stop.is_file():
+        problems.append("source-integrity gate fired (source_integrity_STOP.txt)")
+    pkl = kit / "_pipeline" / "_work" / "master_clean.pkl"
+    if not pkl.is_file():
+        return problems + ["master_clean.pkl missing (kit build did not finish)"]
+    df = pd.read_pickle(pkl)
+    ship = pd.to_datetime(df["Ship Date"]).dt.date
+    cap_env = (os.environ.get("FREIGHT_SHIP_CAP") or "").strip()
+    cap = date.fromisoformat(cap_env) if cap_env else ship.max()
+    start, end = _week_window(cap)
+    wk_rows = int(((ship >= start) & (ship <= end)).sum())
+    if wk_rows == 0:
+        problems.append(f"no ship dates in the new week {_md(start)}–{_md(end)} (Load Board not refreshed?)")
+    if ship.max() < end - timedelta(days=1):
+        problems.append(f"latest ship date {ship.max()} is before {end - timedelta(days=1)} (new week incomplete)")
+    return problems
+
+
 def to_html(takeaways: list[str], actions: list[str], window: str) -> str:
-    greeting = (os.environ.get("FREIGHT_DASHBOARD_EMAIL_GREETING") or "Hi team,").strip()
-    portal = (os.environ.get("FREIGHT_PORTAL_URL") or "https://everde-operations.vercel.app/load-board-freight/freight-tab-exec-summary").strip()
+    intro = (
+        os.environ.get("FREIGHT_DASHBOARD_EMAIL_INTRO")
+        or "Attached has been updated and I got the below comments."
+    ).strip()
     t = "\n".join(f"<li>{_esc(x)}</li>" for x in takeaways)
     a = "\n".join(f"<li>{_esc(x)}</li>" for x in actions)
     return (
-        f"<p>{_esc(greeting)}</p>\n"
-        f"<p>Attached is the Freight Dashboard through {_esc(window)}. The same data is live on the "
-        f'<a href="{_esc(portal)}">AI Operations Portal</a> and in Teams (@Claude).</p>\n'
+        f"<p>{_esc(intro)}</p>\n"
         "<p><b>Key takeaways</b></p>\n"
         f"<ul>\n{t}\n</ul>\n"
         "<p><b>Action items</b></p>\n"
@@ -212,6 +234,13 @@ def main() -> int:
         print(__doc__.strip(), file=sys.stderr)
         return 2
     kit = Path(sys.argv[1])
+    if len(sys.argv) > 2 and sys.argv[2] == "--verify":
+        problems = verify_ready(kit)
+        for p in problems:
+            print(f"NOT READY: {p}", file=sys.stderr)
+        if not problems:
+            print("READY")
+        return 3 if problems else 0
     out = Path(sys.argv[2]) if len(sys.argv) > 2 else kit / "_pipeline" / "_work" / "dashboard_email_body.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     takeaways, actions, window = compose(kit)

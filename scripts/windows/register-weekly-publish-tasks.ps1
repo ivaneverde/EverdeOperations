@@ -8,7 +8,7 @@
 
     Everde-SalesPlan-DailyCheck     8:00 AM + 12:00 PM + 2:30 PM daily — Sales Plan Review\WeeklyDrop -> Azure Blob
     Everde-Freight-LoadBoard-Monday     Monday 8:00 AM — Fila everde_prod dump -> Juanita 2026 xlsb
-    Everde-Freight-DashboardEmail-Monday Monday 9:00 AM — handoff-kit dashboard + email (Ivan-only until opened)
+    Everde-Freight-DashboardEmail-Monday Monday 9:00 AM — handoff-kit dashboard + Blob publish + team email
     Everde-Retail-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
     Everde-Weather-DailyCheck       9:30 AM + 12:00 PM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
     Everde-Nursery-DailyCheck       1:30 PM + 2:30 PM daily — Inventory Metrics xlsb -> HTML + git push when changed
@@ -109,7 +109,7 @@ $tasks = @(
     Script = "run-scheduled-freight-dashboard-email.ps1"
     Schedule = "Weekly"
     Day = "Monday"
-    Description = "Monday 9:00 AM: build Freight Dashboard from newest Juanita YTD xlsb and email Ivan only (test)."
+    Description = "Monday 9:00 AM: build Freight Dashboard from today's Juanita YTD xlsb, publish to Blob, email the team (.env.local recipients)."
   }
 )
 
