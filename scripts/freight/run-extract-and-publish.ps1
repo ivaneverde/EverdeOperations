@@ -8,7 +8,7 @@
   Loads server env from repo .env.local (AZURE_*, FREIGHT_PYTHON, PORTAL_DATA_ROOT, FREIGHT_DASHBOARD_XLSB).
 
   Auto-pick: newest dashboard workbook in Freight\WeeklyDrop only (after update.py or manual copy).
-  Patterns: Everde Freight Dashboard*.xlsx, Everde_Freight_Dashboard*.xlsb, Everde Freight Dashboard*.xlsb.
+  Patterns: Everde Freight Dashboard*.xlsx, Everde_Freight_Dashboard*.xlsx (handoff kit), Everde_Freight_Dashboard*.xlsb, Everde Freight Dashboard*.xlsb.
   Raw Everde Freight Data*.xlsb belong in WeeklyDrop for update.py — not used by extract_data.py.
 
 .EXAMPLE
@@ -60,8 +60,10 @@ if (-not $inputFile) {
   } else {
     $weeklyDrop = Join-Path $freightShare "WeeklyDrop"
   }
+  # Everde_Freight_Dashboard_YYYY-MM-DD.xlsx = Monday handoff-kit output (legacy update.py is skipped Mondays)
   $patterns = @(
     "Everde Freight Dashboard*.xlsx",
+    "Everde_Freight_Dashboard*.xlsx",
     "Everde_Freight_Dashboard*.xlsb",
     "Everde Freight Dashboard*.xlsb"
   )
