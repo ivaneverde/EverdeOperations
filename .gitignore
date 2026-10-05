@@ -69,6 +69,12 @@ next-env.d.ts
 
 # Scheduled DataDrops agent state and logs (per machine)
 /.everde-scheduler/
+/teams-claude-bot/.usage-logs/
+# Raw email attachments / drops staged for processing (business data, large binaries)
+/_incoming/
+__pycache__/
+/scripts/sales-plan-review/cache/
+/scripts/sales-plan-review/NOR_CAL_Forward_Looking_INV_vs_Sales_Plan_*.xlsx
 
 # Disaster recovery doc with live secrets — email to yourself; never commit
 /docs/DISASTER_RECOVERY.md
