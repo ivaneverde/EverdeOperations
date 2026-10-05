@@ -1,8 +1,10 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Monday 9:00 AM: build Jonathan's Freight Dashboard from today's Juanita YTD xlsb
-  and email Ivan only (test). Subject: Freight Dashboard.
+  Monday 9:00 AM: build the Freight Dashboard from today's Juanita YTD xlsb,
+  publish it to Blob (portal + Teams), then email it. Subject: Freight Dashboard.
+  Recipients: FREIGHT_DASHBOARD_EMAIL_TO / FREIGHT_DASHBOARD_EMAIL_CC in .env.local
+  (default Ivan only). A failed publish means no email.
 
 .DESCRIPTION
   Waits up to -WaitMinutes for a Juanita YTD xlsb written TODAY (no last-week resend).
@@ -15,7 +17,8 @@
 #>
 param(
   [switch]$Force,
-  [int]$WaitMinutes = 50
+  [int]$WaitMinutes = 50,
+  [switch]$DraftOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,7 +52,8 @@ $lockPath = $null
 try {
   $today = (Get-Date).ToString("yyyy-MM-dd")
   $to = if ($env:FREIGHT_DASHBOARD_EMAIL_TO) { $env:FREIGHT_DASHBOARD_EMAIL_TO.Trim() } else { "isunderland@everde.com" }
-  if ($to -match "jsaperstein@everde.com") {
+  $cc = if ($env:FREIGHT_DASHBOARD_EMAIL_CC) { $env:FREIGHT_DASHBOARD_EMAIL_CC.Trim() } else { "" }
+  if ("$to;$cc" -match "jsaperstein@everde.com") {
     throw "Refusing to email Jonathan. Ivan-only until the team list is opened."
   }
 
@@ -177,25 +181,35 @@ try {
     Write-Host "Copied dashboard to WeeklyDrop." -ForegroundColor Cyan
   }
 
+  $publish = Join-Path $RepoRoot "scripts\freight\run-extract-and-publish.ps1"
+  Write-Host "Publishing dashboard to Blob (portal + Teams) before emailing..." -ForegroundColor Cyan
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $publish -DashboardPath $workbook
+  if ($LASTEXITCODE -ne 0) { throw "run-extract-and-publish.ps1 exited $LASTEXITCODE (not emailing)" }
+
   $compose = Join-Path $RepoRoot "scripts\freight\compose_dashboard_email.py"
   $bodyPath = Join-Path $kit "_pipeline\_work\dashboard_email_body.html"
   & $python $compose $kit $bodyPath
   if ($LASTEXITCODE -ne 0) { throw "compose_dashboard_email.py exited $LASTEXITCODE" }
 
   $send = Join-Path $RepoRoot "scripts\freight\send-dashboard-email.ps1"
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $send `
-    -Workbook $workbook `
-    -To $to `
-    -Subject "Freight Dashboard" `
-    -BodyFile $bodyPath
+  $sendArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $send,
+    "-Workbook", $workbook, "-To", $to, "-Subject", "Freight Dashboard", "-BodyFile", $bodyPath)
+  if ($cc) { $sendArgs += @("-Cc", $cc) }
+  if ($DraftOnly) { $sendArgs += "-DraftOnly" }
+  & powershell.exe @sendArgs
   if ($LASTEXITCODE -ne 0) { throw "send-dashboard-email.ps1 exited $LASTEXITCODE" }
 
+  if ($DraftOnly) {
+    Write-Host "Saved Outlook draft for $to (state not updated; scheduled send still runs)." -ForegroundColor Green
+    exit 0
+  }
   Set-PipelineState $RepoRoot "freight-dashboard-email" @{
     sentDate    = $today
     workbook    = $workbook
     source      = $src.FullName
     shipCap     = $cap
     to          = $to
+    cc          = $cc
     processedAt = (Get-Date).ToUniversalTime().ToString("o")
   }
   Write-Host "Freight Dashboard emailed to $to (subject Freight Dashboard)." -ForegroundColor Green
