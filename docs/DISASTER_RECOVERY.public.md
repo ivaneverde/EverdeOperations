@@ -2,7 +2,7 @@
 
 **No secrets in this file.** The filled-in inventory with all credentials lives in **`docs/DISASTER_RECOVERY.md`** on Ivan's laptop — that file is **gitignored**. Email that file to yourself for backup; paste it into Cursor on a new machine.
 
-**Last updated:** 2026-08-28  
+**Last updated:** 2026-10-05  
 **Repo:** https://github.com/ivaneverde/EverdeOperations.git  
 **Production portal:** https://everde-operations.vercel.app  
 **Teams bot health:** https://everde-claude-teams-bot.azurewebsites.net/health
@@ -18,6 +18,7 @@
 | Live dashboard JSON | Azure Blob (`everde-freight`) |
 | Source code | GitHub |
 | Excel feeds | LAN share `\\192.168.190.10\Claude Sandbox\DataDrops` |
+| Freight handoff kit (not in git) | `DataDrops\Freight\_HandoffKit_Backup\` (full kit incl. prior-year YE xlsb); code also in the emailed `Everde_Backup_YYYY-MM-DD.zip` |
 
 Daily data refresh stops only if the lost laptop was the **scheduled agent PC** (hostname `VRD-8FQJYW3`).
 
