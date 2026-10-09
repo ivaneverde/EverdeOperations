@@ -8,6 +8,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-device web portal** (phones, tablets, desktops) with appropriate auth and hosting; keep layouts responsive and avoid assumptions that only apply to a single desktop on VPN.
 
+## Cursor Cloud specific instructions
+
+- Install from `/workspace`: `npm ci`, then `npm ci --prefix teams-claude-bot`. Node `>=20.9.0` (`package.json` `engines`). The default image Node 22 is enough; do not install Windows PowerShell or `pywin32`.
+- Dev server: `npm run dev -- --hostname 0.0.0.0 --port 3000`. Smoke check: `GET /api/health` returns `{ "ok": true, "service": "everde-ai-operations" }`.
+- Leave `PORTAL_REQUIRE_AUTH` unset. WCRO loads `data/wcro_data.json` (fallback `public/wcro_data.json`). Freight, nursery, sales plan, and weather HTML are served from `public/` without Azure Blob or the UNC share. A working click-through is home → WCRO Store Recommendation (`/wcro/wcro-store-rec`) → On Hand & Register (`/wcro/wcro-onhand`, Weekly / YTD).
+- Portal checks: `npx eslint src` and `npm run build`. Bare `npm run lint` also scans `public/freight-gap-enhancements.js` and `teams-claude-bot` and currently fails there on missing browser/Node globals. `next build` lints `src` only and passes.
+- Teams bot: `npm run typecheck` inside `teams-claude-bot`. Starting it needs Bot Framework and `ANTHROPIC_API_KEY` values from `teams-claude-bot/.env.example`. The portal dev server does not start the bot.
+
 ## Everde — saved decisions & backlog (handoff)
 
 **Repo / app:** Next.js portal at `C:\Users\isunderland\everde-ai-operations` (package `everde-ai-operations`). Data config: `src/config/portal.ts` (`DATA_ROOT_UNC` = `\\192.168.190.10\Claude Sandbox\DataDrops`).
