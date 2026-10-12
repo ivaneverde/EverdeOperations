@@ -39,6 +39,7 @@ DEFAULT_WCRO_ROOT = Path(
 )
 HANDOFF_DATE_RE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
 HANDOFF_VERSION_RE = re.compile(r"_HANDOFF_WCRO_(\d+(?:\.\d+)+)_", re.I)
+HANDOFF_COMPLETE_RE = re.compile(r"^_HANDOFF_WCRO_\d+(?:\.\d+)+_\d{4}-\d{2}-\d{2}$", re.I)
 
 
 def find_latest_handoff(root: Path | None = None) -> Path | None:
@@ -46,10 +47,11 @@ def find_latest_handoff(root: Path | None = None) -> Path | None:
     base = root or DEFAULT_WCRO_ROOT
     if not base.is_dir():
         return None
+    # KAOWT copies into `<pack>.kaowt-copying` and renames when done; only finished packs count.
     packs = [
         p
         for p in base.iterdir()
-        if p.is_dir() and p.name.upper().startswith("_HANDOFF_WCRO")
+        if p.is_dir() and HANDOFF_COMPLETE_RE.match(p.name)
     ]
     if not packs:
         return None

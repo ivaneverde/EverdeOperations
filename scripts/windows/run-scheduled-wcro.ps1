@@ -42,6 +42,8 @@ try {
     Get-ChildItem -LiteralPath $wcroRoot -Filter "*.xlsx" -File -Recurse -ErrorAction SilentlyContinue |
       Where-Object {
         $_.FullName -notmatch "Archive" -and
+        $_.FullName -notmatch "\\_to_delete\\" -and
+        $_.FullName -notmatch "\.kaowt-copying\\" -and
         $_.Name -notlike "~$*" -and
         $_.FullName -notmatch "\\\.wcro_extract_sets\\" -and
         $_.FullName -notmatch "\\source_data\\"
