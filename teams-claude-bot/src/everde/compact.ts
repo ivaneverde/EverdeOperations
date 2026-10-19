@@ -35,6 +35,7 @@ function pickKeys(
 export function compactFreightJson(raw: string, maxChars: number): string {
   try {
     const p = JSON.parse(raw) as Record<string, unknown>;
+    const drill = Array.isArray(p.customer_drill) ? p.customer_drill : [];
     const payload = pickKeys(p, [
       "meta",
       "company_kpis",
@@ -44,6 +45,10 @@ export function compactFreightJson(raw: string, maxChars: number): string {
     ]);
     payload.top_carriers = slimTopCarriers(p.top_carriers, 2, 12);
     payload.top_lanes = slimTopCarriers(p.top_lanes, 1, 8);
+    payload.customer_drill_available = drill.length > 0;
+    payload.customer_drill_row_count = drill.length;
+    payload.note =
+      "Regional 3P totals (tp_region) have no customer breakout. Customer × region × ship type (Costco TX 3P, etc.): call get_freight_dashboard focus=query q='Costco TX 3rd party 2026'. Costs are load-level Frt Cost — never prorate regional 3P × customer revenue share.";
     return truncateText(JSON.stringify(payload), maxChars);
   } catch {
     return truncateText(raw, maxChars);

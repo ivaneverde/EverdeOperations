@@ -935,6 +935,43 @@ def extract(file_path, output_path=None, meta_source_path=None):
                 'cost_per_drop': safe_div(row['cost'], row['drops']),
             })
 
+    # Customer × Region × Ship Type (Master Data YTD) — Teams bot Costco/TX/3P drilldowns.
+    # cost = Frt Cost (same metric as region_kpis / tp_region). Never prorate from regional totals.
+    customer_drill = []
+    if master_ytd is not None and len(master_ytd) > 0 and 'Customer' in master_ytd.columns:
+        cust = master_ytd.copy()
+        if 'Year' not in cust.columns:
+            cust['Year'] = pd.to_datetime(cust['Ship Date'], errors='coerce').dt.year
+        cust_dims = ['Year', 'Customer', 'Region', 'Ship Type']
+        cgrp = cust.groupby(cust_dims, dropna=False).agg(
+            loads=('Tracking #', 'nunique'),
+            drops=('Drop Count', 'sum'),
+            eus=('EUs', 'sum'),
+            miles=('Miles', 'sum'),
+            revenue=('Revenue', 'sum'),
+            recovery=('Frt Recovery (Mixed)', 'sum'),
+            cost=('Frt Cost', 'sum'),
+            net=('Net Recovery', 'sum'),
+        ).reset_index()
+        for _, row in cgrp.iterrows():
+            year_val = row['Year']
+            customer_drill.append({
+                'Year': int(year_val) if pd.notna(year_val) else None,
+                'Customer': None if pd.isna(row['Customer']) else str(row['Customer']),
+                'Region': None if pd.isna(row['Region']) else str(row['Region']),
+                'Ship Type': None if pd.isna(row['Ship Type']) else str(row['Ship Type']),
+                'loads': int(row['loads']) if pd.notna(row['loads']) else 0,
+                'drops': round(float(row['drops'])),
+                'eus': round(float(row['eus'])),
+                'miles': round(float(row['miles']), 1),
+                'revenue': round(float(row['revenue']), 2),
+                'recovery': round(float(row['recovery']), 2),
+                'cost': round(float(row['cost']), 2),
+                'net': round(float(row['net']), 2),
+                'cost_pct_rev': safe_div(row['cost'], row['revenue']),
+            })
+        print(f"  customer_drill rows: {len(customer_drill)}", flush=True)
+
     drill_weeks = sorted({
         int(r['Week']) for r in region_drill
         if r.get('Week') is not None
@@ -1133,6 +1170,7 @@ def extract(file_path, output_path=None, meta_source_path=None):
         'opps_last_week_meta': opps_last_week_meta,
         'filter_options': filter_options,
         'region_drill': region_drill,
+        'customer_drill': customer_drill,
         'internal_5yr': internal_5yr,
         'internal_by_region': internal_by_region,
         'internal_by_trailer': internal_by_trailer,

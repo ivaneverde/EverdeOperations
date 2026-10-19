@@ -68,6 +68,10 @@ import {
   padStoreNbr,
   type FulfillmentRetailer,
 } from "./weatherFulfillment.js";
+import {
+  customerDrillFromFreightJson,
+  formatFreightCustomerQuery,
+} from "./freightQuery.js";
 
 const TOOL_MAX_CHARS = 12000;
 const YTD_SAMPLE_ROWS = 25;
@@ -77,14 +81,20 @@ export const EVERDE_TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_freight_dashboard",
     description:
-      "Fetch Everde freight / load board dashboard JSON (YTD KPIs, carriers, regions, lanes). Use for freight, 3P, carrier, and logistics questions.",
+      "Everde freight dashboard. Regional 3P / carriers / lanes: focus=summary|regions|carriers. Customer × region × ship type (Costco TX 3P, etc.): MUST use focus=query with q= (e.g. q='Costco TX 3rd party 2026'). Returns load-level Frt Cost — NEVER allocate regional 3P by customer revenue share.",
     input_schema: {
       type: "object",
       properties: {
         focus: {
           type: "string",
-          enum: ["summary", "carriers", "regions", "full"],
-          description: "Optional slice; default summary.",
+          enum: ["summary", "carriers", "regions", "full", "query", "customers"],
+          description:
+            "Default summary. Use query (or customers) for customer×region×ship-type filters; requires q=.",
+        },
+        q: {
+          type: "string",
+          description:
+            "Required for focus=query. Examples: 'Costco TX 3rd party 2026', 'Costco Texas third party', 'Home Depot S. CA INTERNAL 2026'.",
         },
       },
     },
@@ -555,6 +565,17 @@ export async function executeEverdeTool(
       );
       if (!raw) return "Freight dashboard JSON not available in Blob storage.";
       const focus = toolFocus(input);
+      if (focus === "query" || focus === "customers") {
+        const q = toolQuery(input);
+        if (!q) {
+          return "focus=query requires q= (e.g. 'Costco TX 3rd party 2026'). Customer×region×3P questions MUST use focus=query — never prorate regional 3P by revenue share.";
+        }
+        const drill = customerDrillFromFreightJson(raw);
+        if (!drill || drill.length === 0) {
+          return "customer_drill missing from freight JSON — run npm run freight:extract-publish to republish Master Data customer×region×ship grain.";
+        }
+        return `focus=${focus}\n${formatFreightCustomerQuery(drill, q, TOOL_MAX_CHARS)}`;
+      }
       const compact = compactFreightJson(raw, TOOL_MAX_CHARS);
       return `focus=${focus}\n${compact}`;
     }

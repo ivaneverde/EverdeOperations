@@ -29,7 +29,7 @@ export function buildPortalCatalogSummary(profile: BotProfile = "full"): string 
   return [
     "## Everde AI Operations Portal",
     "",
-    "- **Freight / Load Board** — YTD freight KPIs, carriers, regions, lanes, build health",
+    "- **Freight / Load Board** — YTD freight KPIs, carriers, regions, lanes; customer×region×ship (Costco TX 3P) via get_freight_dashboard focus=query",
     "- **Sales Plan Review** — NOR CAL plan vs actual; **Sales by Item** (rep × item × Demand Channel, 2024–2026 via get_sales_by_item); **HD Sales YTD w/ Following Week Sales**; **Lowe's Sales YTD w/ Following Week Sales** (store×SKU grids)",
     "- **Supply Inventory (primary farm on-hand)** — XXTT inventory file (LANDSCAPE_INV_PL); graded on-hand + READY DATE via get_nursery_supply — prefer for up-to-date farm availability",
     "- **Production & Demand Plan** — Inventory Metrics BO/CR via get_nursery_demand; weekly Site Focus via get_site_focus_summary",
