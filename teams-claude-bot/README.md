@@ -136,8 +136,22 @@ See `.env.example`. Required:
 Optional:
 
 - `MicrosoftAppType=SingleTenant` + `MicrosoftAppTenantId` (recommended internally)
-- `CLAUDE_MODEL`, `CLAUDE_MAX_TOKENS`, `CONVERSATION_MAX_TURNS`
+- `CLAUDE_MODEL` (default `claude-sonnet-5-5`; premium `claude-opus-5-5`), `CLAUDE_MAX_TOKENS`, `CONVERSATION_MAX_TURNS`
+- `CLAUDE_PROMPT_CACHING` — default on; set `0` to disable
 - `CLAUDE_SYSTEM_PROMPT` — Everde-specific tone and guardrails
+
+### Model upgrade (Azure App Service — no code redeploy)
+
+Production host: **`everde-claude-teams-bot`**. Changing `CLAUDE_MODEL` is an env-only flip (reversible).
+
+1. Azure Portal → App Services → **everde-claude-teams-bot** → **Configuration** / **Environment variables**
+2. Set **`CLAUDE_MODEL`** = `claude-sonnet-5-5` (recommended) or `claude-opus-5-5` (premium)
+3. Optional: **`CLAUDE_MAX_TOKENS`** = `8192` if replies truncate
+4. **Apply** / Save → restart the web app if Azure does not auto-restart
+5. Confirm: `GET /health` still ok → ask Claude in Teams a known freight/nursery question
+6. Rollback: set `CLAUDE_MODEL` back to the previous value and restart
+
+**Cost note (API list prices, Oct 2026):** Sonnet 5.5 ≈ $2/$10 per MTok (cheaper than legacy Sonnet 4.6 at $3/$15). Opus 5.5 ≈ $4/$20 — roughly 2× input/output vs Sonnet 5.5, higher latency. Data/tool completeness still dominates “Desktop felt smarter” for workbook Q&A.
 
 ## Security notes
 

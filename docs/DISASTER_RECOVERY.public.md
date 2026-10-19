@@ -2,10 +2,11 @@
 
 **No secrets in this file.** The filled-in inventory with all credentials lives in **`docs/DISASTER_RECOVERY.md`** on Ivan's laptop — that file is **gitignored**. Email that file to yourself for backup; paste it into Cursor on a new machine.
 
-**Last updated:** 2026-10-05  
+**Last updated:** 2026-10-19  
 **Repo:** https://github.com/ivaneverde/EverdeOperations.git  
 **Production portal:** https://everde-operations.vercel.app  
-**Teams bot health:** https://everde-claude-teams-bot.azurewebsites.net/health
+**Teams bot health:** https://everde-claude-teams-bot.azurewebsites.net/health  
+**Teams Claude model:** App Service env `CLAUDE_MODEL` (recommended `claude-sonnet-5-5`; see `teams-claude-bot/README.md` § Model upgrade)
 
 ---
 

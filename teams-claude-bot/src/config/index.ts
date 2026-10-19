@@ -16,7 +16,7 @@ const envSchema = z.object({
   MicrosoftAppPasswordLowes: z.string().optional(),
   PORT: z.coerce.number().int().positive().default(3978),
   ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
-  CLAUDE_MODEL: z.string().default("claude-sonnet-4-6"),
+  CLAUDE_MODEL: z.string().default("claude-sonnet-5-5"),
   CLAUDE_MAX_TOKENS: z.coerce.number().int().positive().max(8192).default(4096),
   CONVERSATION_MAX_TURNS: z.coerce.number().int().positive().max(50).default(20),
   CLAUDE_SYSTEM_PROMPT: z.string().optional(),

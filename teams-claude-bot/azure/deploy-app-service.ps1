@@ -28,7 +28,7 @@ param(
   [Parameter(Mandatory)]
   [string]$AnthropicApiKey,
   [string]$MicrosoftAppTenantId = "",
-  [string]$ClaudeModel = "claude-sonnet-4-6",
+  [string]$ClaudeModel = "claude-sonnet-5-5",
   [ValidateSet("F1", "B1", "S1")]
   [string]$Sku = "F1"
 )

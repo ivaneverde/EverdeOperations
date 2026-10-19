@@ -32,7 +32,7 @@ if (-not $account) {
   az login
 }
 
-$model = if ($keys["CLAUDE_MODEL"]) { $keys["CLAUDE_MODEL"] } else { "claude-sonnet-4-6" }
+$model = if ($keys["CLAUDE_MODEL"]) { $keys["CLAUDE_MODEL"] } else { "claude-sonnet-5-5" }
 
 & (Join-Path $root "azure\deploy-app-service.ps1") `
   -ResourceGroup "everdeportal" `

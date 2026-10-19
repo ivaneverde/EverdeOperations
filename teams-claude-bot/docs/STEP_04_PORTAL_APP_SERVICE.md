@@ -25,7 +25,9 @@ Web App → **Settings** → **Environment variables** / **Application settings*
 | `MicrosoftAppType` | `SingleTenant` |
 | `MicrosoftAppTenantId` | (tenant ID) |
 | `ANTHROPIC_API_KEY` | (Anthropic key) |
-| `CLAUDE_MODEL` | `claude-sonnet-4-6` |
+| `CLAUDE_MODEL` | `claude-sonnet-5-5` (or `claude-opus-5-5` for premium) |
+| `CLAUDE_MAX_TOKENS` | `4096` (optional bump to `8192`) |
+| `CLAUDE_PROMPT_CACHING` | omit or `1` (set `0` to disable) |
 | `PORT` | `8080` |
 | `WEBSITES_PORT` | `8080` |
 
