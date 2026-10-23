@@ -118,9 +118,16 @@ def forward_xls(
     cc_addrs: list[str],
     subject: str,
     attachment_path: Path,
+    attachment_prefix: str,
     dry_run: bool,
 ) -> None:
-    """Email a copy of the XXTT .xls via Gmail SMTP (same mailbox used for IMAP fetch)."""
+    """Email ONLY the XXTT inventory .xls (never other attachments) via Gmail SMTP."""
+    if not attachment_matches(attachment_path.name, attachment_prefix):
+        print(
+            f"  skip forward (not inventory file): {attachment_path.name}",
+            file=sys.stderr,
+        )
+        return
     recipients = [a for a in (to_addrs + cc_addrs) if a]
     if not recipients:
         return
@@ -133,11 +140,13 @@ def forward_xls(
     msg["To"] = ", ".join(to_addrs)
     if cc_addrs:
         msg["Cc"] = ", ".join(cc_addrs)
-    msg["Subject"] = subject if subject.lower().startswith("fw:") else f"FW: {subject}"
+    # Stable subject so Jonathan sees inventory only — not a dump of the Oracle thread
+    msg["Subject"] = f"Everde farm inventory (XXTT) — {attachment_path.name}"
     msg.attach(
         MIMEText(
-            "Forwarded copy of today's Oracle Sales Inventory Availability (XXTT) file "
-            f"for your records.\n\nAttachment: {attachment_path.name}\n",
+            "Today's Oracle Sales Inventory Availability file (XXTT farm inventory).\n\n"
+            f"Attachment: {attachment_path.name}\n"
+            "(This email contains only that inventory workbook — no other files.)\n",
             "plain",
             "utf-8",
         )
@@ -151,7 +160,7 @@ def forward_xls(
         smtp.starttls()
         smtp.login(user, password)
         smtp.sendmail(user, recipients, msg.as_string())
-    print(f"  forwarded to {', '.join(recipients)}: {attachment_path.name}")
+    print(f"  forwarded inventory to {', '.join(recipients)}: {attachment_path.name}")
 
 
 def _split_addrs(raw: str) -> list[str]:
@@ -242,6 +251,7 @@ def fetch_and_drop(
                     cc_addrs=forward_cc,
                     subject=subject or "PRODCDB : Sales Inventory",
                     attachment_path=path,
+                    attachment_prefix=attachment_prefix,
                     dry_run=dry_run,
                 )
             except Exception as err:  # noqa: BLE001 — do not fail the drop on forward errors
@@ -323,6 +333,7 @@ def main() -> int:
                 cc_addrs=forward_cc,
                 subject=subject,
                 attachment_path=latest,
+                attachment_prefix=prefix,
                 dry_run=args.dry_run,
             )
         except Exception as err:  # noqa: BLE001

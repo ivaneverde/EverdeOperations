@@ -12,11 +12,12 @@
     Everde-Retail-DailyCheck       10:00 AM + 12:00 PM + 2:30 PM daily — SalesOpportunity feeds -> Azure Blob when changed
     Everde-Weather-DailyCheck       9:30 AM + 12:00 PM + 2:30 PM daily — Weather Data share scripts -> Blob JSON
     Everde-Nursery-DailyCheck       1:30 PM + 2:30 PM daily — Inventory Metrics xlsb -> HTML + git push when changed
-    Everde-NurserySupply-DailyCheck  9:00 AM daily — Gmail XXTT .xls → DataDrops → supply HTML + Blob + git push
+    Everde-NurserySupply-GmailFetch  4:00 AM daily — Gmail XXTT inventory .xls → DataDrops + email Jonathan that file only
+    Everde-NurserySupply-DailyCheck  9:00 AM daily — XXTT drop → supply HTML + Blob + git push (no forward)
     Everde-WCRO-DailyCheck          11:00 AM + 12:00 PM + 2:30 PM daily — newest KAOWT _HANDOFF_WCRO_* pack -> Blob
 
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
-  -FreightTime / -NurseryTime / -NurserySupplyTime adjusted for your timezone.
+  -FreightTime / -NurseryTime / -NurserySupplyTime / -NurserySupplyGmailTime adjusted for your timezone.
 
   Requires: VPN to reach \\192.168.190.10\..., repo .env.local, Node.js, Python (freight/sales plan),
   git credentials for nursery push. See scripts/windows/WEEKLY_DROP_AGENT.md for IT handoff.
@@ -34,6 +35,7 @@ param(
   [string]$WeatherTime = "09:30",
   [string]$NurseryTime = "13:30",
   [string]$NurserySupplyTime = "09:00",
+  [string]$NurserySupplyGmailTime = "04:00",
   [string]$WcroTime = "11:00",
   [string]$LoadBoardTime = "08:00",
   [string]$FreightDashboardEmailTime = "09:00",
@@ -82,11 +84,18 @@ $tasks = @(
     Description = "Daily: if new Inventory Metrics xlsb, refresh nursery HTML and git push for Vercel."
   },
   @{
+    Name = "Everde-NurserySupply-GmailFetch"
+    Time = $NurserySupplyGmailTime
+    Script = "run-scheduled-nursery-supply-gmail.ps1"
+    Schedule = "DailyOnce"
+    Description = "Daily 4:00 AM: fetch Oracle XXTT inventory .xls from Gmail into DataDrops and email that inventory file only to Jonathan (XXTT_FORWARD_TO)."
+  },
+  @{
     Name = "Everde-NurserySupply-DailyCheck"
     Time = $NurserySupplyTime
     Script = "run-scheduled-nursery-supply.ps1"
     Schedule = "DailyOnce"
-    Description = "Daily 9:00 AM: Gmail XXTT inventory .xls → Sales Inventory Availability → supply HTML, Blob, git push."
+    Description = "Daily 9:00 AM: XXTT drop folder → supply HTML, Blob, git push (Gmail forward disabled; 4 AM job owns email)."
   },
   @{
     Name = "Everde-WCRO-DailyCheck"
@@ -205,6 +214,7 @@ Write-Host "  powershell -File scripts/windows/run-scheduled-freight.ps1 -Force"
 Write-Host "  powershell -File scripts/windows/run-scheduled-retail-build.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-weather.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-nursery.ps1 -Force" -ForegroundColor Yellow
+Write-Host "  powershell -File scripts/windows/run-scheduled-nursery-supply-gmail.ps1" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-nursery-supply.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-wcro.ps1 -Force" -ForegroundColor Yellow
 Write-Host "  powershell -File scripts/windows/run-scheduled-load-board.ps1 -Force" -ForegroundColor Yellow

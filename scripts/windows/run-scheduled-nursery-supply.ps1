@@ -44,8 +44,12 @@ try {
     $fetchScript = Join-Path $RepoRoot "scripts\nursery\fetch_xxtt_from_gmail.py"
     if (Test-Path -LiteralPath $fetchScript) {
       Write-Host "Fetching XXTT attachment from Gmail (if credentials set)..." -ForegroundColor Cyan
+      # Forwarding is owned by the 4:00 AM Gmail job — do not email Jonathan again at 9 AM.
+      $prevForward = $env:XXTT_FORWARD_ENABLE
+      $env:XXTT_FORWARD_ENABLE = "0"
       & $py $fetchScript
       $fetchCode = $LASTEXITCODE
+      if ($null -ne $prevForward) { $env:XXTT_FORWARD_ENABLE = $prevForward } else { Remove-Item Env:XXTT_FORWARD_ENABLE -ErrorAction SilentlyContinue }
       # 0 = saved/matched, 2 = creds missing (ok - use manual drop), 3 = no new mail
       if ($fetchCode -eq 1) {
         Write-Warning "Gmail fetch failed (exit 1). Continuing with files already in $supplyDir."
