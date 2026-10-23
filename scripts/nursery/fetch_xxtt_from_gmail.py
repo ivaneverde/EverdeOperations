@@ -15,6 +15,9 @@ Optional:
   XXTT_GMAIL_ATTACHMENT_PREFIX=XXTT_INV_QA_LANDSCAPE_INV_PL_
   XXTT_GMAIL_LOOKBACK_DAYS=5
   XXTT_GMAIL_MARK_SEEN=1
+  XXTT_FORWARD_TO=jsaperstein@everde.com   # forward each NEW XXTT .xls (SMTP via same Gmail)
+  XXTT_FORWARD_CC=                         # optional; e.g. isunderland@everde.com
+  XXTT_FORWARD_ENABLE=1                    # set 0 to disable forwarding
   PORTAL_DATA_ROOT=\\\\192.168.190.10\\Claude Sandbox\\DataDrops
 
 Usage:
@@ -28,9 +31,13 @@ import email
 import imaplib
 import os
 import re
+import smtplib
 import sys
 from datetime import datetime, timedelta, timezone
 from email.header import decode_header
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 
 DEFAULT_DATA_ROOT = r"\\192.168.190.10\Claude Sandbox\DataDrops"
@@ -103,6 +110,54 @@ def imap_date_since(days: int) -> str:
     return dt.strftime("%d-%b-%Y")
 
 
+def forward_xls(
+    *,
+    user: str,
+    password: str,
+    to_addrs: list[str],
+    cc_addrs: list[str],
+    subject: str,
+    attachment_path: Path,
+    dry_run: bool,
+) -> None:
+    """Email a copy of the XXTT .xls via Gmail SMTP (same mailbox used for IMAP fetch)."""
+    recipients = [a for a in (to_addrs + cc_addrs) if a]
+    if not recipients:
+        return
+    if dry_run:
+        print(f"  dry-run would forward {attachment_path.name} → To={to_addrs} Cc={cc_addrs}")
+        return
+
+    msg = MIMEMultipart()
+    msg["From"] = user
+    msg["To"] = ", ".join(to_addrs)
+    if cc_addrs:
+        msg["Cc"] = ", ".join(cc_addrs)
+    msg["Subject"] = subject if subject.lower().startswith("fw:") else f"FW: {subject}"
+    msg.attach(
+        MIMEText(
+            "Forwarded copy of today's Oracle Sales Inventory Availability (XXTT) file "
+            f"for your records.\n\nAttachment: {attachment_path.name}\n",
+            "plain",
+            "utf-8",
+        )
+    )
+    with attachment_path.open("rb") as fh:
+        part = MIMEApplication(fh.read(), Name=attachment_path.name)
+    part["Content-Disposition"] = f'attachment; filename="{attachment_path.name}"'
+    msg.attach(part)
+
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=60) as smtp:
+        smtp.starttls()
+        smtp.login(user, password)
+        smtp.sendmail(user, recipients, msg.as_string())
+    print(f"  forwarded to {', '.join(recipients)}: {attachment_path.name}")
+
+
+def _split_addrs(raw: str) -> list[str]:
+    return [p.strip() for p in re.split(r"[;,]", raw or "") if p.strip()]
+
+
 def fetch_and_drop(
     *,
     user: str,
@@ -113,9 +168,12 @@ def fetch_and_drop(
     lookback_days: int,
     mark_seen: bool,
     dry_run: bool,
+    forward_to: list[str],
+    forward_cc: list[str],
 ) -> list[Path]:
     dest_dir.mkdir(parents=True, exist_ok=True)
     saved: list[Path] = []
+    newly_written: list[tuple[Path, str]] = []  # (path, original mail subject)
     since = imap_date_since(lookback_days)
 
     print(f"Connecting to {IMAP_HOST} as {user} …")
@@ -156,10 +214,12 @@ def fetch_and_drop(
                 if dry_run:
                     print(f"  dry-run would write: {target} ({len(payload)} bytes)")
                     saved.append(target)
+                    newly_written.append((target, subject))
                     continue
                 target.write_bytes(payload)
                 print(f"  saved: {target} ({len(payload)} bytes)")
                 saved.append(target)
+                newly_written.append((target, subject))
 
             if mark_seen and not dry_run:
                 imap.store(msg_id, "+FLAGS", "\\Seen")
@@ -167,6 +227,25 @@ def fetch_and_drop(
             # One matching mail with attachments is enough for the daily drop
             if saved:
                 break
+
+    if newly_written and forward_to:
+        for path, subject in newly_written:
+            try:
+                # Dry-run: file may not exist on disk yet — skip real SMTP, still log intent
+                if dry_run and not path.is_file():
+                    print(f"  dry-run would forward {path.name} → To={forward_to} Cc={forward_cc}")
+                    continue
+                forward_xls(
+                    user=user,
+                    password=password,
+                    to_addrs=forward_to,
+                    cc_addrs=forward_cc,
+                    subject=subject or "PRODCDB : Sales Inventory",
+                    attachment_path=path,
+                    dry_run=dry_run,
+                )
+            except Exception as err:  # noqa: BLE001 — do not fail the drop on forward errors
+                print(f"  WARN: forward failed for {path.name}: {err}", file=sys.stderr)
 
     return saved
 
@@ -178,6 +257,11 @@ def main() -> int:
         "--dest",
         default="",
         help="Override destination folder (default: DataDrops/Sales Inventory Availability)",
+    )
+    parser.add_argument(
+        "--forward-existing",
+        action="store_true",
+        help="Email the newest XXTT .xls already in the drop folder (no IMAP fetch). For catch-up.",
     )
     args = parser.parse_args()
 
@@ -204,8 +288,49 @@ def main() -> int:
     prefix = (os.environ.get("XXTT_GMAIL_ATTACHMENT_PREFIX") or DEFAULT_PREFIX).strip()
     lookback = int(os.environ.get("XXTT_GMAIL_LOOKBACK_DAYS") or "5")
     mark_seen = (os.environ.get("XXTT_GMAIL_MARK_SEEN") or "1").strip() not in ("0", "false", "False")
+    forward_enable = (os.environ.get("XXTT_FORWARD_ENABLE") or "1").strip() not in ("0", "false", "False")
+    forward_to = _split_addrs(os.environ.get("XXTT_FORWARD_TO") or "") if forward_enable else []
+    forward_cc = _split_addrs(os.environ.get("XXTT_FORWARD_CC") or "") if forward_enable else []
+    if forward_to:
+        print(f"Forward new XXTT files to: {', '.join(forward_to)}"
+              + (f" (Cc {', '.join(forward_cc)})" if forward_cc else ""))
 
     print(f"Destination: {dest}")
+
+    if args.forward_existing:
+        if not forward_to:
+            print("XXTT_FORWARD_TO not set — nothing to forward.", file=sys.stderr)
+            return 2
+        candidates = sorted(
+            [
+                p
+                for p in dest.glob("*.xls")
+                if p.is_file() and not p.name.startswith("~$") and attachment_matches(p.name, prefix)
+            ],
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if not candidates:
+            print(f"No XXTT .xls in {dest}", file=sys.stderr)
+            return 3
+        latest = candidates[0]
+        print(f"Forwarding existing: {latest.name}")
+        try:
+            forward_xls(
+                user=user,
+                password=password,
+                to_addrs=forward_to,
+                cc_addrs=forward_cc,
+                subject=subject,
+                attachment_path=latest,
+                dry_run=args.dry_run,
+            )
+        except Exception as err:  # noqa: BLE001
+            print(f"Forward failed: {err}", file=sys.stderr)
+            return 1
+        print("Done — existing file forwarded.")
+        return 0
+
     try:
         saved = fetch_and_drop(
             user=user,
@@ -216,6 +341,8 @@ def main() -> int:
             lookback_days=lookback,
             mark_seen=mark_seen,
             dry_run=args.dry_run,
+            forward_to=forward_to,
+            forward_cc=forward_cc,
         )
     except imaplib.IMAP4.error as err:
         print(f"Gmail IMAP error: {err}", file=sys.stderr)
