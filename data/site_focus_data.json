@@ -1,14 +1,14 @@
 {
   "meta": {
-    "title": "Everde Growers — Inventory Metrics Week 42 Site Focus Summary",
-    "week": 42,
-    "reportDate": "2026-10-19",
+    "title": "Everde Growers — Inventory Metrics Week 43 Site Focus Summary",
+    "week": 43,
+    "reportDate": "2026-10-26",
     "intro": "Please review your site’s focus areas and reply with any questions or action plans.",
-    "sourceName": "Wk42_Site_Focus_Summary_Final.docx",
+    "sourceName": "Wk43_Site_Focus_Summary_Final.docx",
     "farmCount": 15,
     "regionCount": 3,
     "alertCount": 1,
-    "extractedAt": "2026-10-20T19:00:16Z"
+    "extractedAt": "2026-10-28T19:00:21Z"
   },
   "regions": [
     {
@@ -20,22 +20,22 @@
           "items": [
             {
               "topic": "Photos",
-              "text": "Recovering — up to 78.5% current (from 60.3% last week), though 17.3% remain late. Keep pushing to clear the rest.",
+              "text": "Recovered to 84.4% current — 12.6% late. Climbed steadily all month (60% → 84%); nearly back to system norms.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "34.6% counted MTD through Week 3 (goal 75%) — behind pace at 0.46. With one week left, will finish the month short.",
+              "text": "Finished the month at 45.2% (goal 100%) — well short of a full count.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 quiet at 0.45%; YTD 2.56% vs. 2.06% goal still over. Monitor.",
+              "text": "Week 43 quiet at 0.22%; YTD 2.48% vs. 2.06% goal still over. Monitor.",
               "tone": "watch"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.06% ABS VAR).",
+              "text": "On goal (0.04% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -46,12 +46,12 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "75.8% counted MTD through Week 3 (goal 75%) — on pace.",
+              "text": "Finished the month at 93.2% (goal 100%) — just short.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 1.27% — under goal this week. YTD 4.77% vs. 4.55% still over. Grade - Too Small driver; monitor.",
+              "text": "Week 43 at 2.39% — under goal this week. YTD 4.71% vs. 4.55% still over. Grade - Too Small driver; monitor.",
               "tone": "ok"
             },
             {
@@ -67,17 +67,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "50.0% counted MTD through Week 3 (goal 75%) — behind pace at 0.67.",
+              "text": "Finished the month at 62.0% (goal 100%) — short of a full count.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 back under goal at 1.14% (after last week’s 4.94%); YTD 1.79% vs. 2.06% under goal. No action needed.",
+              "text": "Week 43 at 1.24%; YTD 1.78% vs. 2.06% goal, under goal. No action needed.",
               "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.05% ABS VAR).",
+              "text": "On goal (0.07% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -93,12 +93,12 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "83.6% counted MTD through Week 3 (goal 75%) — ahead of pace.",
+              "text": "Finished the month at 100.0% — count complete.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 quiet at 0.0%, but YTD 8.79% vs. 4.75% goal remains the largest gap in the system. Quality - Diseased/Insects is the driver; root cause still needs to be closed out.",
+              "text": "Week 43 quiet at 2.16%, but YTD 8.66% vs. 4.75% goal remains the largest gap in the system. Quality - Diseased/Insects is the driver; root cause still needs to be closed out.",
               "tone": "watch"
             }
           ]
@@ -108,18 +108,18 @@
           "market": "SO CAL",
           "items": [
             {
-              "topic": "Ready Dates",
-              "text": "14.7% past ready date (68 items) — all PN holds. PN hold ready dates need to be reviewed and updated.",
+              "topic": "BO/CR",
+              "text": "Week 43 at 3.41% — above the 3.25% goal. YTD 5.51% vs. 3.25%. Grade - No Bud/Bloom is the top BO driver; review grading standards and returns process.",
               "tone": "watch"
             },
             {
-              "topic": "BO/CR",
-              "text": "Week 42 quiet at 2.11%, but YTD 5.53% vs. 3.25% goal remains over. Grade - No Bud/Bloom is the top BO driver; keep working YTD back in line.",
+              "topic": "Ready Dates",
+              "text": "11.6% past ready date (52 items) — all PN holds. PN hold ready dates need to be reviewed and updated.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "102.0% counted MTD through Week 3 — count complete.",
+              "text": "Finished the month at 102.7% — count complete.",
               "tone": "watch"
             }
           ]
@@ -129,13 +129,13 @@
           "market": "SO CAL",
           "items": [
             {
-              "topic": "BO/CR",
-              "text": "Week 42 at 4.87% — above the 2.35% goal (steady over the last two weeks). YTD 2.81% vs. 2.35%. Grade - No Bud/Bloom driver; monitor.",
+              "topic": "Cycle Count",
+              "text": "Finished the month at 104.3% — count complete, best in the system.",
               "tone": "watch"
             },
             {
-              "topic": "Cycle Count",
-              "text": "102.8% counted MTD through Week 3 — count complete, best in the system.",
+              "topic": "BO/CR",
+              "text": "Week 43 at 2.81% — above the 2.35% goal (steady). YTD 2.81% vs. 2.35%. Grade - No Bud/Bloom driver; monitor.",
               "tone": "watch"
             },
             {
@@ -150,19 +150,19 @@
           "market": "SO CAL",
           "items": [
             {
+              "topic": "BO/CR",
+              "text": "Week 43 spiked to 7.26% — above the 4.05% goal (was 2.24% last week). YTD 4.27% vs. 4.05%. Grade - Too Small driver; investigate this week’s jump.",
+              "tone": "alert"
+            },
+            {
               "topic": "Ready Dates",
-              "text": "8.3% past ready date (47 items) — all PN holds. Review and update PN hold dates.",
+              "text": "8.6% past ready date (47 items) — all PN holds. Review and update PN hold dates.",
               "tone": "watch"
             },
             {
-              "topic": "BO/CR",
-              "text": "Week 42 at 2.24% — under goal this week. YTD 4.23% vs. 4.05%. Grade - Too Small driver; monitor.",
-              "tone": "ok"
-            },
-            {
               "topic": "Cycle Count",
-              "text": "70.2% counted MTD through Week 3 — essentially on pace.",
-              "tone": "ok"
+              "text": "Finished the month at 85.5% — slightly short.",
+              "tone": "watch"
             }
           ]
         },
@@ -172,12 +172,12 @@
           "items": [
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 3.29% — under the 4.05% goal this week. YTD 4.79% vs. 4.05% still over. Quality - Diseased/Insects is the top credit driver; keep working YTD back in line.",
+              "text": "Week 43 at 6.39% — above the 4.05% goal (up from 3.29% last week). YTD 4.83% vs. 4.05%. Quality - Diseased/Insects is the top credit driver; keep working YTD back in line.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "90.4% counted MTD through Week 3 — ahead of pace.",
+              "text": "Finished the month at 93.1% — just short.",
               "tone": "watch"
             },
             {
@@ -193,12 +193,12 @@
           "items": [
             {
               "topic": "BO/CR",
-              "text": "Week 42 quiet at 0.09%, but YTD 4.25% vs. 3.20% goal remains over. Quality - GWSS Cancellation remains the driver; monitor.",
+              "text": "Week 43 quiet at 1.50%, but YTD 4.24% vs. 3.20% goal remains over. Quality - GWSS Cancellation remains the driver; monitor.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "81.8% counted MTD through Week 3 — ahead of pace.",
+              "text": "Finished the month at 97.2% — count complete.",
               "tone": "watch"
             }
           ]
@@ -209,17 +209,17 @@
           "items": [
             {
               "topic": "Ready Dates",
-              "text": "11.0% past ready date (109 items) — all PN holds. PN hold date review needed.",
+              "text": "10.3% past ready date (103 items) — all PN holds. PN hold date review needed.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "87.5% counted MTD through Week 3 — ahead of pace.",
+              "text": "Finished the month at 95.4% — count complete.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 1.71%; YTD 3.86% vs. 4.55% goal, under goal. No action needed.",
+              "text": "Week 43 at 1.52%; YTD 3.79% vs. 4.55% goal, under goal. No action needed.",
               "tone": "ok"
             }
           ]
@@ -235,17 +235,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "53.6% counted MTD through Week 3 (goal 75%) — behind pace at 0.71.",
+              "text": "Finished the month at 78.6% (goal 100%) — short of a full count.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 0.48%; YTD 1.58% vs. 2.80% goal, under goal. No action needed.",
+              "text": "Week 43 at 0.90%; YTD 1.57% vs. 2.80% goal, under goal. No action needed.",
               "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.01% ABS VAR).",
+              "text": "On goal (0.0% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -256,17 +256,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "69.4% counted MTD through Week 3 (goal 75%) — slightly behind pace at 0.92.",
+              "text": "Finished the month at 80.0% (goal 100%) — slightly short.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 1.04%; YTD 3.29% vs. 2.55% goal still over. Quality - Environmental Damage driver; monitor.",
+              "text": "Week 43 at 2.53%; YTD 3.28% vs. 2.55% goal still over. Quality - Environmental Damage driver; monitor.",
               "tone": "watch"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.0% ABS VAR).",
+              "text": "On goal (0.24% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -277,22 +277,22 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "14.6% counted MTD through Week 3 (goal 75%) — pacing 0.19, by far the weakest in the system. The count has been stalled all month and will miss again; this needs attention.",
-              "tone": "alert"
+              "text": "Finished the month at just 14.6% (goal 100%) — pacing 0.15, the third straight month the count has not progressed.",
+              "tone": "watch"
             },
             {
               "topic": "Photos",
-              "text": "Improving but still poor at 69.1% current — 28.1% late (up from 59.6% last week). Keep clearing the backlog.",
+              "text": "Recovered to 82.4% current — 15.5% late (up from 69.1% last week). Improving steadily.",
               "tone": "watch"
             },
             {
               "topic": "Ready Dates",
-              "text": "11.3% past ready date (112 items) — all PN holds. PN date review needed.",
+              "text": "10.7% past ready date (110 items) — all PN holds. PN hold ready dates need to be reviewed and updated.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 0.30% — under goal; YTD 2.24% vs. 1.90%. Monitor.",
+              "text": "Week 43 at 0.38% — under goal; YTD 2.19% vs. 1.90%. Monitor.",
               "tone": "ok"
             }
           ]
@@ -303,17 +303,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "80.5% counted MTD through Week 3 (goal 75%) — ahead of pace.",
+              "text": "Finished the month at 99.2% — count complete.",
               "tone": "watch"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.0% ABS VAR).",
+              "text": "On goal (0.01% ABS VAR).",
               "tone": "ok"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 0.0% — no action needed.",
+              "text": "Week 43 at 0.0% — no action needed.",
               "tone": "ok"
             }
           ]
@@ -324,17 +324,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "92.0% counted MTD through Week 3 (goal 75%) — ahead of pace; the turnaround continues to hold.",
+              "text": "Finished the month at 93.9% — count essentially complete. OAS sustained its turnaround across all of October, from a chronic laggard to a consistent finisher.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 42 at 0.0%; YTD 1.07% vs. 2.15% goal, under goal. No action needed.",
+              "text": "Week 43 at 2.23% — just above the 2.15% goal this week; YTD 1.10% well under. Monitor.",
               "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.0% ABS VAR).",
+              "text": "On goal (0.04% ABS VAR).",
               "tone": "ok"
             }
           ]
