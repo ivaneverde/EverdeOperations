@@ -1,4 +1,4 @@
-<!-- BEGIN:nextjs-agent-rules -->
+﻿<!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
@@ -74,6 +74,8 @@ Maps live in `src/lib/auth/viewRights.ts` and `teams-claude-bot/src/everde/viewR
 **Prior snapshot 9.0.2:** Teams WCRO spread-prep UX — `get_wcro_dashboard` compact payload includes `top_pools_by_market` + NN glossary; softer anti-deny prompts so bots lead with published pools instead of false “no pool data.”
 
 **Last session (2026-09-11):** Cut **v9.1.0**. Jonathan email **Updated retail files for the week** — WCRO **5.49 / 2026-09-10** staged + Blob published. Daily Gmail XXTT supply automation live. Teams prompt caching enabled (`CLAUDE_PROMPT_CACHING=0` to disable).
+
+**KAOWT hosted (EverdeKAOWT, 2026-11-02):** Production saving ON (KAOWT_SAVING=1); nightly Neon→Blob backups (kaowt/backups/, task `Everde-KAOWT-NightlyDbBackup` 2:15 AM); Mac mirror + `KAOWT_MAC_TOKEN` live. Waiting: Aaron TreeTown CNAME `kaowt.everde.com`; Jonathan side-by-side / AM rollout. Live URL: https://everde-kaowt.vercel.app .
 
 **Prior session (2026-09-01):** Jonathan email **HD and LOW Reports for the week** — WCRO **5.47 / 2026-08-31** partial refresh staged to `_HANDOFF_WCRO_5.47_2026-08-31\`. Extract + Blob published (Combined Summary missing — Four Numbers synthesized from Store Driven).
 
