@@ -88,7 +88,7 @@ $tasks = @(
     Time = $NurserySupplyGmailTime
     Script = "run-scheduled-nursery-supply-gmail.ps1"
     Schedule = "DailyOnce"
-    Description = "Daily 4:00 AM: fetch Oracle XXTT inventory .xls from Gmail into DataDrops and email that inventory file only to Jonathan (XXTT_FORWARD_TO)."
+    Description = "Daily 4:00 AM: fetch Oracle XXTT inventory .xls from Gmail into DataDrops (email forward off by default — Jonathan gets Splash Full Inventory Daily instead)."
   },
   @{
     Name = "Everde-NurserySupply-DailyCheck"

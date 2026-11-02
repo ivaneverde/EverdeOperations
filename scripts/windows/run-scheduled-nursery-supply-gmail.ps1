@@ -1,13 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Daily 4:00 AM: fetch Oracle XXTT Sales Inventory .xls from Gmail into DataDrops
-  and forward that inventory file only to XXTT_FORWARD_TO (Jonathan).
+  Daily 4:00 AM: fetch Oracle XXTT Sales Inventory .xls from Gmail into DataDrops.
+  Optional email forward is controlled by XXTT_FORWARD_ENABLE in .env.local (default off).
 
 .DESCRIPTION
-  Runs scripts/nursery/fetch_xxtt_from_gmail.py. Only XXTT_INV_QA_LANDSCAPE_INV_PL_*.xls
-  is saved and emailed — no other attachments. The 9:00 AM nursery supply job still
-  refreshes the portal/Blob; that run disables forwarding so Jonathan is not emailed twice.
+  Runs scripts/nursery/fetch_xxtt_from_gmail.py into DataDrops for the 9:00 AM supply refresh.
+  Do NOT email XXTT / sales inventory to Jonathan — he wants Splash Full Inventory only
+  (Splash schedule "Full Inventory Daily" ~4:00 AM). Set XXTT_FORWARD_ENABLE=1 only if
+  someone explicitly wants the sales-inventory .xls forwarded again.
 #>
 param(
   [switch]$ForceForwardExisting
@@ -31,21 +32,24 @@ try {
     throw "Missing $fetchScript"
   }
 
-  # Ensure forward is on for this dedicated job (9 AM nursery supply turns it off).
-  if (-not $env:XXTT_FORWARD_ENABLE) { $env:XXTT_FORWARD_ENABLE = "1" }
-  if (-not $env:XXTT_FORWARD_TO) { $env:XXTT_FORWARD_TO = "jsaperstein@everde.com" }
+  # Honor .env.local. Unset → do not forward (Jonathan gets Splash Full Inventory only).
+  if ([string]::IsNullOrWhiteSpace($env:XXTT_FORWARD_ENABLE)) { $env:XXTT_FORWARD_ENABLE = "0" }
 
-  Write-Host "4:00 AM XXTT Gmail fetch + inventory forward..." -ForegroundColor Cyan
+  $forwardOn = $env:XXTT_FORWARD_ENABLE -notin @("0", "false", "False")
+  Write-Host ("4:00 AM XXTT Gmail fetch" + $(if ($forwardOn) { " + inventory forward..." } else { " (email forward OFF)..." })) -ForegroundColor Cyan
   if ($ForceForwardExisting) {
+    if (-not $forwardOn) {
+      Write-Warning "XXTT_FORWARD_ENABLE is off — --forward-existing will not email."
+    }
     & $py $fetchScript --forward-existing
   } else {
     & $py $fetchScript
   }
   $code = $LASTEXITCODE
   if ($code -eq 0) {
-    Write-Host "Gmail fetch/forward complete." -ForegroundColor Green
+    Write-Host "Gmail fetch complete." -ForegroundColor Green
   } elseif ($code -eq 2) {
-    Write-Warning "Gmail credentials missing — cannot fetch/forward."
+    Write-Warning "Gmail credentials missing — cannot fetch."
   } elseif ($code -eq 3) {
     Write-Host "No new matching XXTT inventory mail in lookback window." -ForegroundColor Cyan
   } elseif ($code -ne 0) {

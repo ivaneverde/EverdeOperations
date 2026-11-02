@@ -3,16 +3,22 @@
 Build Juanita's Everde Freight Data YTD workbook from an Oracle Load Board dump.
 
 Input (Oracle dump):  \\\\10.178.0.201\\OracleShare\\everde_prod\\freight_load_board_*.xls
+                      or freight_load_board_*.xml (same BI Publisher HTML, different extension)
                       moved to DataDrops\\Freight\\WeeklyDrop\\archive, then converted.
 Output: Juanita Load Board 2026 folder + DataDrops\\Freight\\WeeklyDrop
 
-Oracle columns paste into Raw Data C:AN. Columns A:B and AO:BP are Juanita's formulas.
-Other tabs are pivot tables + Lookup Tab + Truck Capacity (kept from the template, then refreshed).
+    Oracle columns paste into Raw Data C:AN. Columns A:B and AO:BP are Juanita's formulas.
+Lookup Tab + Truck Capacity (EU fill rates) stay with the template copy, then pivots refresh.
+
+Template pick: newest Everde Freight Data YTD *.xlsb on the 2026 Load Board folder.
+Juanita 2026-10-19: prefer the book whose name includes "fill rate updated" so STE/BRA/WIN
+EU rates on Truck Capacity carry forward. No extra Raw Data columns.
 
 Usage:
     python scripts/freight/build_load_board.py --source "path.xlsx"
     python scripts/freight/build_load_board.py --from-archive
     python scripts/freight/build_load_board.py --from-archive --force
+    python scripts/freight/build_load_board.py --validate-headers
 """
 from __future__ import annotations
 
@@ -22,6 +28,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,8 +53,12 @@ DEFAULT_JUANITA_SHARE = (
     r"\Freight Load Board Reports\Load Board Reports\2026"
 )
 DEFAULT_ORACLE_DROP = r"\\10.178.0.201\OracleShare\everde_prod"
-DEFAULT_SUFFIX = "with MAR-26 Rates with updated 26 BUD YE COSTS"
+# Juanita 2026-10-19: "created a new file and stated Fill rate updated"
+DEFAULT_SUFFIX = "with MAR-26 Rates with updated 26 BUD YE COSTS-fill rate updated"
+FILL_RATE_MARK = "fill rate updated"
+YTD_STAMP_RE = re.compile(r"YTD\s+(\d{1,2})-(\d{1,2})-(\d{2})", re.I)
 ORACLE_NAME_RE = re.compile(r"freight[_ ]?load[_ ]?board", re.I)
+ORACLE_SUFFIXES = {".xlsx", ".xls", ".xml"}
 STATE_NAME = "load-board-oracle.json"
 
 
@@ -174,7 +185,7 @@ def list_oracle_files(folder: Path) -> list[Path]:
         p
         for p in folder.iterdir()
         if p.is_file()
-        and p.suffix.lower() in {".xlsx", ".xls"}
+        and p.suffix.lower() in ORACLE_SUFFIXES
         and ORACLE_NAME_RE.search(p.name)
         and not p.name.startswith("~$")
         and not p.name.startswith(".")
@@ -197,6 +208,24 @@ def find_newest_oracle_anywhere() -> Path | None:
     if not found:
         return None
     return max(found, key=lambda p: p.stat().st_mtime)
+
+
+def copy_with_retry(src: Path, dest: Path, attempts: int = 8, delay: float = 3.0) -> None:
+    """Copy to a share that Excel/OneDrive sometimes still has open (WinError 32)."""
+    last: Exception | None = None
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    for i in range(1, attempts + 1):
+        try:
+            shutil.copy2(src, dest)
+            return
+        except OSError as exc:
+            last = exc
+            winerr = getattr(exc, "winerror", None)
+            if winerr not in (32, 5) and not isinstance(exc, PermissionError):
+                raise
+            log(f"Copy busy ({exc}); retry {i}/{attempts} in {delay:.0f}s -> {dest}")
+            time.sleep(delay)
+    raise last  # type: ignore[misc]
 
 
 def unique_archive_path(src: Path, dest_dir: Path) -> Path:
@@ -252,7 +281,11 @@ def move_live_dumps_to_archive() -> list[Path]:
 def file_looks_like_html(path: Path) -> bool:
     with path.open("rb") as f:
         head = f.read(120).lstrip().lower()
-    return head.startswith(b"<html") or b"oracle bi publisher" in head
+    return (
+        head.startswith(b"<html")
+        or head.startswith(b"<?xml")
+        or b"oracle bi publisher" in head
+    )
 
 
 def convert_oracle_to_xlsx(source: Path, dest_xlsx: Path) -> Path:
@@ -294,12 +327,39 @@ def prepare_oracle_for_pandas(source: Path) -> tuple[Path, Path | None]:
     if not needs_convert:
         return source, None
     work = Path(tempfile.mkdtemp(prefix="everde-oracle-src-"))
-    local = work / source.name
+    # BI Publisher often saves HTML as .xls; Fila's 10/12 drop used .xml with the same HTML.
+    # Excel's HTML importer is reliable on .xls, so rename .xml HTML locally before Open.
+    local_name = source.name
+    if source.suffix.lower() == ".xml":
+        local_name = source.stem + ".xls"
+        log(f"Oracle dump is .xml HTML; opening locally as {local_name}")
+    local = work / local_name
     log(f"Copying Oracle dump locally ({source.stat().st_size:,} bytes)...")
     shutil.copy2(source, local)
     xlsx = work / f"{source.stem}.xlsx"
     convert_oracle_to_xlsx(local, xlsx)
     return xlsx, work
+
+
+def template_sort_key(path: Path) -> tuple:
+    """Latest YTD date in the filename, then Juanita's fill-rate book, then mtime.
+
+    Same-week 10-19-26 convert vs 10-19-26-fill-rate-updated: fill-rate wins even if
+    someone re-saves the older rates file. A later YTD stamp (next Monday's output)
+    still wins so the chain of copied Truck Capacity rates continues.
+    """
+    m = YTD_STAMP_RE.search(path.name)
+    if m:
+        month, day, yy = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        ytd = (2000 + yy, month, day)
+    else:
+        ytd = (0, 0, 0)
+    fill = 1 if FILL_RATE_MARK in path.name.lower() else 0
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        mtime = 0.0
+    return (ytd, fill, mtime)
 
 
 def find_newest_template(folders: list[Path], exclude_names: set[str] | None = None) -> Path | None:
@@ -323,7 +383,7 @@ def find_newest_template(folders: list[Path], exclude_names: set[str] | None = N
             found.append(p)
     if not found:
         return None
-    return max(found, key=lambda p: p.stat().st_mtime)
+    return max(found, key=template_sort_key)
 
 
 def parse_as_of_from_oracle(path: Path) -> datetime:
@@ -386,6 +446,133 @@ def validate_headers(oracle_cols: list[str], template_cols: list[str]) -> None:
             mismatches.append(f"  col {i + 1}: oracle={a!r} template={b!r}")
     if mismatches:
         raise SystemExit("Raw Data C:AN headers do not match Oracle dump:\n" + "\n".join(mismatches))
+
+
+def oracle_headers_from_html(path: Path) -> list[str] | None:
+    """Pull Oracle column headers from a BI Publisher HTML dump without Excel."""
+    if not path.is_file():
+        return None
+    try:
+        if not file_looks_like_html(path):
+            return None
+    except OSError:
+        return None
+    with path.open("rb") as f:
+        blob = f.read(1024 * 1024)
+    text = blob.decode("utf-8", errors="replace")
+    hit = re.search(r"<b>\s*Tracking\s*#\s*</b>", text, flags=re.I)
+    if not hit:
+        return None
+    # Data table is the rest of the dump (no </table> in the first MB). Use this <tr> only.
+    tr_start = text.rfind("<tr", 0, hit.start())
+    tr_end = text.find("</tr>", hit.start())
+    if tr_start < 0 or tr_end < 0:
+        return None
+    row = text[tr_start:tr_end]
+    headers = [re.sub(r"\s+", " ", h).strip() for h in re.findall(r"<b>(.*?)</b>", row, flags=re.I | re.S)]
+    return [h for h in headers if h] or None
+
+
+def planned_output_names(when: datetime | None = None) -> set[str]:
+    stamp = generated_stamp(when)
+    return {
+        f"Everde Freight Data YTD {stamp} {DEFAULT_SUFFIX}.xlsb",
+        f"Everde Freight Data YTD {stamp} with MAR-26 Rates with updated 26 BUD YE COSTS.xlsb",
+    }
+
+
+def choose_template(args: argparse.Namespace, generated: datetime | None = None) -> Path:
+    if args.template:
+        template = Path(args.template)
+    else:
+        template = find_newest_template(
+            [output_dir(), juanita_share(), weekly_drop()],
+            exclude_names=planned_output_names(generated),
+        )
+    if template is None or not template.is_file():
+        raise SystemExit("No Everde Freight Data*.xlsb template found in WeeklyDrop or Juanita share")
+    return template
+
+
+def inspect_template(template: Path) -> dict:
+    """Read Raw Data C:AN headers, row-2 formulas, and BRA/STE/WIN Truck Capacity rates."""
+    import win32com.client as win32
+
+    excel = None
+    wb = None
+    try:
+        excel = win32.DispatchEx("Excel.Application")
+        excel.Visible = False
+        excel.DisplayAlerts = False
+        excel.AskToUpdateLinks = False
+        wb = excel.Workbooks.Open(str(template), ReadOnly=True, UpdateLinks=0)
+        try:
+            ws = wb.Worksheets("Raw Data")
+        except Exception as exc:
+            raise SystemExit(f"Template is missing 'Raw Data' tab: {exc}") from exc
+        info: dict = {
+            "headers": col_headers(ws, VALUE_FIRST_COL, VALUE_LAST_COL),
+            "a2": ws.Range("A2").Formula,
+            "b2": ws.Range("B2").Formula,
+            "ao2": ws.Cells(2, 41).Formula,
+            "last_col": last_used_col(ws),
+            "last_row": last_used_row(ws),
+            "fill_rates": [],
+        }
+        try:
+            tc = wb.Worksheets("Truck Capacity")
+        except Exception as exc:
+            raise SystemExit(f"Template is missing 'Truck Capacity' tab: {exc}") from exc
+        nr = int(tc.UsedRange.Rows.Count)
+        for r in range(2, nr + 1):
+            farm = tc.Cells(r, 2).Value
+            if str(farm) in {"BRA", "STE", "WIN"}:
+                info["fill_rates"].append((tc.Cells(r, 1).Value, tc.Cells(r, 5).Value))
+        return info
+    finally:
+        if wb is not None:
+            try:
+                wb.Close(SaveChanges=False)
+            except Exception:
+                pass
+        if excel is not None:
+            try:
+                excel.Quit()
+            except Exception:
+                pass
+
+
+def validate_headers_cli(args: argparse.Namespace) -> int:
+    """Smoke-check the chosen Juanita template (no paste / no Monday rebuild)."""
+    template = choose_template(args)
+    mark = " (fill rate updated)" if FILL_RATE_MARK in template.name.lower() else ""
+    log(f"Template: {template}{mark}")
+    info = inspect_template(template)
+    headers = [str(h) if h is not None else "" for h in info["headers"]]
+    log(f"Raw Data C:AN cols={len(headers)} last_col={info['last_col']} last_row={info['last_row']}")
+    for i, h in enumerate(headers, start=VALUE_FIRST_COL):
+        log(f"  col {i}: {h}")
+    if not str(info["a2"]).startswith("=") or not str(info["ao2"]).startswith("="):
+        raise SystemExit("Template row 2 is missing Juanita formulas on A:B / AO:BP")
+    log(f"A2 {info['a2']}")
+    log(f"AO2 {info['ao2']}")
+    log("Truck Capacity BRA/STE/WIN (# of EU's not racked):")
+    for key, eu in info["fill_rates"]:
+        log(f"  {key}: {eu}")
+
+    source = Path(args.source) if args.source else find_newest_oracle(archive_dir()) or find_newest_oracle_anywhere()
+    if source is None:
+        log("No Oracle dump in archive/live drop; skipped dump header compare.")
+        return 0
+    log(f"Oracle dump: {source}")
+    oracle_cols = oracle_headers_from_html(source)
+    if not oracle_cols:
+        log("Could not parse Oracle HTML headers from the dump preamble.")
+        return 0
+    log(f"Oracle HTML headers={len(oracle_cols)}")
+    validate_headers(oracle_cols, headers)
+    log("OK: Oracle headers match template C:AN. No convert run.")
+    return 0
 
 
 def values_as_com_array(df: pd.DataFrame) -> list[list]:
@@ -701,7 +888,7 @@ def build_workbook(source: Path, template: Path, dest: Path, skip_pivots: bool =
         wb.Close(SaveChanges=True)
         wb = None
         log(f"Copying result to {dest}")
-        shutil.copy2(local_book, dest)
+        copy_with_retry(local_book, dest)
         stats["output_size"] = dest.stat().st_size
         return stats
     finally:
@@ -758,6 +945,8 @@ def save_state(source: Path, dest: Path, stats: dict) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
+    if args.validate_headers:
+        return validate_headers_cli(args)
     if args.from_archive:
         moved = move_live_dumps_to_archive()
         source = args.source and Path(args.source) or find_newest_oracle(archive_dir())
@@ -777,17 +966,10 @@ def run(args: argparse.Namespace) -> int:
 
     generated = datetime.now()
     out_dir = Path(args.output) if args.output else output_dir()
-    planned_name = f"Everde Freight Data YTD {generated_stamp(generated)} {DEFAULT_SUFFIX}.xlsb"
-    if args.template:
-        template = Path(args.template)
-    else:
-        template = find_newest_template(
-            [output_dir(), juanita_share(), weekly_drop()],
-            exclude_names={planned_name},
-        )
-    if template is None or not template.is_file():
-        raise SystemExit("No Everde Freight Data*.xlsb template found in WeeklyDrop or Juanita share")
+    template = choose_template(args, generated)
     dest = out_dir / output_name(template, generated)
+    mark = " (fill rate updated)" if FILL_RATE_MARK in template.name.lower() else ""
+    log(f"Using template{mark}: {template.name}")
 
     if already_processed(source, args.force):
         log(f"Already processed {source.name} (same size/mtime). Use --force to rebuild.")
@@ -804,7 +986,7 @@ def run(args: argparse.Namespace) -> int:
                 not wd_dest.exists() or wd_dest.stat().st_mtime < newest_out.stat().st_mtime
             ):
                 log(f"Copying to WeeklyDrop: {wd_dest}")
-                shutil.copy2(newest_out, wd_dest)
+                copy_with_retry(newest_out, wd_dest)
             save_state(source, newest_out, {"rows": None})
             return 0
 
@@ -824,7 +1006,7 @@ def run(args: argparse.Namespace) -> int:
         wd_dest = wd / dest.name
         if dest.resolve() != wd_dest.resolve():
             log(f"Copying to WeeklyDrop: {wd_dest}")
-            shutil.copy2(dest, wd_dest)
+            copy_with_retry(dest, wd_dest)
         save_state(source, dest, stats)
         log(f"Done. rows={stats['rows']} size={stats.get('output_size')} sample_month={stats.get('sample_month')!r}")
         log(f"Juanita:  {dest}")
@@ -843,6 +1025,11 @@ def main() -> int:
     p.add_argument("--from-archive", action="store_true", help="Use newest dump on OracleShare or WeeklyDrop\\archive")
     p.add_argument("--force", action="store_true", help="Rebuild even if this dump was already processed")
     p.add_argument("--skip-pivots", action="store_true", help="Paste + formulas only (faster debug)")
+    p.add_argument(
+        "--validate-headers",
+        action="store_true",
+        help="Check the chosen Juanita template C:AN vs Oracle dump headers; do not convert",
+    )
     args = p.parse_args()
     try:
         return run(args)
