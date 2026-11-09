@@ -1,14 +1,14 @@
 {
   "meta": {
-    "title": "Everde Growers — Inventory Metrics Week 44 Site Focus Summary",
-    "week": 44,
-    "reportDate": "2026-11-02",
+    "title": "Everde Growers — Inventory Metrics Week 45 Site Focus Summary",
+    "week": 45,
+    "reportDate": "2026-11-09",
     "intro": "Please review your site’s focus areas and reply with any questions or action plans.",
-    "sourceName": "Wk44_Site_Focus_Summary_Final.docx",
+    "sourceName": "Wk45_Site_Focus_Summary_Final.docx",
     "farmCount": 15,
     "regionCount": 3,
-    "alertCount": 3,
-    "extractedAt": "2026-11-03T19:00:11Z"
+    "alertCount": 1,
+    "extractedAt": "2026-11-09T20:00:15Z"
   },
   "regions": [
     {
@@ -19,23 +19,18 @@
           "market": "Oregon",
           "items": [
             {
-              "topic": "Photos",
-              "text": "Fully recovered to 91.7% current (6.4% late) — back to system norms after a long run of late/no-photo issues through October. Resolved.",
-              "tone": "ok"
-            },
-            {
               "topic": "Cycle Count",
-              "text": "18.8% counted in Week 1 (goal 25%) — behind pace at 0.75.",
+              "text": "47.6% counted MTD through Week 2 (goal 50%) — on pace.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 quiet at 0.78%; YTD 2.40% vs. 2.06% goal still over. Monitor.",
+              "text": "Week 45 at 1.72%; YTD 2.36% vs. 2.06% goal still over. Grade - Too Small driver; monitor.",
               "tone": "watch"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.0% ABS VAR).",
+              "text": "On goal (0.10% ABS VAR). Photos holding fully recovered at 96.8% current.",
               "tone": "ok"
             }
           ]
@@ -46,12 +41,12 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "Only 5.5% counted in Week 1 (goal 25%) — pacing 0.22, an unusually slow start for BRA. Needs to get going.",
+              "text": "10.7% counted MTD through Week 2 (goal 50%) — pacing 0.21, still a very slow start two weeks in. Needs to get going.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 at 3.81% — under the 4.55% goal this week. YTD 4.69% vs. 4.55% still over. Grade - Too Small driver; monitor.",
+              "text": "Week 45 at 2.46% — under the 4.55% goal this week. YTD 4.64% vs. 4.55% still over. Grade - Too Small driver; monitor.",
               "tone": "watch"
             },
             {
@@ -67,17 +62,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "30.6% counted in Week 1 (goal 25%) — ahead of pace at 1.22. Good start.",
+              "text": "34.9% counted MTD through Week 2 (goal 50%) — behind pace at 0.70.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 at 0.92%; YTD 1.77% vs. 2.06% goal, under goal. No action needed.",
+              "text": "Week 45 at 1.81%; YTD 1.78% vs. 2.06% goal, under goal. No action needed.",
               "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.14% ABS VAR).",
+              "text": "On goal (0.10% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -92,13 +87,13 @@
           "market": "SO CAL",
           "items": [
             {
-              "topic": "Cycle Count",
-              "text": "19.9% counted in Week 1 (goal 25%) — slightly behind pace at 0.80.",
-              "tone": "watch"
+              "topic": "BO/CR",
+              "text": "Week 45 reads 29.83%, but that is a low-revenue artifact — only about $700 in backorders and credits against an unusually small revenue week ($2.3K). The dollar exposure is minor; the real issue is the YTD gap at 8.81% vs. 4.75%, still the largest in the system. Quality - Diseased/Insects remains the driver; close out the root cause.",
+              "tone": "alert"
             },
             {
-              "topic": "BO/CR",
-              "text": "Week 44 quiet at 0.0%, but YTD 8.61% vs. 4.75% goal remains the largest gap in the system. Quality - Diseased/Insects is the driver; root cause still needs to be closed out.",
+              "topic": "Cycle Count",
+              "text": "49.8% counted MTD through Week 2 (goal 50%) — on pace.",
               "tone": "watch"
             }
           ]
@@ -109,17 +104,17 @@
           "items": [
             {
               "topic": "Ready Dates",
-              "text": "9.2% past ready date (41 items) — 95% PN holds. PN hold ready dates need to be reviewed and updated.",
+              "text": "7.7% past ready date (35 items) — all PN holds. PN hold ready dates need to be reviewed and updated.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 quiet at 1.73%, but YTD 5.47% vs. 3.25% goal remains over. Grade - No Bud/Bloom is the top BO driver; keep working YTD back in line.",
-              "tone": "watch"
+              "text": "Week 45 at 3.10% — under goal this week, but YTD 5.44% vs. 3.25% remains over. Grade - No Bud/Bloom driver; keep working YTD back in line.",
+              "tone": "ok"
             },
             {
               "topic": "Cycle Count",
-              "text": "12.4% counted in Week 1 (goal 25%) — behind pace at 0.49.",
+              "text": "46.0% counted MTD through Week 2 — slightly behind pace at 0.92.",
               "tone": "watch"
             }
           ]
@@ -130,17 +125,17 @@
           "items": [
             {
               "topic": "BO/CR",
-              "text": "Week 44 at 5.57% — above the 2.35% goal. YTD 2.82% vs. 2.35%. Grade - No Bud/Bloom driver; monitor.",
+              "text": "Week 45 at 4.92% — above the 2.35% goal (over goal several weeks running now). YTD 2.83% vs. 2.35%. Grade - No Bud/Bloom driver; monitor.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "50.2% counted in Week 1 — well ahead of pace. Strong start.",
+              "text": "86.5% counted MTD through Week 2 — well ahead of pace.",
               "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.01% ABS VAR).",
+              "text": "On goal (0.0% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -151,18 +146,18 @@
           "items": [
             {
               "topic": "Ready Dates",
-              "text": "8.2% past ready date (41 items) — 88% PN holds; 5 non-PN items need follow-up. Review and update PN hold dates.",
+              "text": "6.9% past ready date (35 items) — all PN holds. Review and update PN hold dates.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 at 3.35% — under the 4.05% goal this week. YTD 4.26% vs. 4.05%. Grade - Too Small driver; monitor.",
-              "tone": "watch"
+              "text": "Week 45 at 1.41% — under goal this week. YTD 4.20% vs. 4.05%. Grade - Too Small driver; monitor.",
+              "tone": "ok"
             },
             {
               "topic": "Cycle Count",
-              "text": "28.6% counted in Week 1 — ahead of pace.",
-              "tone": "watch"
+              "text": "80.5% counted MTD through Week 2 — well ahead of pace.",
+              "tone": "ok"
             }
           ]
         },
@@ -172,17 +167,17 @@
           "items": [
             {
               "topic": "BO/CR",
-              "text": "Week 44 spiked to 23.96% — far above the 4.05% goal. An $11.3K credit plus $5.6K in backorders (Quality - Diseased/Insects) drove it on a normal-revenue week, so this is not a ratio artifact. YTD jumped to 5.10% vs. 4.05%. Needs immediate review.",
-              "tone": "alert"
+              "text": "Week 45 back to 2.40% — under goal, normalized after last week’s 23.96% credit spike. YTD remains over at 5.05% vs. 4.05%. Quality - Diseased/Insects driver; keep working YTD back in line.",
+              "tone": "ok"
             },
             {
               "topic": "Cycle Count",
-              "text": "37.0% counted in Week 1 — well ahead of pace.",
+              "text": "72.0% counted MTD through Week 2 — well ahead of pace.",
               "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.03% ABS VAR).",
+              "text": "On goal (0.0% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -193,13 +188,13 @@
           "items": [
             {
               "topic": "BO/CR",
-              "text": "Week 44 quiet at 0.11%, but YTD 4.21% vs. 3.20% goal remains over. Quality - GWSS Cancellation remains the driver; monitor.",
+              "text": "Week 45 quiet at 1.75%, but YTD 4.20% vs. 3.20% goal remains over. Quality - GWSS Cancellation remains the driver; monitor.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "37.4% counted in Week 1 — well ahead of pace.",
-              "tone": "ok"
+              "text": "37.7% counted MTD through Week 2 (goal 50%) — behind pace at 0.75.",
+              "tone": "watch"
             }
           ]
         },
@@ -208,19 +203,19 @@
           "market": "SO CAL",
           "items": [
             {
+              "topic": "BO/CR",
+              "text": "Week 45 at 5.37% — above the 4.55% goal this week (YTD 3.77%, still under goal). Grade - Too Small driver; monitor.",
+              "tone": "ok"
+            },
+            {
               "topic": "Ready Dates",
-              "text": "11.3% past ready date (114 items) — 95% PN holds. PN hold date review needed.",
+              "text": "11.0% past ready date (112 items) — 95% PN holds. PN hold date review needed.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "38.1% counted in Week 1 — well ahead of pace.",
-              "tone": "ok"
-            },
-            {
-              "topic": "BO/CR",
-              "text": "Week 44 at 1.77%; YTD 3.74% vs. 4.55% goal, under goal. No action needed.",
-              "tone": "ok"
+              "text": "45.5% counted MTD through Week 2 — slightly behind pace at 0.91.",
+              "tone": "watch"
             }
           ]
         }
@@ -234,23 +229,18 @@
           "market": "TX",
           "items": [
             {
-              "topic": "Ready Dates",
-              "text": "7.5% past ready date (211 items) — all PN holds. PN hold ready dates need to be reviewed and updated.",
-              "tone": "watch"
-            },
-            {
-              "topic": "BO/CR",
-              "text": "Week 44 at 3.71% — above the 2.80% goal; YTD still well under at 1.62%. Grade - Too Small driver; monitor.",
+              "topic": "Cycle Count",
+              "text": "68.0% counted MTD through Week 2 (goal 50%) — well ahead of pace.",
               "tone": "ok"
             },
             {
-              "topic": "Cycle Count",
-              "text": "25.8% counted in Week 1 (goal 25%) — on pace.",
-              "tone": "watch"
+              "topic": "BO/CR",
+              "text": "Week 45 at 1.68%; YTD 1.62% vs. 2.80% goal, under goal. No action needed.",
+              "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.41% ABS VAR) — highest this week but within goal; keep an eye on it.",
+              "text": "On goal (0.07% ABS VAR).",
               "tone": "ok"
             }
           ]
@@ -261,17 +251,17 @@
           "items": [
             {
               "topic": "Photos",
-              "text": "Crashed to 28.0% current — 71.7% late photo, by far the largest backlog in the system (new-month reset). Immediate attention needed.",
+              "text": "Recovering — 77.3% current (from 28.0% last week), though 21.5% remain late. Keep clearing the backlog.",
               "tone": "watch"
             },
             {
               "topic": "Cycle Count",
-              "text": "8.1% counted in Week 1 (goal 25%) — behind pace at 0.32.",
+              "text": "31.7% counted MTD through Week 2 (goal 50%) — behind pace at 0.63.",
               "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 at 0.62%; YTD 3.25% vs. 2.55% goal still over. Quality - Environmental Damage driver; monitor.",
+              "text": "Week 45 quiet at 0.04%; YTD 3.21% vs. 2.55% goal still over. Quality - Environmental Damage driver; monitor.",
               "tone": "watch"
             },
             {
@@ -287,17 +277,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "0.4% counted in Week 1 (goal 25%) — pacing 0.02, essentially nothing counted and the weakest start in the system. The count problem is now carrying into a fourth month.",
-              "tone": "alert"
-            },
-            {
-              "topic": "BO/CR",
-              "text": "Week 44 spiked to 14.04% — well above the 1.90% goal. A $13.9K credit (Quality - Diseased/Insects) drove it on normal revenue. YTD 2.48% vs. 1.90%. Needs review.",
-              "tone": "alert"
+              "text": "1.5% counted MTD through Week 2 (goal 50%) — pacing 0.03, still essentially nothing counted. The count problem is carrying into a fourth month.",
+              "tone": "watch"
             },
             {
               "topic": "Photos",
-              "text": "68.4% current — 29.9% late (new-month reset). Keep clearing the backlog.",
+              "text": "Recovered to 96.9% current (from 68.4% last week) — resolved. Good recovery.",
+              "tone": "ok"
+            },
+            {
+              "topic": "BO/CR",
+              "text": "Week 45 at 2.31% — above the 1.90% goal; YTD 2.48% vs. 1.90%. Quality - Diseased/Insects driver; monitor.",
               "tone": "watch"
             },
             {
@@ -312,18 +302,18 @@
           "market": "FL",
           "items": [
             {
-              "topic": "Cycle Count",
-              "text": "36.8% counted in Week 1 (goal 25%) — well ahead of pace. Strong start.",
+              "topic": "Inventory Accuracy",
+              "text": "ABS VAR ticked to 0.57% (was on goal last week), EU variance of +6,975 — just over the 0.5% goal; a physical count check is warranted.",
               "tone": "ok"
             },
             {
-              "topic": "Inventory Accuracy",
-              "text": "On goal (0.0% ABS VAR).",
-              "tone": "ok"
+              "topic": "Cycle Count",
+              "text": "52.2% counted MTD through Week 2 (goal 50%) — on pace.",
+              "tone": "watch"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 at 0.0% — no action needed.",
+              "text": "Week 45 at 0.0% — no action needed.",
               "tone": "ok"
             }
           ]
@@ -334,17 +324,17 @@
           "items": [
             {
               "topic": "Cycle Count",
-              "text": "45.8% counted in Week 1 (goal 25%) — well ahead of pace; the turnaround continues into November.",
+              "text": "64.5% counted MTD through Week 2 (goal 50%) — well ahead of pace; the turnaround continues.",
               "tone": "ok"
             },
             {
               "topic": "BO/CR",
-              "text": "Week 44 at 9.89% — above the 2.15% goal, driven by a Quality - Diseased/Insects credit on a small-site revenue base. YTD still well under at 1.26%. Monitor.",
+              "text": "Week 45 at 0.0%; YTD 1.24% vs. 2.15% goal, under goal. No action needed.",
               "tone": "ok"
             },
             {
               "topic": "Inventory Accuracy",
-              "text": "On goal (0.13% ABS VAR).",
+              "text": "On goal (0.0% ABS VAR).",
               "tone": "ok"
             }
           ]
