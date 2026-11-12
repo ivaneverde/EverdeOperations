@@ -15,7 +15,6 @@
     Everde-NurserySupply-GmailFetch  4:00 AM daily — Gmail XXTT inventory .xls → DataDrops + email Jonathan that file only
     Everde-NurserySupply-DailyCheck  9:00 AM daily — XXTT drop → supply HTML + Blob + git push (no forward)
     Everde-WCRO-DailyCheck          11:00 AM + 12:00 PM + 2:30 PM daily — newest KAOWT _HANDOFF_WCRO_* pack -> Blob
-
   Times use the **Windows local clock**. Set the PC to Pacific time, or pass -SalesPlanTime /
   -FreightTime / -NurseryTime / -NurserySupplyTime / -NurserySupplyGmailTime adjusted for your timezone.
 
@@ -88,7 +87,7 @@ $tasks = @(
     Time = $NurserySupplyGmailTime
     Script = "run-scheduled-nursery-supply-gmail.ps1"
     Schedule = "DailyOnce"
-    Description = "Daily 4:00 AM: fetch Oracle XXTT inventory .xls from Gmail into DataDrops (email forward off by default — Jonathan gets Splash Full Inventory Daily instead)."
+    Description = "Daily 4:00 AM: fetch Oracle XXTT inventory .xls from Gmail into DataDrops (email forward off by default - Jonathan gets Splash Full Inventory Daily instead)."
   },
   @{
     Name = "Everde-NurserySupply-DailyCheck"
@@ -115,18 +114,22 @@ $tasks = @(
   @{
     Name = "Everde-Freight-DashboardEmail-Monday"
     Time = $FreightDashboardEmailTime
+    # Safety catch-up if 9:00 is skipped (DST/login race). Script no-ops if already emailed today.
+    CatchUpTime = "10:30"
     Script = "run-scheduled-freight-dashboard-email.ps1"
     Schedule = "Weekly"
     Day = "Monday"
-    Description = "Monday 9:00 AM: build Freight Dashboard from today's Juanita YTD xlsb, publish to Blob, email the team (.env.local recipients)."
-  }
+    Description = "Monday 9:00 AM (+ 10:30 catch-up): build Freight Dashboard from today's Juanita YTD xlsb, publish to Blob, email the team (.env.local recipients)."
+  },
 )
 
+# Preeminent license is manual (Cursor upload / Admin → License) — no scheduled task.
 $settings = New-ScheduledTaskSettingsSet `
   -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries `
   -StartWhenAvailable `
-  -ExecutionTimeLimit (New-TimeSpan -Hours 4)
+  -ExecutionTimeLimit (New-TimeSpan -Hours 4) `
+  -MultipleInstances IgnoreNew
 
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
 
@@ -136,7 +139,9 @@ $legacyTaskNames = @(
   "Everde-Nursery-WeeklyCheck",
   "Everde-NurserySupply-WeeklyCheck",
   "Everde-WCRO-WeeklyExtract",
-  "Everde-WCRO-WeeklyCheck"
+  "Everde-WCRO-WeeklyCheck",
+  "Everde-PreeminentLicense-DailyCheck",
+  "Everde-PreeminentLicense-MonthlyCheck"
 )
 
 if ($Unregister) {
@@ -163,14 +168,42 @@ foreach ($t in $tasks) {
 
   if ($t.Schedule -eq "Weekly") {
     $dow = [System.Enum]::Parse([System.DayOfWeek], $t.Day, $true)
-    $triggers = @(
-      (New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dow -At $t.Time)
+    # Build -At from today's date + HH:mm so the trigger stays wall-clock local (avoids DST 8am/9am skew).
+    $atPrimary = [datetime]::ParseExact(
+      ((Get-Date).ToString("yyyy-MM-dd") + " " + $t.Time),
+      "yyyy-MM-dd HH:mm",
+      [System.Globalization.CultureInfo]::InvariantCulture
     )
+    $triggers = @(
+      (New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dow -At $atPrimary)
+    )
+    if ($t.CatchUpTime) {
+      $atCatch = [datetime]::ParseExact(
+        ((Get-Date).ToString("yyyy-MM-dd") + " " + $t.CatchUpTime),
+        "yyyy-MM-dd HH:mm",
+        [System.Globalization.CultureInfo]::InvariantCulture
+      )
+      $triggers += (New-ScheduledTaskTrigger -Weekly -DaysOfWeek $dow -At $atCatch)
+    }
   } elseif ($t.Schedule -eq "DailyOnce") {
     # Single daily run (e.g. Gmail XXTT lands ~3 AM → process at 9 AM only)
     $triggers = @(
       (New-ScheduledTaskTrigger -Daily -At $t.Time)
     )
+  } elseif ($t.Schedule -eq "Monthly") {
+    # Windows PowerShell 5.1 has no New-ScheduledTaskTrigger -Monthly; use schtasks.
+    $dom = if ($t.DayOfMonth) { [int]$t.DayOfMonth } else { 1 }
+    $tr = "`"$ps`" -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+    $null = schtasks /Create /F /TN $t.Name /TR $tr /SC MONTHLY /D $dom /ST $t.Time /RL LIMITED /IT
+    if ($LASTEXITCODE -ne 0) { throw "schtasks failed for $($t.Name) exit $LASTEXITCODE" }
+    # Refresh description via Register is skipped; set via Set-ScheduledTask if present
+    try {
+      $existing = Get-ScheduledTask -TaskName $t.Name -ErrorAction Stop
+      $existing.Description = $desc
+      Set-ScheduledTask -InputObject $existing | Out-Null
+    } catch { }
+    Write-Host "Registered: $($t.Name) monthly on day $dom at $($t.Time)" -ForegroundColor Green
+    continue
   } else {
     $triggers = @(
       (New-ScheduledTaskTrigger -Daily -At $t.Time),
@@ -189,9 +222,16 @@ foreach ($t in $tasks) {
     -Force | Out-Null
 
   $schedLabel = if ($t.Schedule -eq "Weekly") {
-    "weekly on $($t.Day) at $($t.Time)"
+    if ($t.CatchUpTime) {
+      "weekly on $($t.Day) at $($t.Time) + catch-up $($t.CatchUpTime)"
+    } else {
+      "weekly on $($t.Day) at $($t.Time)"
+    }
   } elseif ($t.Schedule -eq "DailyOnce") {
     "daily once at $($t.Time)"
+  } elseif ($t.Schedule -eq "Monthly") {
+    $dom = if ($t.DayOfMonth) { $t.DayOfMonth } else { 1 }
+    "monthly on day $dom at $($t.Time)"
   } else {
     "daily at $($t.Time) + midday $MiddayTime + catch-up $CatchUpTime"
   }

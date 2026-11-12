@@ -35,6 +35,7 @@ import {
   botProfileDeniedMessage,
   canAccessBotProfile,
 } from "../everde/viewRights.js";
+import { assertPreeminentLicenseAllowsBot } from "../everde/preeminentLicense.js";
 import {
   buildMassUploadWorkbook,
   canUseMassUpload,
@@ -108,6 +109,16 @@ export class TeamsClaudeBot extends ActivityHandler {
       tryFileDownload,
       attachments: summarizeAttachments(attachments),
     });
+
+    const license = await assertPreeminentLicenseAllowsBot();
+    if (!license.allowed) {
+      await context.sendActivity(
+        MessageFactory.text(
+          license.message || "Service temporarily unavailable.",
+        ),
+      );
+      return;
+    }
 
     if (!text && !tryFileDownload) {
       await context.sendActivity(

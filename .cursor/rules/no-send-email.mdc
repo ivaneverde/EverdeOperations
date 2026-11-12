@@ -1,0 +1,11 @@
+---
+description: Never send email without explicit user permission
+alwaysApply: true
+---
+
+# Email sending
+
+- **Never send** email (Outlook, Gmail, Graph, Teams mail, or any other channel) unless the user **explicitly** says to send it in that turn.
+- Drafting, saving `.md` drafts, putting text on the clipboard, or opening a compose window is fine.
+- Do **not** treat “handle it,” “follow up,” “nudge,” “let them know,” or similar as permission to send.
+- If sending would help, show the draft and wait for an explicit “send it” (or equivalent).

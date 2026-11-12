@@ -78,3 +78,7 @@ __pycache__/
 
 # Disaster recovery doc with live secrets — email to yourself; never commit
 /docs/DISASTER_RECOVERY.md
+
+# Preeminent license receipts (local drop; do not commit)
+data/preeminent-receipts/
+.everde-scheduler/preeminent_license.json

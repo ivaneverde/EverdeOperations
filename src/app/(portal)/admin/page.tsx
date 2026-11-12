@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminFreightTools } from "@/components/admin/AdminFreightTools";
+import { AdminLicenseTools } from "@/components/admin/AdminLicenseTools";
 import { AdminSalesPlanTools } from "@/components/admin/AdminSalesPlanTools";
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function AdminPage() {
             key for automation).
           </p>
         </header>
+        <AdminLicenseTools />
         <AdminFreightTools />
         <AdminSalesPlanTools />
       </div>
