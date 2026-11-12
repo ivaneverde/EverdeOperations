@@ -23,6 +23,8 @@
 
 Daily data refresh stops only if the lost laptop was the **scheduled agent PC** (hostname `VRD-8FQJYW3`).
 
+**Work from desktop PC with Cursor:** do not use a second clone as the live agent. Use **Remote SSH into this laptop** so shares/Outlook/tasks stay here — see `docs/CURSOR_REMOTE_FROM_WORKSTATION.md`.
+
 ---
 
 ## 2. Secrets location

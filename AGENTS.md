@@ -8,6 +8,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 Ship for **localhost** during design and QA. The roadmap is a **hosted, multi-device web portal** (phones, tablets, desktops) with appropriate auth and hosting; keep layouts responsive and avoid assumptions that only apply to a single desktop on VPN.
 
+**Cursor from another PC:** use Remote SSH into the agent laptop (`VRD-8FQJYW3`) — not a Desktop copy as the live workspace. See `docs/CURSOR_REMOTE_FROM_WORKSTATION.md`.
+
 ## Everde — saved decisions & backlog (handoff)
 
 **Repo / app:** Next.js portal at `C:\Users\isunderland\everde-ai-operations` (package `everde-ai-operations`). Data config: `src/config/portal.ts` (`DATA_ROOT_UNC` = `\\192.168.190.10\Claude Sandbox\DataDrops`).
