@@ -4,12 +4,15 @@
   Copy the newest admin-posted 2026 Sales by Item file into Sales Plan Review\WeeklyDrop.
 
 .DESCRIPTION
-  Admin posts weekly files under Planning & Reporting (typically on \\10.182.10.44\data).
-  Month folders look like "6 Jun", "5 May", etc. This script finds the newest
+  Admin (Franklin) posts weekly files under Everde Central Share Planning & Reporting.
+  Month folders look like "11 Nov", "6 Jun", etc. This script finds the newest
   2026 Sales by Item*.xlsx under that tree and copies it to WeeklyDrop when newer
   than what is already there.
 
-  Override source root: SALES_BY_ITEM_SOURCE in .env.local
+  Default source (reachable from agent PC):
+    \\VRD-AWSECS\Everde Central Share\Planning & Reporting\Data & Reports\Posted Data\Sales by Item\Current Year Sales by Items (Posted Weekly)
+  Override: SALES_BY_ITEM_SOURCE in .env.local
+
 
 .EXAMPLE
   npm run sales-plan:sync-sales-by-item
@@ -37,7 +40,7 @@ if (-not $SourceRoot) {
   $SourceRoot = $env:SALES_BY_ITEM_SOURCE
 }
 if (-not $SourceRoot) {
-  $SourceRoot = "\\10.182.10.44\data\Planning & Reporting\Data & Reports\Posted Data\Sales by Item\Current Year Sales by Items (Posted Weekly)"
+  $SourceRoot = "\\VRD-AWSECS\Everde Central Share\Planning & Reporting\Data & Reports\Posted Data\Sales by Item\Current Year Sales by Items (Posted Weekly)"
 }
 
 $dataRoot = $env:PORTAL_DATA_ROOT
