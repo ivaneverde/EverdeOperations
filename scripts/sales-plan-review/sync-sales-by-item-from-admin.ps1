@@ -1,13 +1,19 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   Copy the newest admin-posted 2026 Sales by Item file into Sales Plan Review\WeeklyDrop.
 
 .DESCRIPTION
   Admin (Franklin) posts weekly files under Everde Central Share Planning & Reporting.
-  Month folders look like "11 Nov", "6 Jun", etc. This script finds the newest
-  2026 Sales by Item*.xlsx under that tree and copies it to WeeklyDrop when newer
-  than what is already there.
+
+  Layout (month folders — go OUT one level from the current month to pick the next):
+    ...\Sales by Item\Current Year Sales by Items (Posted Weekly)\
+      1 Jan\  2 Feb\  ...  11 Nov\  12 Dec\
+        2026 Sales by Item MMDDYY.xlsx
+
+  Example: this week's file is under `11 Nov\`; next month open `12 Dec\` (sibling of
+  `11 Nov`, not inside it), then the dated workbook. The script -Recurse's that whole
+  Posted Weekly tree and copies the newest *.xlsx by LastWriteTime into WeeklyDrop.
 
   Default source (reachable from agent PC):
     \\VRD-AWSECS\Everde Central Share\Planning & Reporting\Data & Reports\Posted Data\Sales by Item\Current Year Sales by Items (Posted Weekly)

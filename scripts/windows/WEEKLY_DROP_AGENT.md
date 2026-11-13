@@ -85,7 +85,11 @@ Each job **skips** if no new file since last success (state under `.everde-sched
 
 | Report | Drop folder | Files |
 |--------|-------------|-------|
-| Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` (daily `Everde-SalesPlan-DailyCheck` auto-copies newest from Franklin/admin `\\VRD-AWSECS\Everde Central Share\Planning & Reporting\...\Current Year Sales by Items (Posted Weekly)` via `npm run sales-plan:sync-sales-by-item`); same file feeds **Claude `get_sales_by_item`**; **HD Sales YTD with Following Week Sales`*.xlsx`**; **`YTD BY STORE SKU*.xlsb`** (Lowe's) |
+| Sales Plan Review | `DataDrops\Sales Plan Review\WeeklyDrop\` | Inventory Transform `*.xlsx`, 2026 Sales by Item `*.xlsx` (daily `Everde-SalesPlan-DailyCheck` auto-copies newest from Franklin via `npm run sales-plan:sync-sales-by-item`); same file feeds **Claude `get_sales_by_item`**; **HD Sales YTD with Following Week Sales`*.xlsx`**; **`YTD BY STORE SKU*.xlsb`** (Lowe's) |
+
+**Franklin Sales by Item (month folders):** Source is  
+`\\VRD-AWSECS\Everde Central Share\Planning & Reporting\Data & Reports\Posted Data\Sales by Item\Current Year Sales by Items (Posted Weekly)\`  
+with sibling month folders `1 Jan` … `11 Nov` … `12 Dec`. Each week’s file lives *inside* that month folder (e.g. `11 Nov\2026 Sales by Item 110926.xlsx`). For December, go **out** of `11 Nov` to `12 Dec`, then open the new file — do not look for Dec under Nov. The sync script recurses all month folders and takes the newest by timestamp.
 | Freight | Weekly Monday dump `\\10.178.0.201\OracleShare\everde_prod\freight_load_board_*.xls` / `*.xml` — agent **moves** it to `DataDrops\Freight\WeeklyDrop\archive\` | Rebuilt `Everde Freight Data YTD *.xlsb` on Juanita `...\Load Board Reports\2026\` **and** `WeeklyDrop\` |
 | Production & Demand | `DataDrops\Inventory Metrics\` | `Inventory Metrics MM DD YY.xlsb` (weekly drop, typically Monday); optional `WkNN_Site_Focus_Summary*.docx` → portal **Site Focus Summary** subsection |
 | Supply Inventory (XXTT) | Gmail → `DataDrops\Sales Inventory Availability\` | Oracle ~3 AM email → **4:00 AM** fetch into DataDrops (`XXTT_FORWARD_ENABLE=0` — do not email Jonathan sales inventory). **9:00 AM** refreshes supply pane + Blob. Jonathan Full Inventory: Splash schedule **Full Inventory Daily**. |
